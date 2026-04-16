@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-app-bg: var(--app-bg);
+  --color-app-fg: var(--app-fg);
+  --color-app-accent: var(--app-accent);
+  --color-app-card: var(--app-card);
+  --color-app-border: var(--app-border);
+  
+  --color-app-green: var(--app-green);
+  --color-app-dark-green: var(--app-dark-green);
+  --color-app-gold: var(--app-gold);
+  --color-app-light-gold: var(--app-light-gold);
+  --color-app-brown: var(--app-brown);
+  --color-app-cream: var(--app-cream);
+}
+
+@layer base {
+  :root {
+    --app-bg: #FFFFFF;
+    --app-fg: #000000;
+    --app-accent: #4F9E6D;
+    --app-card: #F9F5E3;
+    --app-border: rgba(75, 61, 35, 0.12);
+    
+    --app-green: #4F9E6D;
+    --app-dark-green: #2C6B4E;
+    --app-gold: #CDAA2B;
+    --app-light-gold: #E7C07D;
+    --app-brown: #4B3D23;
+    --app-cream: #F9F5E3;
+  }
+
+  .dark {
+    --app-bg: #1A1A17;
+    --app-fg: #F9F5E3;
+    --app-accent: #4F9E6D;
+    --app-card: #2C2C26;
+    --app-border: rgba(231, 192, 125, 0.1);
+    
+    --app-green: #4F9E6D;
+    --app-dark-green: #6DBF8B;
+    --app-gold: #CDAA2B;
+    --app-light-gold: #E7C07D;
+    --app-brown: #E7C07D;
+    --app-cream: #2C2C26;
+  }
+
+  body {
+    background-color: var(--app-bg);
+    color: var(--app-fg);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+

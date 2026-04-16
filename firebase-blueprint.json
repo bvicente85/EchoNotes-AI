@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "MeetingReport": {
+      "title": "Meeting Report",
+      "description": "A synthesized report from a meeting recording",
+      "type": "object",
+      "properties": {
+        "summary": { "type": "string" },
+        "highlights": { "type": "array", "items": { "type": "string" } },
+        "nextActions": { "type": "array", "items": { "type": "string" } },
+        "keyDecisions": { "type": "array", "items": { "type": "string" } },
+        "transcript": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "speaker": { "type": "string" },
+              "text": { "type": "string" },
+              "timestamp": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["summary", "highlights", "nextActions", "keyDecisions", "transcript"]
+    },
+    "HistoryItem": {
+      "title": "History Item",
+      "description": "A record of a meeting in the user's history",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "title": { "type": "string" },
+        "report": { "$ref": "MeetingReport" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "title", "report", "userId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "theme": { "type": "string", "enum": ["light", "dark"] },
+        "defaultMode": { "type": "string", "enum": ["mic", "system"] },
+        "language": { "type": "string" },
+        "summaryDetail": { "type": "string", "enum": ["concise", "detailed"] },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "email": { "type": "string", "format": "email" }
+      }
+    }
+  },
+  "firestore": {
+    "/meetings/{meetingId}": {
+      "schema": "HistoryItem",
+      "description": "User meeting reports"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User settings and profile"
+    }
+  }
+}
