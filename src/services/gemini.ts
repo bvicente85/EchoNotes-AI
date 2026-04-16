@@ -23,7 +23,7 @@ export class MeetingAnalysisError extends Error {
 export async function generateMeetingReport(audioBase64: string, mimeType: string, detailLevel: string = 'detailed', language: string = 'english'): Promise<MeetingReport> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "") {
-    throw new MeetingAnalysisError('CONFIG_ERROR', 'Chave da API Gemini não encontrada. Por favor, verifique as "Settings" no menu do AI Studio e faça um novo Deploy da aplicação.');
+    throw new MeetingAnalysisError('CONFIG_ERROR', 'Chave da API Gemini não encontrada. Se estiver no Vercel, adicione a variável de ambiente GEMINI_API_KEY nas definições do projeto e faça um novo Deploy.');
   }
 
   const summaryInstruction = detailLevel === 'concise' 
@@ -151,7 +151,7 @@ export async function generateMeetingReport(audioBase64: string, mimeType: strin
 export async function askGemini(query: string, report: MeetingReport | null, historyItems: HistoryItem[] = [], chatHistory: { role: 'user' | 'model', parts: { text: string }[] }[] = []): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "") {
-    throw new Error('Gemini API key not found.');
+    throw new Error('Chave da API Gemini não encontrada. Configure a variável GEMINI_API_KEY no seu ambiente de deploy.');
   }
 
   let context = "";
