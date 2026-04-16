@@ -3,8 +3,7 @@ import { X, User, Mic, Monitor, Moon, Sun, Sparkles, Info, Save, Check, LogOut }
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
-import { db } from '../firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getSupabase } from '../supabase';
 
 interface SettingsViewProps {
   onClose: () => void;
@@ -46,19 +45,24 @@ export function SettingsView({
     localStorage.setItem('echonotes_language', language);
     localStorage.setItem('echonotes_summary_detail', summaryDetail);
     
-    // Save to Firestore users collection
+    // Save to Supabase profiles table
     try {
-      await setDoc(doc(db, 'users', userId), {
-        displayName: displayName,
-        defaultMode: defaultMode,
-        theme,
-        language,
-        summaryDetail: summaryDetail,
-        updatedAt: serverTimestamp(),
-        email: userEmail
-      }, { merge: true });
+      const supabase = getSupabase();
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          display_name: displayName,
+          default_mode: defaultMode,
+          theme: theme,
+          language: language,
+          summary_detail: summaryDetail,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
     } catch (err) {
-      console.error("Error saving settings to Firestore:", err);
+      console.error("Error saving settings to Supabase:", err);
     }
 
     if (onSettingsUpdate) {

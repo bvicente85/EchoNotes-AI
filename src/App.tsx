@@ -2,9 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateMeetingReport, MeetingReport, MeetingAnalysisError } from './services/gemini';
-import { auth, db } from './firebase';
-import { User, onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getSupabase } from './supabase';
+import { User } from '@supabase/supabase-js';
 import { ReportView } from './components/ReportView';
 import { LoginPage } from './components/LoginPage';
 import { SettingsView } from './components/SettingsView';
@@ -54,8 +53,20 @@ export default function App() {
   const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const supabase = getSupabase();
+    
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        loadUserSettings(session.user);
+      }
+      setAuthLoading(false);
+    });
+
     // Listen for auth changes
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUser = session?.user || null;
       setUser(currentUser);
       
       if (currentUser) {
@@ -76,12 +87,15 @@ export default function App() {
         setIsAdmin(true);
       }
 
-      // Load settings from Firestore users collection
+      // Load settings from Supabase profiles table
       try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single();
 
-        if (userDoc.exists()) {
-          const profile = userDoc.data();
+        if (profile && !error) {
           if (profile.role === 'admin') {
             setIsAdmin(true);
           }
@@ -93,17 +107,17 @@ export default function App() {
               document.documentElement.classList.remove('dark');
             }
           }
-          if (profile.defaultMode) setRecordingMode(profile.defaultMode);
-          if (profile.displayName) setDisplayName(profile.displayName);
+          if (profile.default_mode) setRecordingMode(profile.default_mode);
+          if (profile.display_name) setDisplayName(profile.display_name);
           if (profile.language) setLanguage(profile.language);
-          if (profile.summaryDetail) setSummaryDetail(profile.summaryDetail);
+          if (profile.summary_detail) setSummaryDetail(profile.summary_detail);
           
           // Sync with localStorage for legacy components
           if (profile.theme) localStorage.setItem('echonotes_theme', profile.theme);
-          if (profile.defaultMode) localStorage.setItem('echonotes_default_mode', profile.defaultMode);
-          if (profile.displayName) localStorage.setItem('echonotes_display_name', profile.displayName);
+          if (profile.default_mode) localStorage.setItem('echonotes_default_mode', profile.default_mode);
+          if (profile.display_name) localStorage.setItem('echonotes_display_name', profile.display_name);
           if (profile.language) localStorage.setItem('echonotes_language', profile.language);
-          if (profile.summaryDetail) localStorage.setItem('echonotes_summary_detail', profile.summaryDetail);
+          if (profile.summary_detail) localStorage.setItem('echonotes_summary_detail', profile.summary_detail);
         } else {
           // Fallback to localStorage if no profile data yet
           const savedTheme = (localStorage.getItem('echonotes_theme') as 'light' | 'dark') || 'light';
@@ -129,7 +143,7 @@ export default function App() {
       }
     };
 
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -142,12 +156,12 @@ export default function App() {
     if (user) {
       const fetchHistory = async () => {
         // Try to migrate data from LocalStorage first
-        const migrated = await migrateFromLocalStorage(user.uid);
+        const migrated = await migrateFromLocalStorage(user.id);
         if (migrated > 0) {
           console.log(`Migrated ${migrated} items from LocalStorage`);
         }
         
-        const data = await getHistory(user.uid);
+        const data = await getHistory(user.id);
         setHistory(data);
       };
       fetchHistory();
@@ -194,10 +208,10 @@ export default function App() {
       const result = await generateMeetingReport(lastFailedAudio.base64, lastFailedAudio.mimeType, detailLevel, language);
       
       setLastFailedAudio(null);
-      const newItem = await saveToHistory(result, user.uid);
+      const newItem = await saveToHistory(result, user.id);
       if (newItem) {
         setCurrentHistoryId(newItem.id);
-        const updatedHistory = await getHistory(user.uid);
+        const updatedHistory = await getHistory(user.id);
         setHistory(updatedHistory);
       }
       setReport(result);
@@ -359,10 +373,10 @@ export default function App() {
             const result = await generateMeetingReport(base64Audio, mimeType, detailLevel, language);
             console.log("Analysis complete!");
             setLastFailedAudio(null); // Clear on success
-            const newItem = await saveToHistory(result, user!.uid);
+            const newItem = await saveToHistory(result, user!.id);
             if (newItem) {
               setCurrentHistoryId(newItem.id);
-              const updatedHistory = await getHistory(user!.uid);
+              const updatedHistory = await getHistory(user!.id);
               setHistory(updatedHistory);
             } else {
               setError("O relatório foi gerado, mas não foi possível guardá-lo no histórico. Verifique a sua ligação ao Supabase.");
@@ -428,7 +442,7 @@ export default function App() {
     if (deleteConfirmId) {
       const success = await deleteFromHistory(deleteConfirmId);
       if (success) {
-        const updatedHistory = await getHistory(user!.uid);
+        const updatedHistory = await getHistory(user!.id);
         setHistory(updatedHistory);
       }
       setDeleteConfirmId(null);
@@ -440,7 +454,7 @@ export default function App() {
   };
 
   const confirmClearAll = async () => {
-    const success = await clearHistory(user!.uid);
+    const success = await clearHistory(user!.id);
     if (success) {
       setHistory([]);
     }
@@ -461,7 +475,7 @@ export default function App() {
     }
     const success = await updateHistoryItem(id, { title: editingTitle });
     if (success) {
-      const updatedHistory = await getHistory(user!.uid);
+      const updatedHistory = await getHistory(user!.id);
       setHistory(updatedHistory);
     }
     setEditingId(null);
@@ -475,9 +489,9 @@ export default function App() {
       nextActions: ["Manual action"],
       transcript: [{ speaker: "User", text: "Manual entry created.", timestamp: "00:00" }]
     };
-    const newItem = await saveToHistory(manualReport, user!.uid);
+    const newItem = await saveToHistory(manualReport, user!.id);
     if (newItem) {
-      const updatedHistory = await getHistory(user!.uid);
+      const updatedHistory = await getHistory(user!.id);
       setHistory(updatedHistory);
       handleSelectHistory(newItem);
       setShowHistory(false);
@@ -495,7 +509,7 @@ export default function App() {
     if (currentHistoryId) {
       const success = await updateHistoryItem(currentHistoryId, { report: updatedReport });
       if (success) {
-        const updatedHistory = await getHistory(user!.uid);
+        const updatedHistory = await getHistory(user!.id);
         setHistory(updatedHistory);
       }
     }
@@ -505,7 +519,7 @@ export default function App() {
     if (currentHistoryId) {
       const success = await updateHistoryItem(currentHistoryId, { title: newTitle });
       if (success) {
-        const updatedHistory = await getHistory(user!.uid);
+        const updatedHistory = await getHistory(user!.id);
         setHistory(updatedHistory);
       }
     }
@@ -524,16 +538,17 @@ export default function App() {
 
     // Update profile if user is logged in
     if (user) {
-      try {
-        await setDoc(doc(db, 'users', user.uid), { theme: newTheme }, { merge: true });
-      } catch (err) {
-        console.error("Error updating theme in Firestore:", err);
-      }
+      const supabase = getSupabase();
+      await supabase
+        .from('profiles')
+        .update({ theme: newTheme })
+        .eq('id', user.id);
     }
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    const supabase = getSupabase();
+    await supabase.auth.signOut();
   };
 
   const handleGoHome = () => {
@@ -864,7 +879,7 @@ export default function App() {
           <SettingsView 
             onClose={() => setShowSettings(false)} 
             userEmail={user.email || ''} 
-            userId={user.uid}
+            userId={user.id}
             onSignOut={handleSignOut}
             initialDisplayName={displayName}
             initialTheme={theme}

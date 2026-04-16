@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { db } from '../firebase';
-import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
+import { getSupabase } from '../supabase';
 import { HistoryItem } from '../services/storage';
 import { X, Search, Calendar, User, FileText, ChevronRight, LayoutGrid, List } from 'lucide-react';
 
@@ -19,40 +18,29 @@ export function AdminDashboard({ onClose, onSelectMeeting }: AdminDashboardProps
   useEffect(() => {
     const fetchAllMeetings = async () => {
       try {
-        const meetingsPath = 'meetings';
-        const q = query(collection(db, meetingsPath), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        const allMeetings: HistoryItem[] = [];
-        
-        for (const meetingDoc of querySnapshot.docs) {
-          const item = meetingDoc.data();
-          
-          // Fetch user profile for each meeting
-          let userName = `User ${item.userId.substring(0, 5)}`;
-          let userEmail = 'No email associated';
-          
-          try {
-            const userDoc = await getDoc(doc(db, 'users', item.userId));
-            if (userDoc.exists()) {
-              const profile = userDoc.data();
-              userName = profile.displayName || profile.email?.split('@')[0] || userName;
-              userEmail = profile.email || userEmail;
-            }
-          } catch (profileErr) {
-            console.error("Error fetching user profile for admin:", profileErr);
-          }
+        const supabase = getSupabase();
+        const { data, error } = await supabase
+          .from('meetings')
+          .select(`
+            *,
+            profiles:user_id (
+              display_name,
+              email
+            )
+          `)
+          .order('created_at', { ascending: false });
 
-          allMeetings.push({
-            id: meetingDoc.id,
-            userId: item.userId,
-            userName,
-            userEmail,
-            title: item.title,
-            date: item.date || (item.createdAt?.toDate?.()?.toISOString()) || new Date().toISOString(),
-            report: item.report
-          });
-        }
+        if (error) throw error;
+
+        const allMeetings: HistoryItem[] = data.map((item: any) => ({
+          id: item.id,
+          userId: item.user_id,
+          userName: item.profiles?.display_name || `User ${item.user_id.substring(0, 5)}`,
+          userEmail: item.profiles?.email || 'No email associated',
+          date: item.created_at,
+          title: item.title,
+          report: item.report
+        }));
         
         setMeetings(allMeetings);
       } catch (error) {

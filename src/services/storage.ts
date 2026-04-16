@@ -1,20 +1,5 @@
 import { MeetingReport } from './gemini';
-import { db, auth } from '../firebase';
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  deleteDoc, 
-  doc, 
-  updateDoc, 
-  serverTimestamp,
-  getDoc,
-  setDoc
-} from 'firebase/firestore';
+import { getSupabase } from '../supabase';
 
 export interface HistoryItem {
   id: string;
@@ -26,146 +11,115 @@ export interface HistoryItem {
   userEmail?: string;
 }
 
-export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | null | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | null | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
-
 export const saveToHistory = async (report: MeetingReport, userId: string): Promise<HistoryItem | null> => {
-  const path = 'meetings';
   try {
-    const docRef = await addDoc(collection(db, path), {
-      title: report.summary.slice(0, 50) + (report.summary.length > 50 ? '...' : ''),
-      report,
-      userId: userId,
-      date: new Date().toISOString(),
-      createdAt: serverTimestamp()
-    });
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('meetings')
+      .insert([
+        {
+          title: report.summary.slice(0, 50) + (report.summary.length > 50 ? '...' : ''),
+          report,
+          user_id: userId
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase Insert Error:', error);
+      throw error;
+    }
 
     return {
-      id: docRef.id,
-      date: new Date().toISOString(),
-      title: report.summary.slice(0, 50) + (report.summary.length > 50 ? '...' : ''),
-      report,
-      userId
+      id: data.id,
+      date: data.created_at,
+      title: data.title,
+      report: data.report,
+      userId: data.user_id
     };
   } catch (error) {
-    handleFirestoreError(error, OperationType.CREATE, path);
+    console.error('Failed to save to history:', error);
     return null;
   }
 };
 
 export const getHistory = async (userId: string): Promise<HistoryItem[]> => {
-  const path = 'meetings';
   try {
-    const q = query(
-      collection(db, path),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        date: data.date || (data.createdAt?.toDate?.()?.toISOString()) || new Date().toISOString(),
-        title: data.title,
-        report: data.report,
-        userId: data.userId
-      };
-    });
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('meetings')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error('Supabase Fetch Error:', error);
+      throw error;
+    }
+
+    return data.map(item => ({
+      id: item.id,
+      date: item.created_at,
+      title: item.title,
+      report: item.report,
+      userId: item.user_id
+    }));
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, path);
+    console.error('Failed to load history:', error);
     return [];
   }
 };
 
 export const deleteFromHistory = async (id: string): Promise<boolean> => {
-  const path = `meetings/${id}`;
   try {
-    await deleteDoc(doc(db, 'meetings', id));
+    const supabase = getSupabase();
+    const { error } = await supabase
+      .from('meetings')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
     return true;
   } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, path);
+    console.error('Failed to delete from history:', error);
     return false;
   }
 };
 
 export const updateHistoryItem = async (id: string, updates: Partial<HistoryItem>): Promise<boolean> => {
-  const path = `meetings/${id}`;
   try {
-    const firestoreUpdates: any = {};
-    if (updates.title) firestoreUpdates.title = updates.title;
-    if (updates.report) firestoreUpdates.report = updates.report;
-    firestoreUpdates.updatedAt = serverTimestamp();
+    const supabase = getSupabase();
+    const supabaseUpdates: any = {};
+    if (updates.title) supabaseUpdates.title = updates.title;
+    if (updates.report) supabaseUpdates.report = updates.report;
 
-    await updateDoc(doc(db, 'meetings', id), firestoreUpdates);
+    const { error } = await supabase
+      .from('meetings')
+      .update(supabaseUpdates)
+      .eq('id', id);
+
+    if (error) throw error;
     return true;
   } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, path);
+    console.error('Failed to update history item:', error);
     return false;
   }
 };
 
 export const clearHistory = async (userId: string): Promise<boolean> => {
-  const path = 'meetings';
   try {
-    const q = query(collection(db, path), where('userId', '==', userId));
-    const querySnapshot = await getDocs(q);
-    
-    const deletePromises = querySnapshot.docs.map(document => deleteDoc(doc(db, path, document.id)));
-    await Promise.all(deletePromises);
+    const supabase = getSupabase();
+    const { error } = await supabase
+      .from('meetings')
+      .delete()
+      .eq('user_id', userId);
+
+    if (error) throw error;
     return true;
   } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, path);
+    console.error('Failed to clear history:', error);
     return false;
   }
 };

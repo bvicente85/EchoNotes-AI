@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Loader2, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
-import { auth } from '../firebase';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  GoogleAuthProvider, 
-  signInWithPopup 
-} from 'firebase/auth';
+import { getSupabase } from '../supabase';
 import { cn } from '../lib/utils';
 
 export function LoginPage() {
@@ -21,9 +15,15 @@ export function LoginPage() {
   const handleGoogleLogin = async () => {
     setError(null);
     setLoading(true);
+    const supabase = getSupabase();
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
     } catch (err: any) {
       setError(err.message || 'An error occurred during Google authentication');
     } finally {
@@ -37,12 +37,27 @@ export function LoginPage() {
     setMessage(null);
     setLoading(true);
 
+    const supabase = getSupabase();
+
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-        setMessage('Account created successfully!');
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              display_name: email.split('@')[0],
+            }
+          }
+        });
+        if (error) throw error;
+        setMessage('Account created successfully! Please check your email.');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication');
