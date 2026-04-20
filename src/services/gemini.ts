@@ -20,11 +20,21 @@ export class MeetingAnalysisError extends Error {
   }
 }
 
-export async function generateMeetingReport(audioBase64: string, mimeType: string, detailLevel: string = 'detailed', language: string = 'english'): Promise<MeetingReport> {
+export async function generateMeetingReport(
+  audioBase64: string, 
+  mimeType: string, 
+  detailLevel: string = 'detailed', 
+  language: string = 'english',
+  optimizeLowVolume: boolean = false
+): Promise<MeetingReport> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "") {
     throw new MeetingAnalysisError('CONFIG_ERROR', 'Chave da API Gemini não encontrada. Se estiver no Vercel, adicione a variável de ambiente GEMINI_API_KEY nas definições do projeto e faça um novo Deploy.');
   }
+
+  const lowVolumeInstruction = optimizeLowVolume 
+    ? "The audio recording has low volume or background noise. Please use your advanced signal processing and context reasoning to accurately transcribe every word, even the quiet ones. Pay extra attention to faint voices."
+    : "";
 
   const summaryInstruction = detailLevel === 'concise' 
     ? "Provide a very concise executive summary (max 3 sentences)." 
@@ -32,6 +42,8 @@ export async function generateMeetingReport(audioBase64: string, mimeType: strin
 
   const prompt = `
     You are an expert business analyst and meeting scribe. Analyze the provided meeting audio and generate a high-quality, professional report.
+    
+    ${lowVolumeInstruction}
     
     Your goal is to capture the essence, outcomes, and specific commitments made during the conversation.
     

@@ -1,22 +1,23 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateMeetingReport, MeetingReport, MeetingAnalysisError } from './services/gemini';
+import { AudioFileUpload } from './components/AudioFileUpload';
 import { getSupabase } from './supabase';
 import { User } from '@supabase/supabase-js';
 import { ReportView } from './components/ReportView';
+import { AskGemini } from './components/AskGemini';
 import { LoginPage } from './components/LoginPage';
 import { SettingsView } from './components/SettingsView';
 import { AdminDashboard } from './components/AdminDashboard';
-import { AskGemini } from './components/AskGemini';
+import { saveToHistory, getHistory, deleteFromHistory, updateHistoryItem, clearHistory, HistoryItem, migrateFromLocalStorage } from './services/storage';
 import { cn } from './lib/utils';
-import { saveToHistory, getHistory, deleteFromHistory, updateHistoryItem, clearHistory, migrateFromLocalStorage, HistoryItem } from './services/storage';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingMode, setRecordingMode] = useState<'mic' | 'system'>('mic');
+  const [recordingMode, setRecordingMode] = useState<'mic' | 'system' | 'upload'>('mic');
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastFailedAudio, setLastFailedAudio] = useState<{base64: string, mimeType: string} | null>(null);
   const [processingTime, setProcessingTime] = useState(0);
@@ -99,6 +100,10 @@ export default function App() {
           if (profile.role === 'admin') {
             setIsAdmin(true);
           }
+          if (profile.display_name) {
+            setDisplayName(profile.display_name);
+            localStorage.setItem('echonotes_display_name', profile.display_name);
+          }
           if (profile.theme) {
             setTheme(profile.theme as 'light' | 'dark');
             if (profile.theme === 'dark') {
@@ -107,35 +112,16 @@ export default function App() {
               document.documentElement.classList.remove('dark');
             }
           }
-          if (profile.default_mode) setRecordingMode(profile.default_mode);
-          if (profile.display_name) setDisplayName(profile.display_name);
-          if (profile.language) setLanguage(profile.language);
-          if (profile.summary_detail) setSummaryDetail(profile.summary_detail);
-          
-          // Sync with localStorage for legacy components
-          if (profile.theme) localStorage.setItem('echonotes_theme', profile.theme);
-          if (profile.default_mode) localStorage.setItem('echonotes_default_mode', profile.default_mode);
-          if (profile.display_name) localStorage.setItem('echonotes_display_name', profile.display_name);
-          if (profile.language) localStorage.setItem('echonotes_language', profile.language);
-          if (profile.summary_detail) localStorage.setItem('echonotes_summary_detail', profile.summary_detail);
-        } else {
-          // Fallback to localStorage if no profile data yet
-          const savedTheme = (localStorage.getItem('echonotes_theme') as 'light' | 'dark') || 'light';
-          setTheme(savedTheme);
-          if (savedTheme === 'dark') {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
+          if (profile.recording_mode) {
+             setRecordingMode(profile.recording_mode as 'mic' | 'system');
           }
-
-          const savedDefaultMode = localStorage.getItem('echonotes_default_mode') as 'mic' | 'system' | null;
-          if (savedDefaultMode) {
-            setRecordingMode(savedDefaultMode);
+          if (profile.language) {
+            setLanguage(profile.language);
+            localStorage.setItem('echonotes_language', profile.language);
           }
-
-          const savedDisplayName = localStorage.getItem('echonotes_display_name');
-          if (savedDisplayName) {
-            setDisplayName(savedDisplayName);
+          if (profile.summary_detail) {
+            setSummaryDetail(profile.summary_detail);
+            localStorage.setItem('echonotes_summary_detail', profile.summary_detail);
           }
         }
       } catch (err) {
@@ -143,7 +129,10 @@ export default function App() {
       }
     };
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -204,8 +193,8 @@ export default function App() {
     
     try {
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
-      const language = localStorage.getItem('echonotes_language') || 'english';
-      const result = await generateMeetingReport(lastFailedAudio.base64, lastFailedAudio.mimeType, detailLevel, language);
+      const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+      const result = await generateMeetingReport(lastFailedAudio.base64, lastFailedAudio.mimeType, detailLevel, languageSetting);
       
       setLastFailedAudio(null);
       const newItem = await saveToHistory(result, user.id);
@@ -227,16 +216,53 @@ export default function App() {
     }
   };
 
+  const handleFileUpload = async (base64: string, mimeType: string, options: { optimizeLowVolume: boolean }) => {
+    if (!user) return;
+    
+    setError(null);
+    setIsProcessing(true);
+    
+    try {
+      const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
+      const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+      
+      const result = await generateMeetingReport(
+        base64, 
+        mimeType, 
+        detailLevel, 
+        languageSetting, 
+        options.optimizeLowVolume
+      );
+      
+      const newItem = await saveToHistory(result, user.id);
+      if (newItem) {
+        setCurrentHistoryId(newItem.id);
+        const updatedHistory = await getHistory(user.id);
+        setHistory(updatedHistory);
+      }
+      setReport(result);
+    } catch (err) {
+      console.error("Upload processing failed:", err);
+      if (err instanceof MeetingAnalysisError) {
+        setError(err.message);
+      } else {
+        setError("Failed to analyze the audio file. Make sure it's a valid audio format and its size is under 20MB.");
+      }
+      setLastFailedAudio({ base64, mimeType });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const startRecording = async () => {
     setError(null);
     try {
       let stream: MediaStream;
       
       if (recordingMode === 'system') {
-        // Capture system/tab audio
         try {
           const screenStream = await navigator.mediaDevices.getDisplayMedia({ 
-            video: true, // Required for most browsers to show the audio checkbox
+            video: true,
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
@@ -245,24 +271,15 @@ export default function App() {
           });
           
           const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          
-          // Mix the streams
           const audioContext = new AudioContext();
           const destination = audioContext.createMediaStreamDestination();
-          
           const micSource = audioContext.createMediaStreamSource(micStream);
           const systemSource = audioContext.createMediaStreamSource(screenStream);
-          
           micSource.connect(destination);
           systemSource.connect(destination);
           
-          // We only need the audio tracks
           stream = destination.stream;
-          
-          // Stop the video track immediately as we don't need it
           screenStream.getVideoTracks().forEach(track => track.stop());
-          
-          // Store original streams to stop them later
           (stream as any)._originalStreams = [micStream, screenStream];
         } catch (err) {
           console.error("System audio capture failed:", err);
@@ -279,19 +296,14 @@ export default function App() {
           ? 'audio/ogg;codecs=opus'
           : '';
 
-      const mediaRecorder = mimeType 
-        ? new MediaRecorder(stream, { 
-            mimeType,
-            audioBitsPerSecond: 16000 // Reduced to 16kbps to keep file sizes under 20MB limit for long meetings
-          }) 
-        : new MediaRecorder(stream, {
-            audioBitsPerSecond: 16000
-          });
+      const mediaRecorder = new MediaRecorder(stream, { 
+        mimeType: mimeType || undefined,
+        audioBitsPerSecond: 16000
+      });
         
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
-      // Audio analysis for visualization
       const audioContext = new AudioContext();
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
@@ -299,124 +311,95 @@ export default function App() {
       source.connect(analyser);
       analyserRef.current = analyser;
 
-      const updateLevel = () => {
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(dataArray);
+      const updateVisualization = () => {
+        if (!analyserRef.current) return;
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
         
-        // Average for the main ring
-        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        setAudioLevel(average);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        setAudioLevel(sum / dataArray.length);
 
-        // Sample data for the waveform (40 bars)
+        const resizedData = [];
         const step = Math.floor(dataArray.length / 40);
-        const sampledData = [];
         for (let i = 0; i < 40; i++) {
-          sampledData.push(dataArray[i * step] || 0);
+          resizedData.push(dataArray[i * step]);
         }
-        setFrequencyData(sampledData);
+        setFrequencyData(resizedData);
 
-        // Sample data for the time-domain waveform (64 points)
-        const timeData = new Uint8Array(analyser.fftSize);
-        analyser.getByteTimeDomainData(timeData);
-        const sampledWaveform = [];
-        const waveStep = Math.floor(timeData.length / 64);
+        const timeData = new Uint8Array(analyserRef.current.fftSize);
+        analyserRef.current.getByteTimeDomainData(timeData);
+        const resizedWaveform = [];
+        const wStep = Math.floor(timeData.length / 64);
         for (let i = 0; i < 64; i++) {
-          sampledWaveform.push(timeData[i * waveStep] || 128);
+          resizedWaveform.push(timeData[i * wStep]);
         }
-        setWaveform(sampledWaveform);
+        setWaveform(resizedWaveform);
 
-        animationFrameRef.current = requestAnimationFrame(updateLevel);
+        animationFrameRef.current = requestAnimationFrame(updateVisualization);
       };
-      updateLevel();
+
+      updateVisualization();
 
       mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
       mediaRecorder.onstop = async () => {
-        setIsProcessing(true);
-        console.log("Recording stopped. Chunks:", audioChunksRef.current.length);
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         
-        if (audioChunksRef.current.length === 0) {
-          setError("Nenhum dado de áudio capturado. Por favor, tente gravar novamente.");
-          setIsProcessing(false);
-          return;
-        }
-
-        const mimeType = mediaRecorder.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        console.log("Audio Blob size:", audioBlob.size, "MimeType:", mimeType);
-        
-        if (audioBlob.size < 1000) { // Very small blob, likely silent or empty
-          setError("A gravação foi demasiado curta ou silenciosa. Por favor, tente novamente.");
-          setIsProcessing(false);
-          return;
-        }
-
-        // Convert to base64
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-          const resultStr = reader.result as string;
-          if (!resultStr) {
-            setError("Falha ao ler dados de áudio.");
-            setIsProcessing(false);
-            return;
-          }
-          
-          const base64Audio = resultStr.split(',')[1];
-          console.log("Starting AI analysis...");
-          
-          try {
-            const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
-            const language = localStorage.getItem('echonotes_language') || 'english';
-            const result = await generateMeetingReport(base64Audio, mimeType, detailLevel, language);
-            console.log("Analysis complete!");
-            setLastFailedAudio(null); // Clear on success
-            const newItem = await saveToHistory(result, user!.id);
-            if (newItem) {
-              setCurrentHistoryId(newItem.id);
-              const updatedHistory = await getHistory(user!.id);
-              setHistory(updatedHistory);
-            } else {
-              setError("O relatório foi gerado, mas não foi possível guardá-lo no histórico. Verifique a sua ligação ao Supabase.");
-            }
-            setReport(result);
-          } catch (err) {
-            console.error("Error generating report:", err);
-            setLastFailedAudio({ base64: base64Audio, mimeType });
-            if (err instanceof MeetingAnalysisError) {
-              setError(err.message);
-            } else {
-              setError("Ocorreu um erro inesperado ao processar a reunião. Por favor, tente uma gravação mais curta.");
-            }
-          } finally {
-            setIsProcessing(false);
-          }
-        };
-        
-        reader.onerror = () => {
-          console.error("FileReader error");
-          setError("Falha ao processar ficheiro de áudio.");
-          setIsProcessing(false);
-        };
-
-        // Stop all tracks
+        // Final tracks cleanup
         stream.getTracks().forEach(track => track.stop());
         if ((stream as any)._originalStreams) {
           (stream as any)._originalStreams.forEach((s: MediaStream) => s.getTracks().forEach(t => t.stop()));
         }
-        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-        setFrequencyData(new Array(40).fill(0));
-        setWaveform(new Array(64).fill(128));
-        setAudioLevel(0);
+
+        setIsProcessing(true);
+        try {
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+            const base64Audio = (reader.result as string).split(',')[1];
+            const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
+            const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+            
+            try {
+              const res = await generateMeetingReport(base64Audio, audioBlob.type, detailLevel, languageSetting);
+              const newItem = await saveToHistory(res, user!.id);
+              if (newItem) {
+                setCurrentHistoryId(newItem.id);
+                setHistory(prev => [newItem, ...prev]);
+              }
+              setReport(res);
+            } catch (err) {
+              console.error("Processing failed:", err);
+              if (err instanceof MeetingAnalysisError) {
+                setError(err.message);
+              } else {
+                setError("O serviço de IA está temporariamente indisponível. Por favor, tente novamente em alguns instantes.");
+              }
+              setLastFailedAudio({ base64: base64Audio, mimeType: audioBlob.type });
+            } finally {
+              setIsProcessing(false);
+            }
+          };
+        } catch (err) {
+          console.error("Recording stop handling failed:", err);
+          setIsProcessing(false);
+        }
       };
 
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      console.error("Error accessing microphone:", err);
-      setError("Microphone access denied. Please enable it in your browser settings.");
+      console.error("Start recording failed:", err);
+      setError("Não foi possível aceder ao microfone. Por favor, verifique as permissões do seu navegador.");
+      setIsRecording(false);
     }
   };
 
@@ -433,68 +416,27 @@ export default function App() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleDeleteHistory = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDeleteConfirmId(id);
+  const handleGoHome = () => {
+    setReport(null);
+    setCurrentHistoryId(null);
   };
 
-  const confirmDelete = async () => {
-    if (deleteConfirmId) {
-      const success = await deleteFromHistory(deleteConfirmId);
+  const handleUpdateReport = async (updatedReport: MeetingReport) => {
+    if (currentHistoryId && user) {
+      await updateHistoryItem(currentHistoryId, { report: updatedReport });
+      setReport(updatedReport);
+      const updatedHistory = await getHistory(user.id);
+      setHistory(updatedHistory);
+    }
+  };
+
+  const handleUpdateTitle = async (newTitle: string) => {
+    if (currentHistoryId && user) {
+      const success = await updateHistoryItem(currentHistoryId, { title: newTitle });
       if (success) {
-        const updatedHistory = await getHistory(user!.id);
+        const updatedHistory = await getHistory(user.id);
         setHistory(updatedHistory);
       }
-      setDeleteConfirmId(null);
-    }
-  };
-
-  const handleClearHistory = () => {
-    setIsClearingAll(true);
-  };
-
-  const confirmClearAll = async () => {
-    const success = await clearHistory(user!.id);
-    if (success) {
-      setHistory([]);
-    }
-    setIsClearingAll(false);
-  };
-
-  const handleStartEdit = (item: HistoryItem, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingId(item.id);
-    setEditingTitle(item.title);
-  };
-
-  const handleSaveEdit = async (id: string, e?: React.MouseEvent | React.KeyboardEvent | React.FocusEvent) => {
-    e?.stopPropagation();
-    if (editingTitle.trim() === '') {
-      setEditingId(null);
-      return;
-    }
-    const success = await updateHistoryItem(id, { title: editingTitle });
-    if (success) {
-      const updatedHistory = await getHistory(user!.id);
-      setHistory(updatedHistory);
-    }
-    setEditingId(null);
-  };
-
-  const handleManualCreate = async () => {
-    const manualReport: MeetingReport = {
-      summary: "Manual Entry",
-      highlights: ["Manual highlight"],
-      keyDecisions: ["Manual decision"],
-      nextActions: ["Manual action"],
-      transcript: [{ speaker: "User", text: "Manual entry created.", timestamp: "00:00" }]
-    };
-    const newItem = await saveToHistory(manualReport, user!.id);
-    if (newItem) {
-      const updatedHistory = await getHistory(user!.id);
-      setHistory(updatedHistory);
-      handleSelectHistory(newItem);
-      setShowHistory(false);
     }
   };
 
@@ -504,46 +446,53 @@ export default function App() {
     setShowHistory(false);
   };
 
-  const handleUpdateReport = async (updatedReport: MeetingReport) => {
-    setReport(updatedReport);
-    if (currentHistoryId) {
-      const success = await updateHistoryItem(currentHistoryId, { report: updatedReport });
+  const handleDeleteHistory = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteConfirmId && user) {
+      const success = await deleteFromHistory(deleteConfirmId);
       if (success) {
-        const updatedHistory = await getHistory(user!.id);
-        setHistory(updatedHistory);
+        setHistory(prev => prev.filter(item => item.id !== deleteConfirmId));
+        if (currentHistoryId === deleteConfirmId) {
+          handleGoHome();
+        }
       }
+      setDeleteConfirmId(null);
     }
   };
 
-  const handleUpdateTitle = async (newTitle: string) => {
-    if (currentHistoryId) {
-      const success = await updateHistoryItem(currentHistoryId, { title: newTitle });
-      if (success) {
-        const updatedHistory = await getHistory(user!.id);
-        setHistory(updatedHistory);
-      }
-    }
-  };
-
-  const toggleTheme = async () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('echonotes_theme', newTheme);
-    
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-
-    // Update profile if user is logged in
+  const confirmClearAll = async () => {
     if (user) {
-      const supabase = getSupabase();
-      await supabase
-        .from('profiles')
-        .update({ theme: newTheme })
-        .eq('id', user.id);
+      const success = await clearHistory(user.id);
+      if (success) {
+        setHistory([]);
+        handleGoHome();
+      }
+      setIsClearingAll(false);
     }
+  };
+
+  const handleStartEdit = (item: HistoryItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(item.id);
+    setEditingTitle(item.title);
+  };
+
+  const handleSaveEdit = async (id: string, e: React.FormEvent | React.FocusEvent) => {
+    e.stopPropagation();
+    if (!editingTitle.trim() || !user) {
+      setEditingId(null);
+      return;
+    }
+    
+    const success = await updateHistoryItem(id, { title: editingTitle });
+    if (success) {
+      setHistory(prev => prev.map(item => item.id === id ? { ...item, title: editingTitle } : item));
+    }
+    setEditingId(null);
   };
 
   const handleSignOut = async () => {
@@ -551,17 +500,27 @@ export default function App() {
     await supabase.auth.signOut();
   };
 
-  const handleGoHome = () => {
-    setReport(null);
-    setError(null);
-    setCurrentHistoryId(null);
-    setIsRecording(false);
-  };
+  const sortedHistory = [...history]
+    .filter(item => 
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      item.report.summary.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortField === 'date') {
+        return sortOrder === 'desc' 
+          ? new Date(b.date).getTime() - new Date(a.date).getTime()
+          : new Date(a.date).getTime() - new Date(b.date).getTime();
+      } else {
+        return sortOrder === 'desc'
+          ? b.title.localeCompare(a.title)
+          : a.title.localeCompare(b.title);
+      }
+    });
 
   if (authLoading) {
     return (
       <div className="min-h-screen bg-app-bg flex items-center justify-center">
-        <Loader2 className="animate-spin text-app-green" size={40} />
+        <Loader2 className="animate-spin text-app-dark-green" size={40} />
       </div>
     );
   }
@@ -571,96 +530,96 @@ export default function App() {
   }
 
   return (
-    <div className={cn(
-      "min-h-screen bg-app-bg text-app-fg font-sans selection:bg-app-accent selection:text-white transition-colors duration-700",
-      isRecording && "ring-inset ring-8 ring-red-500/5"
-    )}>
-      {/* Header */}
-      <nav className="p-4 md:p-6 flex justify-between items-center border-b border-app-border bg-app-bg/50 backdrop-blur-md sticky top-0 z-40">
-        <button 
-          onClick={handleGoHome}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-        >
-          <div className="w-8 h-8 bg-app-dark-green rounded-full flex items-center justify-center flex-shrink-0">
-            <Sparkles className="text-app-cream" size={16} />
+    <div className={`min-h-screen bg-app-bg text-app-fg transition-colors duration-300 font-sans ${theme === 'dark' ? 'dark' : ''}`}>
+      <nav className="h-20 border-b border-app-border px-6 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-3 cursor-pointer group" onClick={handleGoHome}>
+          <div className="w-10 h-10 bg-app-dark-green rounded-xl flex items-center justify-center text-app-cream shadow-lg shadow-app-green/20 group-hover:scale-105 transition-transform">
+            <Mic size={20} className="group-hover:animate-pulse" />
           </div>
-          <span className="font-bold tracking-tight text-lg md:text-xl truncate text-app-fg">EchoNotes</span>
-        </button>
-        <div className="flex items-center gap-3 md:gap-6 text-sm font-medium">
-          <button 
-            onClick={toggleTheme}
-            className="w-9 h-9 rounded-full bg-app-card border border-app-border flex items-center justify-center text-app-fg hover:text-app-green transition-all shadow-sm"
-            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          >
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
+          <div>
+            <h1 className="text-xl font-display font-black tracking-tighter leading-none text-black">EchoNote</h1>
+            <span className="text-[10px] font-mono text-app-dark-green uppercase tracking-[0.2em] font-bold">AI Assistant</span>
+          </div>
+        </div>
 
-          <div className="h-4 w-px bg-app-border hidden xs:block" />
-
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <button 
+              onClick={() => setShowAdminDashboard(true)}
+              className="p-2.5 text-black/40 hover:text-black hover:bg-app-cream rounded-xl transition-all"
+              title="Admin Dashboard"
+            >
+              <LayoutGrid size={20} />
+            </button>
+          )}
           <button 
             onClick={() => setShowHistory(true)}
-            className="text-app-brown/60 hover:text-app-fg transition-colors flex items-center gap-2"
+            className="flex items-center gap-2 px-4 py-2 bg-app-cream hover:bg-black/5 rounded-xl transition-all border border-app-border"
           >
-            <History size={18} /> <span className="hidden sm:inline">History</span>
+            <History size={18} className="text-black/60" />
+            <span className="text-sm font-bold text-black/80">Recents</span>
           </button>
-          
-          <div className="h-4 w-px bg-app-border hidden xs:block" />
           
           <div className="relative">
             <button 
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex flex-col items-center gap-1 group"
+              className="w-10 h-10 rounded-xl bg-app-card border border-app-border flex items-center justify-center overflow-hidden hover:border-black/20 transition-all shadow-sm"
             >
-              <div className="w-9 h-9 rounded-full bg-app-card flex items-center justify-center border border-app-border group-hover:border-app-green transition-all shadow-sm">
-                <UserIcon size={16} className="text-app-brown/60 group-hover:text-app-fg" />
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] font-bold text-app-fg max-w-[80px] md:max-w-[120px] truncate">
-                  {displayName || user.email?.split('@')[0]}
-                </span>
-                <ChevronDown size={10} className={cn("text-app-brown/30 transition-transform", showUserMenu && "rotate-180")} />
-              </div>
+              {user.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <UserIcon size={20} className="text-black/30" />
+              )}
             </button>
-
             <AnimatePresence>
               {showUserMenu && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
                   <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-48 bg-app-card rounded-2xl shadow-2xl border border-app-border overflow-hidden z-50"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowUserMenu(false)}
+                  />
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-app-border p-2 z-50 overflow-hidden"
                   >
-                    <div className="p-2 space-y-1">
-                      <button 
-                        onClick={() => { setShowSettings(true); setShowUserMenu(false); }}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-zinc-600 hover:text-app-fg hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition-all"
-                      >
-                        <Settings size={16} />
-                        <span className="text-xs font-bold">Settings</span>
-                      </button>
-                      
-                      {isAdmin && (
-                        <button 
-                          onClick={() => { setShowAdminDashboard(true); setShowUserMenu(false); }}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-zinc-600 hover:text-app-fg hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition-all"
-                        >
-                          <LayoutGrid size={16} />
-                          <span className="text-xs font-bold">Admin Panel</span>
-                        </button>
-                      )}
-
-                      <div className="h-px bg-app-border my-1" />
-
-                      <button 
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
-                      >
-                        <LogOut size={16} />
-                        <span className="text-xs font-bold">Sign Out</span>
-                      </button>
+                    <div className="p-3 border-b border-app-border mb-1">
+                      <p className="text-xs font-bold text-black truncate">{displayName || user.email}</p>
+                      <p className="text-[10px] text-black/40 truncate">{user.email}</p>
                     </div>
+                    <button 
+                      onClick={() => {
+                        setShowSettings(true);
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 p-3 text-sm text-black/60 hover:text-black hover:bg-app-cream rounded-xl transition-all"
+                    >
+                      <Settings size={16} />
+                      Settings
+                    </button>
+                    {isAdmin && (
+                      <button 
+                        onClick={() => {
+                          setShowAdminDashboard(true);
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 text-sm text-black/60 hover:text-black hover:bg-app-cream rounded-xl transition-all"
+                      >
+                        <LayoutGrid size={16} />
+                        Admin Panel
+                      </button>
+                    )}
+                    <button 
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-3 p-3 text-sm text-rose-500 hover:bg-rose-50 rounded-xl transition-all mt-1"
+                    >
+                      <LogOut size={16} />
+                      Sign Out
+                    </button>
                   </motion.div>
                 </>
               )}
@@ -669,134 +628,92 @@ export default function App() {
         </div>
       </nav>
 
-      {/* History Modal */}
       <AnimatePresence>
         {showHistory && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6"
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-end"
             onClick={() => setShowHistory(false)}
           >
             <motion.div 
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className="bg-app-card w-full max-w-2xl rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh] md:max-h-[80vh] mt-auto md:mt-0 border border-app-border"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="w-full max-w-md h-full bg-app-bg shadow-2xl flex flex-col border-l border-app-border"
               onClick={e => e.stopPropagation()}
             >
-              <div className="p-4 md:p-6 border-b border-app-border flex justify-between items-center">
-                <div className="flex items-center gap-3 md:gap-4">
-                  <h3 className="text-lg md:text-xl font-display font-bold text-app-fg">Meeting History</h3>
-                  <button 
-                    onClick={handleManualCreate}
-                    className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest bg-app-fg text-app-bg px-2 md:px-3 py-1 rounded-full hover:opacity-90 transition-opacity"
-                  >
-                    + New
-                  </button>
-                </div>
-                <div className="flex items-center gap-3 md:gap-4">
-                  {history.length > 0 && (
+              <div className="p-6 border-b border-app-border bg-white/50 backdrop-blur-md">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-display font-black tracking-tight text-black">History</h2>
+                  <div className="flex items-center gap-2">
                     <button 
-                      onClick={handleClearHistory}
-                      className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-rose-500 hover:text-rose-700 transition-colors"
+                      onClick={() => setIsClearingAll(true)}
+                      className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                      title="Clear all history"
                     >
-                      Clear
+                      <Trash2 size={20} />
                     </button>
-                  )}
-                  <button 
-                    onClick={() => setShowHistory(false)}
-                    className="text-zinc-400 hover:text-app-fg text-sm font-medium"
-                  >
-                    Close
-                  </button>
+                    <button 
+                      onClick={() => setShowHistory(false)}
+                      className="p-2 text-black/20 hover:text-black hover:bg-app-cream rounded-xl transition-all"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Search Bar */}
-              <div className="px-6 py-3 border-b border-app-border bg-app-bg/50">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-app-brown/30" size={16} />
-                  <input 
-                    type="text"
-                    placeholder="Search in titles, summaries, or transcripts..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 bg-app-card border border-app-border rounded-xl text-sm focus:ring-2 focus:ring-app-green/10 focus:border-app-green transition-all text-app-fg placeholder:text-app-brown/30"
-                  />
-                  {searchQuery && (
+                <div className="space-y-4">
+                  <div className="relative group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-black/20 group-focus-within:text-app-dark-green transition-colors" size={18} />
+                    <input 
+                      type="text"
+                      placeholder="Search meetings..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="w-full bg-white border border-app-border rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-app-green/5 focus:border-app-dark-green transition-all"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
                     <button 
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-24 top-1/2 -translate-y-1/2 text-app-brown/30 hover:text-app-fg"
+                      onClick={() => {
+                        setSortField(sortField === 'date' ? 'title' : 'date');
+                      }}
+                      className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-black/40 hover:text-black transition-colors"
                     >
-                      <X size={16} />
+                      <ArrowUpDown size={12} />
+                      Sorted by {sortField}
                     </button>
-                  )}
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                    <select 
-                      value={sortField}
-                      onChange={(e) => setSortField(e.target.value as 'date' | 'title')}
-                      className="text-[10px] font-bold uppercase tracking-widest bg-transparent border-none focus:ring-0 text-app-brown/40 cursor-pointer hover:text-app-fg"
-                    >
-                      <option value="date">Date</option>
-                      <option value="title">Title</option>
-                    </select>
                     <button 
-                      onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                      className={cn(
-                        "p-1 rounded-md transition-colors",
-                        "text-app-brown/30 hover:text-app-fg hover:bg-app-bg"
-                      )}
-                      title={sortOrder === 'desc' ? "Descending" : "Ascending"}
+                      onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                      className="text-[10px] font-bold uppercase tracking-widest text-black/40 hover:text-black transition-colors"
                     >
-                      <ArrowUpDown size={14} className={cn(sortOrder === 'asc' && "rotate-180 transition-transform")} />
+                      {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
                     </button>
                   </div>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {history.length === 0 ? (
-                  <div className="text-center py-12 text-zinc-400 font-normal italic">
-                    No meetings recorded yet.
+                  <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                    <div className="w-16 h-16 bg-app-cream rounded-3xl flex items-center justify-center text-black/10 mb-4">
+                      <History size={32} />
+                    </div>
+                    <h3 className="text-lg font-bold text-black mb-1">No meetings yet</h3>
+                    <p className="text-sm text-black/40">Start your first recording to see history.</p>
                   </div>
                 ) : (() => {
-                  const filteredHistory = history.filter(item => {
-                    const searchLower = searchQuery.toLowerCase();
+                  if (sortedHistory.length === 0) {
                     return (
-                      item.title.toLowerCase().includes(searchLower) ||
-                      item.report.summary.toLowerCase().includes(searchLower) ||
-                      (item.report.clientName && item.report.clientName.toLowerCase().includes(searchLower)) ||
-                      item.report.highlights.some(h => h.toLowerCase().includes(searchLower)) ||
-                      (item.report.keyDecisions && item.report.keyDecisions.some(d => d.toLowerCase().includes(searchLower))) ||
-                      item.report.nextActions.some(a => a.toLowerCase().includes(searchLower)) ||
-                      item.report.transcript.some(t => t.text.toLowerCase().includes(searchLower) || t.speaker.toLowerCase().includes(searchLower))
-                    );
-                  });
-
-                  if (filteredHistory.length === 0) {
-                    return (
-                      <div className="text-center py-12 text-zinc-400 font-normal italic">
-                        No results found for "{searchQuery}"
+                      <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                        <p className="text-sm text-black/40">No matches for your search.</p>
                       </div>
                     );
                   }
-
-                  const sortedHistory = [...filteredHistory].sort((a, b) => {
-                    if (sortField === 'date') {
-                      const dateA = new Date(a.report.meetingDate || a.date).getTime();
-                      const dateB = new Date(b.report.meetingDate || b.date).getTime();
-                      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-                    } else {
-                      const titleA = a.title.toLowerCase();
-                      const titleB = b.title.toLowerCase();
-                      return sortOrder === 'asc' 
-                        ? titleA.localeCompare(titleB)
-                        : titleB.localeCompare(titleA);
-                    }
-                  });
-
                   return sortedHistory.map((item) => (
                     <div 
                       key={item.id}
@@ -831,7 +748,7 @@ export default function App() {
                               }}
                             />
                             <button 
-                              onMouseDown={e => e.preventDefault()} // Prevent blur before click
+                              onMouseDown={e => e.preventDefault()}
                               onClick={e => handleSaveEdit(item.id, e)}
                               className="text-xs font-bold text-app-green hover:opacity-80"
                             >
@@ -883,13 +800,13 @@ export default function App() {
             onSignOut={handleSignOut}
             initialDisplayName={displayName}
             initialTheme={theme}
-            initialMode={recordingMode}
+            initialMode={recordingMode === 'upload' ? 'mic' : recordingMode}
             initialLanguage={language}
             initialSummaryDetail={summaryDetail}
             onSettingsUpdate={(newDisplayName, newTheme, newMode, newLanguage, newSummaryDetail) => {
               setDisplayName(newDisplayName);
               setTheme(newTheme as 'light' | 'dark');
-              setRecordingMode(newMode as 'mic' | 'system');
+              if (newMode !== 'upload') setRecordingMode(newMode as 'mic' | 'system');
               setLanguage(newLanguage);
               setSummaryDetail(newSummaryDetail);
             }}
@@ -909,7 +826,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {(deleteConfirmId || isClearingAll) && (
           <motion.div 
@@ -1007,181 +923,164 @@ export default function App() {
                   </motion.div>
                 )}
 
-                {/* Mode Toggle */}
                 {!isRecording && (
-                  <div className="flex bg-app-card p-1 rounded-xl border border-app-border shadow-sm">
+                  <div className="flex bg-app-card p-1 rounded-xl border border-app-border shadow-sm mb-4">
                     <button 
                       onClick={() => setRecordingMode('mic')}
                       className={cn(
-                        "px-6 py-2 rounded-lg text-sm font-medium transition-all",
+                        "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
                         recordingMode === 'mic' ? "bg-app-dark-green text-app-cream shadow-md" : "text-app-brown/40 hover:text-app-fg"
                       )}
                     >
+                      <Mic size={14} />
                       In-Person
                     </button>
                     <button 
                       onClick={() => setRecordingMode('system')}
                       className={cn(
-                        "px-6 py-2 rounded-lg text-sm font-medium transition-all",
+                        "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
                         recordingMode === 'system' ? "bg-app-dark-green text-app-cream shadow-md" : "text-app-brown/40 hover:text-app-fg"
                       )}
                     >
+                      <Headphones size={14} />
                       Virtual Meeting
+                    </button>
+                    <button 
+                      onClick={() => setRecordingMode('upload')}
+                      className={cn(
+                        "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
+                        recordingMode === 'upload' ? "bg-app-dark-green text-app-cream shadow-md" : "text-app-brown/40 hover:text-app-fg"
+                      )}
+                    >
+                      <Upload size={14} />
+                      Upload File
                     </button>
                   </div>
                 )}
 
-                {recordingMode === 'system' && !isRecording && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-amber-50 border border-amber-100 p-5 rounded-xl max-w-md text-center space-y-3 shadow-sm"
-                  >
-                    <p className="text-xs text-amber-800 font-bold uppercase tracking-wider">
-                      How to capture meeting audio:
-                    </p>
-                    <div className="text-[11px] text-amber-700 leading-relaxed text-left space-y-2">
-                      <p>1. Click <strong>Start Meeting</strong> below.</p>
-                      <p>2. In the browser popup, click the <strong>"Entire Screen"</strong> tab at the top.</p>
-                      <p>3. Click the <strong>image of your screen</strong> to select it.</p>
-                      <p>4. <span className="text-amber-900 font-bold underline">Check the box</span> at the bottom that says <strong>"Share system audio"</strong>.</p>
-                      <p>5. Click <strong>Share</strong>.</p>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Visualizer / Status */}
-                <div className="relative w-64 h-64 md:w-72 md:h-72 flex items-center justify-center">
-                  <div className="absolute inset-0 border border-app-brown/5 rounded-full" />
-                  
-                  {/* LIVE Badge */}
-                  {isRecording && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-app-bg px-3 py-1 rounded-full border border-rose-100 shadow-sm"
-                    >
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                      </span>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-rose-600">Live Recording</span>
-                    </motion.div>
-                  )}
-                  
-                  {/* Circular Waveform */}
-                  {isRecording && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      {frequencyData.map((value, i) => (
-                        <motion.div
-                          key={i}
-                          className="absolute w-1 bg-app-green/40 rounded-full"
-                          style={{
-                            height: `${Math.max(4, value / 2)}px`,
-                            transform: `rotate(${i * (360 / 40)}deg) translateY(-120px)`,
-                            transformOrigin: '50% 120px'
-                          }}
-                          animate={{
-                            height: `${Math.max(4, value / 2)}px`,
-                            opacity: 0.2 + (value / 255) * 0.8
-                          }}
-                          transition={{ duration: 0.1 }}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Audio Rings */}
-                  {isRecording && (
-                    <>
+                {recordingMode === 'upload' ? (
+                  <AudioFileUpload 
+                    onFileSelect={handleFileUpload} 
+                    isProcessing={isProcessing} 
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-8">
+                    {recordingMode === 'system' && !isRecording && (
                       <motion.div 
-                        animate={{ scale: [1, 1.1 + audioLevel/100, 1] }}
-                        transition={{ duration: 0.5, repeat: Infinity }}
-                        className="absolute inset-0 border border-app-green/20 rounded-full"
-                      />
-                    </>
-                  )}
-
-                  <button
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className={cn(
-                      "relative z-10 w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all duration-500 group",
-                      isRecording 
-                        ? "bg-app-dark-green text-app-cream shadow-2xl shadow-app-green/40 ring-4 ring-app-green/10" 
-                        : "bg-app-bg border border-app-border hover:border-app-green hover:shadow-xl text-app-fg"
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-amber-50 border border-amber-100 p-5 rounded-xl max-w-md text-center space-y-3 shadow-sm mb-4"
+                      >
+                        <p className="text-xs text-amber-800 font-bold uppercase tracking-wider">
+                          How to capture meeting audio:
+                        </p>
+                        <div className="text-[11px] text-amber-700 leading-relaxed text-left space-y-2">
+                          <p>1. Click <strong>Start Meeting</strong> below.</p>
+                          <p>2. In the browser popup, click the <strong>"Entire Screen"</strong> tab at the top.</p>
+                          <p>3. Click the <strong>image of your screen</strong> to select it.</p>
+                          <p>4. <span className="text-amber-900 font-bold underline">Check the box</span> at the bottom that says <strong>"Share system audio"</strong>.</p>
+                          <p>5. Click <strong>Share</strong>.</p>
+                        </div>
+                      </motion.div>
                     )}
-                  >
-                    {isRecording ? (
-                      <>
-                        <Square fill="currentColor" size={32} />
-                        <span className="mt-4 font-mono text-xs tracking-widest uppercase">Stop Session</span>
-                      </>
-                    ) : (
-                      <>
-                        <Mic size={32} />
-                        <span className="mt-4 font-mono text-xs tracking-widest uppercase">Start Meeting</span>
-                      </>
-                    )}
-                  </button>
-                </div>
 
-                <div className="flex flex-col items-center gap-4 w-full">
-                  <div className={cn(
-                    "font-mono text-2xl tracking-tighter transition-opacity duration-300",
-                    isRecording ? "opacity-100" : "opacity-20"
-                  )}>
-                    {formatDuration(duration)}
-                  </div>
+                    <div className="relative w-64 h-64 md:w-72 md:h-72 flex items-center justify-center">
+                      <div className="absolute inset-0 border border-app-brown/5 rounded-full" />
+                      
+                      {isRecording && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-app-bg px-3 py-1 rounded-full border border-rose-100 shadow-sm"
+                        >
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                          </span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-rose-600">Live Recording</span>
+                        </motion.div>
+                      )}
+                      
+                      {isRecording && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          {frequencyData.map((value, i) => (
+                            <motion.div
+                              key={i}
+                              className="absolute w-1 bg-app-green/40 rounded-full"
+                              style={{
+                                height: `${Math.max(4, value / 2)}px`,
+                                transform: `rotate(${i * (360 / 40)}deg) translateY(-120px)`,
+                                transformOrigin: '50% 120px'
+                              }}
+                              animate={{
+                                height: `${Math.max(4, value / 2)}px`,
+                                opacity: 0.2 + (value / 255) * 0.8
+                              }}
+                              transition={{ duration: 0.1 }}
+                            />
+                          ))}
+                        </div>
+                      )}
 
-                  {isRecording && (
-                    <div className="flex flex-col gap-6 w-full items-center">
-                      {/* Spectrum Analyzer */}
-                      <div className="w-full max-w-xs h-16 flex items-end justify-center gap-[2px]">
-                        {frequencyData.map((value, i) => (
-                          <motion.div
-                            key={i}
-                            className="flex-1 bg-app-green/60 rounded-t-[1px]"
-                            animate={{ height: `${(value / 255) * 100}%` }}
-                            transition={{ duration: 0.1 }}
-                          />
-                        ))}
+                      <button
+                        onClick={isRecording ? stopRecording : startRecording}
+                        className={cn(
+                          "relative z-10 w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all duration-500 group",
+                          isRecording 
+                            ? "bg-app-dark-green text-app-cream shadow-2xl shadow-app-green/40 ring-4 ring-app-green/10" 
+                            : "bg-app-bg border border-app-border hover:border-app-green hover:shadow-xl text-app-fg"
+                        )}
+                      >
+                        {isRecording ? (
+                          <>
+                            <Square fill="currentColor" size={32} />
+                            <span className="mt-4 font-mono text-xs tracking-widest uppercase">Stop Session</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mic size={32} />
+                            <span className="mt-4 font-mono text-xs tracking-widest uppercase">Start Meeting</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-4 w-full">
+                      <div className={cn(
+                        "font-mono text-2xl tracking-tighter transition-opacity duration-300",
+                        isRecording ? "opacity-100" : "opacity-20"
+                      )}>
+                        {formatDuration(duration)}
                       </div>
 
-                      {/* Waveform */}
-                      <div className="w-full max-w-xs h-8 flex items-center justify-center gap-[1px]">
-                        {waveform.map((value, i) => (
-                          <motion.div
-                            key={i}
-                            className="w-[2px] bg-app-green/30 rounded-full"
-                            animate={{ height: `${Math.max(2, Math.abs(value - 128) * 0.5)}px` }}
-                            transition={{ duration: 0.1 }}
-                          />
-                        ))}
+                      {isRecording && (
+                        <div className="flex flex-col gap-6 w-full items-center">
+                          <div className="w-full max-w-xs h-16 flex items-end justify-center gap-[2px]">
+                            {frequencyData.map((value, i) => (
+                              <motion.div
+                                key={i}
+                                className="flex-1 bg-app-green/60 rounded-t-[1px]"
+                                animate={{ height: `${(value / 255) * 100}%` }}
+                                transition={{ duration: 0.1 }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-8 text-xs font-semibold uppercase tracking-widest text-app-brown/40">
+                        <div className="flex items-center gap-2">
+                          <Headphones size={14} className={isRecording ? "text-app-green" : ""} />
+                          <span>Headset Optimized</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Sparkles size={14} className={isRecording ? "text-app-green" : ""} />
+                          <span>AI Diarization Active</span>
+                        </div>
                       </div>
                     </div>
-                  )}
-
-                  {isRecording && (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-[10px] font-mono text-app-green uppercase tracking-[0.3em] animate-pulse"
-                    >
-                      Listening to conversation...
-                    </motion.div>
-                  )}
-                  
-                  <div className="flex items-center gap-8 text-xs font-semibold uppercase tracking-widest text-app-brown/40">
-                    <div className="flex items-center gap-2">
-                      <Headphones size={14} className={isRecording ? "text-app-green" : ""} />
-                      <span>Headset Optimized</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Sparkles size={14} className={isRecording ? "text-app-green" : ""} />
-                      <span>AI Diarization Active</span>
-                    </div>
                   </div>
-                </div>
+                )}
               </motion.div>
             ) : (
               <motion.div 
@@ -1216,13 +1115,11 @@ export default function App() {
         </main>
       )}
 
-      {/* Footer Branding */}
       <footer className="fixed bottom-0 w-full p-6 text-[10px] font-mono uppercase tracking-[0.2em] text-app-brown/20 flex justify-between pointer-events-none">
         <span>Precision Audio Capture v1.0</span>
         <span>Secure End-to-End Analysis</span>
       </footer>
 
-      {/* Ask Gemini Chat - Always visible */}
       <AskGemini report={report} historyItems={history} />
     </div>
   );
