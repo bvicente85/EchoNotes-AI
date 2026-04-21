@@ -252,7 +252,7 @@ export function SettingsView({
               </div>
               <div>
                 <p className="text-sm font-bold text-app-fg">EchoNotes v1.2.0</p>
-                <p className="text-[10px] text-app-brown/30 uppercase tracking-widest">Powered by Gemini 1.5 Flash</p>
+                <p className="text-[10px] text-app-brown/30 uppercase tracking-widest">Powered by Gemini 3 Flash</p>
               </div>
             </div>
             <button 
