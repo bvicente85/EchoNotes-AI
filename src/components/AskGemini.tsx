@@ -130,8 +130,8 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                     <MessageSquare size={24} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-app-fg">Ask anything about this meeting</p>
-                    <p className="text-xs text-zinc-500 mt-1">"What were the main decisions?" or "Who is responsible for the next steps?"</p>
+                    <p className="text-sm font-bold text-app-fg">Ask about your meetings</p>
+                    <p className="text-xs text-zinc-500 mt-1">"What did we decide about EcoInsight?" or "Compare this to my previous meeting."</p>
                   </div>
                 </div>
               )}
@@ -195,7 +195,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                 </button>
               </div>
               <p className="text-[9px] text-zinc-400 text-center mt-3 uppercase tracking-widest font-bold">
-                Powered by Gemini 3 Flash
+                Powered by Gemini 1.5 Flash
               </p>
             </div>
           </motion.div>

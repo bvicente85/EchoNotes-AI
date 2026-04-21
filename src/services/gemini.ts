@@ -63,13 +63,13 @@ export async function generateMeetingReport(
   `;
 
   try {
-    let response;
+    let result;
     let retries = 0;
     const maxRetries = 4;
     
     while (retries <= maxRetries) {
       try {
-        response = await ai.models.generateContent({
+        result = await ai.models.generateContent({
           model: "gemini-1.5-flash",
           contents: [
             {
@@ -125,15 +125,15 @@ export async function generateMeetingReport(
       }
     }
 
-    if (!response || !response.text) {
+    if (!result || !result.text) {
       throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Empty response from AI model.');
     }
 
     try {
-      const parsed = JSON.parse(response.text);
+      const parsed = JSON.parse(result.text);
       return parsed as MeetingReport;
     } catch (parseError) {
-      console.error("JSON Parse Error:", response.text);
+      console.error("JSON Parse Error:", result.text);
       throw new MeetingAnalysisError('PARSE_ERROR', 'Failed to parse the structured report.');
     }
   } catch (error) {
@@ -149,33 +149,49 @@ export async function askGemini(query: string, report: MeetingReport | null, his
     throw new Error('Gemini API key not found.');
   }
 
-  let context = "";
-  if (report) {
-    context = `
-      Context: This is a specific meeting report.
-      Summary: ${report.summary}
-      Highlights: ${report.highlights.join(', ')}
-      Key Decisions: ${report.keyDecisions?.join(', ') || 'None'}
-      Next Actions: ${report.nextActions.join(', ')}
-      Transcript: ${report.transcript.map(t => `[${t.timestamp}] ${t.speaker}: ${t.text}`).join('\n')}
-    `;
-  } else if (historyItems.length > 0) {
-    context = `
-      Context: This is a collection of recent meeting summaries.
-      Meetings:
-      ${historyItems.map((item, i) => `
-        Meeting ${i + 1}: ${item.title} (${new Date(item.date).toLocaleDateString()})
-        Summary: ${item.report.summary}
-      `).join('\n')}
-    `;
+  // Build a comprehensive context string
+  let context = "MEETING ARCHIVE CONTEXT:\n";
+  
+  if (historyItems.length > 0) {
+    context += historyItems.map((item, i) => `
+ID: ${item.id}
+INDEX: ${i + 1}
+TITLE: ${item.title}
+DATE: ${new Date(item.date).toLocaleString('pt-PT')}
+CLIENT: ${item.report.clientName || 'N/A'}
+SUMMARY: ${item.report.summary.slice(0, 500)}...
+-------------------`).join('\n');
   } else {
-    context = "No context available.";
+    context += "No previous meetings in archive.\n";
+  }
+
+  if (report) {
+    context += `\n\nCURRENT ACTIVE MEETING (DETAILED FOCUS):\n`;
+    context += `TITLE: ${historyItems.find(h => h.report.summary === report.summary)?.title || 'Selected Meeting'}
+SUMMARY: ${report.summary}
+HIGHLIGHTS: ${report.highlights.join(', ')}
+DECISIONS: ${report.keyDecisions?.join(', ') || 'None reported'}
+ACTIONS: ${report.nextActions.join(', ')}
+TRANSCRIPT (FULL):
+${report.transcript.map(t => `[${t.timestamp}] ${t.speaker}: ${t.text}`).join('\n')}
+`;
   }
 
   const systemInstruction = `
-    You are "Gemini", an AI assistant for EchoNotes. Help users understand their meetings.
-    Always respond in the same language as the user's query.
-    IF PORTUGUESE: Use European Portuguese (PT-PT). Ensure correct UTF-8 accents and vocabulary.
+    You are "Gemini", an AI business strategist for EchoNotes. You have access to the user's meeting archive.
+    
+    CAPABILITIES:
+    1. Cross-Meeting Analysis: Compare discussions or follow-up on topics across different dates.
+    2. Deep Dive: Use the FULL TRANSCRIPT of the active meeting to find specific details, technical terms, or exact quotes.
+    3. Retrieval: Search through the INDEX of previous meetings to answer questions about the past.
+
+    RESPONSE GUIDELINES:
+    - If the user asks about "this meeting", prioritize the CURRENT ACTIVE MEETING section.
+    - If the user asks about "previous meetings" or specific older projects, search the MEETING ARCHIVE CONTEXT.
+    - Always state which meeting(s) you are referencing in your answer.
+    - Use Markdown for clarity (bolding, lists).
+    - Language: Respond in the same language as the user.
+    - PORTUGUESE (PT-PT): Use European Portuguese grammar/vocab. Focus on UTF-8 correct accents (ã, á, é, ç, etc.).
   `;
 
   try {
@@ -187,17 +203,17 @@ export async function askGemini(query: string, report: MeetingReport | null, his
       history: chatHistory.length > 0 ? chatHistory : [
         {
           role: 'user',
-          parts: [{ text: `Context: ${context}` }]
+          parts: [{ text: `System Context Injection:\n${context}` }]
         },
         {
           role: 'model',
-          parts: [{ text: "Analysis complete. How can I help?" }]
+          parts: [{ text: "Context synchronized. I am ready to analyze your specific meetings or your entire history. How can I assist you?" }]
         }
       ]
     });
 
-    const response = await chat.sendMessage({ message: query });
-    return response.text || "I'm sorry, I couldn't generate a response.";
+    const result = await chat.sendMessage({ message: query });
+    return result.text || "Desculpe, não consegui obter uma resposta.";
   } catch (error) {
     console.error("Ask Gemini Error:", error);
     throw new Error("AI interaction failed.");
