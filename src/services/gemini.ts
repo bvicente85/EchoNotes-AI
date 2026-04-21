@@ -70,7 +70,7 @@ export async function generateMeetingReport(
     while (retries <= maxRetries) {
       try {
         result = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
+          model: "gemini-3-flash-preview",
           contents: [
             {
               parts: [
@@ -196,7 +196,7 @@ ${report.transcript.map(t => `[${t.timestamp}] ${t.speaker}: ${t.text}`).join('\
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       config: {
         systemInstruction,
       },

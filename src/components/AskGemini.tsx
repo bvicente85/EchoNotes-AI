@@ -195,7 +195,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                 </button>
               </div>
               <p className="text-[9px] text-zinc-400 text-center mt-3 uppercase tracking-widest font-bold">
-                Powered by Gemini 1.5 Flash
+                Powered by Gemini 3 Flash
               </p>
             </div>
           </motion.div>
