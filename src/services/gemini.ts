@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { HistoryItem } from "./storage";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
@@ -29,11 +29,11 @@ export async function generateMeetingReport(
 ): Promise<MeetingReport> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "") {
-    throw new MeetingAnalysisError('CONFIG_ERROR', 'Chave da API Gemini não encontrada. Se estiver no Vercel, adicione a variável de ambiente GEMINI_API_KEY nas definições do projeto e faça um novo Deploy.');
+    throw new MeetingAnalysisError('CONFIG_ERROR', 'Gemini API key not found. Please set the GEMINI_API_KEY environment variable.');
   }
 
   const lowVolumeInstruction = optimizeLowVolume 
-    ? "The audio recording has low volume or background noise. Please use your advanced signal processing and context reasoning to accurately transcribe every word, even the quiet ones. Pay extra attention to faint voices."
+    ? "The audio recording has low volume or background noise. Use advanced signal processing and context reasoning to accurately transcribe every word. Pay extra attention to faint voices."
     : "";
 
   const summaryInstruction = detailLevel === 'concise' 
@@ -41,35 +41,25 @@ export async function generateMeetingReport(
     : "Provide a detailed executive summary covering all key aspects.";
 
   const prompt = `
-    You are an expert business analyst and meeting scribe. Analyze the provided meeting audio and generate a high-quality, professional report.
+    You are an expert business analyst and scribe. Analyze the following meeting audio.
     
     ${lowVolumeInstruction}
     
-    Your goal is to capture the essence, outcomes, and specific commitments made during the conversation.
+    Goals: Capture essence, outcomes, and specific commitments.
     
-    1. ${summaryInstruction} Focus on the "Why" and "What" of the meeting. Use professional Markdown formatting (bolding, italics, sub-headings) where appropriate to improve readability.
-    2. "Key Highlights": Identify the most important topics, insights, and data points discussed. Provide clear, concise points.
-    3. "Key Decisions": List all specific agreements, approvals, or conclusions reached.
-    4. "Next Actions": Identify concrete tasks, who is responsible, and any mentioned deadlines. Be as specific as possible.
-    5. "Comprehensive Transcript":
-       - Provide a complete, word-for-word transcript.
-       - Identify distinct speakers based on context (e.g., "Project Manager", "Client", "Developer") if names aren't clear.
-       - Ensure accurate timestamps for every turn.
-       - Preserve the original tone and technical terminology.
+    1. ${summaryInstruction} Use Markdown for headers or bolding.
+    2. "Key Highlights": Most important topics and data points.
+    3. "Key Decisions": Agreements, approvals, or conclusions.
+    4. "Next Actions": Concrete tasks with owners and deadlines.
+    5. "Comprehensive Transcript": Full word-for-word transcript with speaker identification and timestamps.
 
-    IMPORTANT: The output language for the summary, highlights, decisions, and next actions MUST be in ${language}. 
-    If the language is Portuguese, you MUST use European Portuguese (PT-PT) grammar and vocabulary. 
-    Specifically, avoid Brazilian Portuguese (PT-BR) terms such as "planejamento" (use "planeamento" instead), "equipe" (use "equipa"), "usuário" (use "utilizador"), etc.
-    The transcript should remain in the original language spoken in the audio.
-
-    Return the result in JSON format with the following structure:
-    {
-      "summary": "...",
-      "highlights": ["...", "..."],
-      "keyDecisions": ["...", "..."],
-      "nextActions": ["...", "..."],
-      "transcript": [{"speaker": "...", "text": "...", "timestamp": "..."}]
-    }
+    LANGUAGE REQUIREMENTS:
+    - Output language for summary, highlights, decisions, and next actions: ${language}.
+    - IF THE LANGUAGE IS PORTUGUESE: You MUST use EUROPEAN PORTUGUESE (PT-PT).
+    - CRITICAL: Use correct UTF-8 encoding for Portuguese characters (ã, á, é, ç, í, ó, etc.). 
+    - Ensure all accents (agudo, circunflexo, til, grave) are correctly applied. Do NOT use escape sequences. 
+    - VOCABULARY: Use "planeamento" (not planejamento), "equipa" (not equipe), "utilizador" (not usuário).
+    - The transcript remains in the original language spoken.
   `;
 
   try {
@@ -80,7 +70,7 @@ export async function generateMeetingReport(
     while (retries <= maxRetries) {
       try {
         response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+          model: "gemini-1.5-flash",
           contents: [
             {
               parts: [
@@ -120,50 +110,43 @@ export async function generateMeetingReport(
             },
           },
         });
-        break; // Success, exit retry loop
+        break;
       } catch (apiError: any) {
-        // Check if it's a 503 error or 429 (Too Many Requests)
-        const isTransientError = apiError?.message?.includes('503') || apiError?.status === 503 || JSON.stringify(apiError).includes('503') || apiError?.message?.includes('429') || apiError?.status === 429;
+        const isTransientError = apiError?.message?.includes('503') || apiError?.status === 503 || apiError?.message?.includes('429') || apiError?.status === 429;
         
         if (isTransientError && retries < maxRetries) {
           retries++;
-          const backoffTime = 5000 * Math.pow(2, retries - 1); // 5s, 10s, 20s, 40s
-          console.warn(`Gemini API transient error. Retry attempt ${retries}/${maxRetries}. Waiting ${backoffTime}ms...`);
-          await new Promise(resolve => setTimeout(resolve, backoffTime)); // Exponential backoff
+          const backoffTime = 5000 * Math.pow(2, retries - 1);
+          console.warn(`Retry attempt ${retries}/${maxRetries} after ${backoffTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, backoffTime));
           continue;
         }
-        throw apiError; // Re-throw if not transient or max retries reached
+        throw apiError;
       }
     }
 
     if (!response || !response.text) {
-      throw new MeetingAnalysisError('EMPTY_RESPONSE', 'The AI model returned an empty response. The audio might be too short or silent.');
+      throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Empty response from AI model.');
     }
 
     try {
       const parsed = JSON.parse(response.text);
-      // Basic validation of the parsed object
-      if (!parsed.summary || !Array.isArray(parsed.highlights) || !Array.isArray(parsed.nextActions) || !Array.isArray(parsed.keyDecisions)) {
-        throw new Error('Invalid report structure');
-      }
       return parsed as MeetingReport;
     } catch (parseError) {
-      console.error("Failed to parse report JSON:", response.text);
-      throw new MeetingAnalysisError('PARSE_ERROR', 'Failed to process the AI response into a structured report.');
+      console.error("JSON Parse Error:", response.text);
+      throw new MeetingAnalysisError('PARSE_ERROR', 'Failed to parse the structured report.');
     }
   } catch (error) {
     if (error instanceof MeetingAnalysisError) throw error;
-    
     console.error("Gemini API Error:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown API error';
-    throw new MeetingAnalysisError('API_ERROR', `AI Service Error: ${errorMessage}`);
+    throw new MeetingAnalysisError('API_ERROR', `AI Service Error: ${error instanceof Error ? error.message : 'Unknown'}`);
   }
 }
 
 export async function askGemini(query: string, report: MeetingReport | null, historyItems: HistoryItem[] = [], chatHistory: { role: 'user' | 'model', parts: { text: string }[] }[] = []): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "") {
-    throw new Error('Chave da API Gemini não encontrada. Configure a variável GEMINI_API_KEY no seu ambiente de deploy.');
+    throw new Error('Gemini API key not found.');
   }
 
   let context = "";
@@ -183,37 +166,32 @@ export async function askGemini(query: string, report: MeetingReport | null, his
       ${historyItems.map((item, i) => `
         Meeting ${i + 1}: ${item.title} (${new Date(item.date).toLocaleDateString()})
         Summary: ${item.report.summary}
-        Key Decisions: ${item.report.keyDecisions?.join(', ') || 'None'}
       `).join('\n')}
     `;
   } else {
-    context = "No meeting context available yet.";
+    context = "No context available.";
   }
 
   const systemInstruction = `
-    You are "Gemini", an AI assistant for EchoNotes. You help users understand their meetings.
-    Use the provided context to answer questions accurately. 
-    If the answer isn't in the context, say you don't know based on the meetings provided, but you can offer general advice if relevant.
-    Keep answers concise and professional.
+    You are "Gemini", an AI assistant for EchoNotes. Help users understand their meetings.
     Always respond in the same language as the user's query.
-    If the response is in Portuguese, you MUST use European Portuguese (PT-PT) grammar and vocabulary. 
-    Avoid Brazilian Portuguese (PT-BR) terms such as "planejamento" (use "planeamento"), "equipe" (use "equipa"), "usuário" (use "utilizador"), etc.
+    IF PORTUGUESE: Use European Portuguese (PT-PT). Ensure correct UTF-8 accents and vocabulary.
   `;
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       config: {
         systemInstruction,
       },
       history: chatHistory.length > 0 ? chatHistory : [
         {
           role: 'user',
-          parts: [{ text: `Here is the context: ${context}` }]
+          parts: [{ text: `Context: ${context}` }]
         },
         {
           role: 'model',
-          parts: [{ text: "I have analyzed the context. How can I help you today?" }]
+          parts: [{ text: "Analysis complete. How can I help?" }]
         }
       ]
     });
@@ -222,6 +200,6 @@ export async function askGemini(query: string, report: MeetingReport | null, his
     return response.text || "I'm sorry, I couldn't generate a response.";
   } catch (error) {
     console.error("Ask Gemini Error:", error);
-    throw new Error("Failed to get a response from Gemini.");
+    throw new Error("AI interaction failed.");
   }
 }
