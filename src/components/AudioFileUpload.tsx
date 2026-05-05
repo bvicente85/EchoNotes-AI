@@ -64,11 +64,11 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
     <div className="w-full max-w-xl mx-auto">
       <div 
         className={cn(
-          "relative group border-2 border-dashed rounded-3xl p-8 transition-all duration-300 flex flex-col items-center justify-center min-h-[300px]",
+          "relative group border-2 border-dashed rounded-3xl p-10 transition-all duration-300 flex flex-col items-center justify-center min-h-[350px]",
           dragActive 
-            ? "border-app-dark-green bg-app-dark-green/5 shadow-inner" 
-            : "border-black/10 bg-white/50 hover:border-black/20",
-          file && "border-solid border-app-dark-green/30 bg-app-dark-green/5"
+            ? "border-app-accent bg-app-accent/5 ring-4 ring-app-accent/10" 
+            : "border-app-accent/20 glass hover:border-app-accent/40 hover:shadow-2xl",
+          file && "border-solid border-app-accent/30 bg-app-accent/5"
         )}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -92,16 +92,16 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
               exit={{ opacity: 0, y: -10 }}
               className="text-center"
             >
-              <div className="w-16 h-16 bg-black/5 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                <Upload className="text-black/40" size={28} />
+              <div className="w-20 h-20 bg-app-accent/10 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 group-hover:rotate-6 transition-transform">
+                <Upload className="text-app-accent" size={32} />
               </div>
-              <h3 className="text-xl font-bold text-black mb-2">Upload Audio File</h3>
-              <p className="text-black/50 text-sm mb-8 max-w-xs mx-auto leading-relaxed">
-                Drag and drop your meeting recording here, or click to browse files.
+              <h3 className="text-2xl font-display font-black text-app-fg mb-3 tracking-tight">Upload Session</h3>
+              <p className="text-app-fg/50 text-sm mb-10 max-w-xs mx-auto leading-relaxed">
+                Drag and drop your audio recording, or click to browse files.
               </p>
               <button
                 onClick={onButtonClick}
-                className="bg-black text-white px-8 py-3 rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-xl shadow-black/10 active:scale-95"
+                className="bg-app-accent text-app-light-gold px-10 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-app-accent/20"
               >
                 Browse Files
               </button>
@@ -113,19 +113,19 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
               animate={{ opacity: 1, scale: 1 }}
               className="w-full"
             >
-              <div className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-app-dark-green/10 mb-6">
-                <div className="w-12 h-12 bg-app-dark-green/10 text-app-dark-green rounded-xl flex items-center justify-center p-2">
+              <div className="flex items-center gap-4 glass p-4 rounded-2xl shadow-sm border-app-accent/10 mb-6">
+                <div className="w-12 h-12 bg-app-accent/10 text-app-accent rounded-xl flex items-center justify-center p-2">
                   <FileAudio size={24} />
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <h4 className="text-sm font-bold text-black truncate">{file.name}</h4>
-                  <p className="text-[10px] text-black/40 font-mono uppercase tracking-wider">
+                  <h4 className="text-sm font-bold text-app-fg truncate">{file.name}</h4>
+                  <p className="text-[10px] text-app-fg/40 font-mono uppercase tracking-wider">
                     {(file.size / (1024 * 1024)).toFixed(2)} MB • {file.type.split('/')[1].toUpperCase()}
                   </p>
                 </div>
                 <button 
                   onClick={() => setFile(null)}
-                  className="p-2 hover:bg-black/5 rounded-full transition-colors text-black/30 hover:text-rose-500"
+                  className="p-2 hover:bg-rose-500/10 rounded-full transition-colors text-app-fg/30 hover:text-rose-500"
                 >
                   <X size={20} />
                 </button>
@@ -135,32 +135,32 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
                 <div 
                   onClick={() => setOptimizeLowVolume(!optimizeLowVolume)}
                   className={cn(
-                    "flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all border",
+                    "flex items-center gap-4 p-5 rounded-2xl cursor-pointer transition-all border",
                     optimizeLowVolume 
-                      ? "bg-app-dark-green text-app-cream border-transparent shadow-lg shadow-app-dark-green/20" 
-                      : "bg-white text-black/60 border-black/5 hover:border-black/10"
+                      ? "bg-app-accent text-app-light-gold border-transparent shadow-2xl shadow-app-accent/20" 
+                      : "glass text-app-fg/60 border-app-accent/5 hover:border-app-accent/20"
                   )}
                 >
                   <div className={cn(
                     "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                    optimizeLowVolume ? "bg-white/20" : "bg-black/5"
+                    optimizeLowVolume ? "bg-white/20" : "bg-app-accent/10"
                   )}>
-                    <Volume2 size={20} />
+                    <Volume2 size={20} className={cn(optimizeLowVolume ? "text-app-light-gold" : "text-app-accent")} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-bold">Optimize for Low Volume</p>
+                    <p className="text-sm font-black uppercase tracking-tight">Audio Enhancement</p>
                     <p className={cn(
                       "text-[10px] leading-tight mt-0.5",
-                      optimizeLowVolume ? "text-app-cream/70" : "text-black/40"
+                      optimizeLowVolume ? "text-app-light-gold/70" : "text-app-fg/40"
                     )}>
-                      Enhances transcription accuracy for quiet voices or distant recorders.
+                      Boosts clarity for quiet voices or distant speakers.
                     </p>
                   </div>
                   <div className={cn(
-                    "w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center",
-                    optimizeLowVolume ? "border-white bg-white" : "border-black/20"
+                    "w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center",
+                    optimizeLowVolume ? "border-app-light-gold bg-app-light-gold" : "border-app-accent/20"
                   )}>
-                    {optimizeLowVolume && <CheckCircle2 className="text-app-dark-green" size={14} />}
+                    {optimizeLowVolume && <CheckCircle2 className="text-app-accent" size={16} />}
                   </div>
                 </div>
 
@@ -168,17 +168,17 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
                   <button
                     onClick={handleProcess}
                     disabled={isProcessing}
-                    className="w-full bg-app-dark-green text-app-cream py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:opacity-95 transition-all shadow-xl shadow-app-dark-green/10 disabled:opacity-50"
+                    className="w-full bg-app-accent text-app-light-gold py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-2xl shadow-app-accent/30 disabled:opacity-50"
                   >
                     {isProcessing ? (
                       <>
                         <Loader2 className="animate-spin" size={20} />
-                        Processing with Gemini AI...
+                        Gemini analyzing...
                       </>
                     ) : (
                       <>
                         <Sparkles size={20} />
-                        Analyze Meeting with AI
+                        Transcribe with Gemini
                       </>
                     )}
                   </button>
@@ -189,12 +189,12 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
         </AnimatePresence>
       </div>
 
-      <div className="mt-6 flex items-center justify-between text-[10px] text-black/30 font-bold uppercase tracking-widest px-2">
+      <div className="mt-8 flex items-center justify-between text-[10px] text-app-fg/40 font-black uppercase tracking-[0.2em] px-2">
         <div className="flex items-center gap-2">
-          <CheckCircle2 size={12} className="text-app-dark-green/40" />
+          <CheckCircle2 size={12} className="text-app-accent" />
           Supports WAV, MP3, AAC, WEBM, OGG
         </div>
-        <div>Max 20MB per file</div>
+        <div>Max 20MB per session</div>
       </div>
     </div>
   );

@@ -85,23 +85,23 @@ export function SettingsView({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] bg-app-bg/95 backdrop-blur-md flex items-center justify-center p-6 transition-colors duration-700"
+      className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-md flex items-center justify-center p-6 transition-colors duration-700"
     >
       <motion.div 
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="bg-app-card w-full max-w-2xl rounded-3xl shadow-2xl border border-app-border overflow-hidden flex flex-col max-h-[90vh]"
+        className="glass w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Header */}
-        <div className="p-8 border-b border-app-border flex justify-between items-center bg-app-card">
+        <div className="p-8 border-b border-app-border flex justify-between items-center glass">
           <div>
-            <h2 className="text-3xl font-display font-bold tracking-tight text-app-fg">Settings</h2>
-            <p className="text-app-brown/60 text-sm mt-1">Personalize your EchoNotes experience</p>
+            <h2 className="text-3xl font-display font-black tracking-tight text-app-fg">Settings</h2>
+            <p className="text-app-fg/40 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Personalize EchoNotes</p>
           </div>
           <button 
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-app-bg flex items-center justify-center hover:opacity-80 transition-colors text-app-fg"
+            className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 transition-colors text-app-fg"
           >
             <X size={20} />
           </button>
@@ -111,25 +111,25 @@ export function SettingsView({
         <div className="flex-1 overflow-y-auto p-8 space-y-10">
           {/* Profile Section */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-app-brown/30">
+            <div className="flex items-center gap-2 text-app-accent">
               <User size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Profile</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Profile</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-medium text-app-brown/60">Email Address</label>
-                <div className="px-4 py-3 bg-app-bg border border-app-border rounded-xl text-sm text-app-brown/40 cursor-not-allowed">
+                <label className="text-xs font-bold text-app-fg/40">Email Address</label>
+                <div className="px-5 py-4 glass rounded-2xl text-sm text-app-fg/30 cursor-not-allowed">
                   {userEmail}
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-medium text-app-brown/60">Display Name</label>
+                <label className="text-xs font-bold text-app-fg/40">Display Name</label>
                 <input 
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Your name"
-                  className="w-full px-4 py-3 bg-app-bg border border-app-border rounded-xl text-sm focus:ring-2 focus:ring-app-green/10 focus:border-app-green transition-all text-app-fg placeholder:text-app-brown/20"
+                  className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg placeholder:text-app-fg/20"
                 />
               </div>
             </div>
@@ -137,18 +137,18 @@ export function SettingsView({
 
           {/* Recording Section */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-app-brown/30">
+            <div className="flex items-center gap-2 text-app-accent">
               <Mic size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Recording</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Recording</span>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-app-brown/60">Default Recording Mode</label>
-              <div className="flex bg-app-bg p-1 rounded-xl w-fit border border-app-border">
+              <label className="text-xs font-bold text-app-fg/40">Default Recording Mode</label>
+              <div className="flex glass p-1.5 rounded-2xl w-fit">
                 <button 
                   onClick={() => setDefaultMode('mic')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all",
-                    defaultMode === 'mic' ? "bg-app-card shadow-sm text-app-fg" : "text-app-brown/40 hover:text-app-fg"
+                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                    defaultMode === 'mic' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
                   )}
                 >
                   <Mic size={14} /> In-Person
@@ -156,8 +156,8 @@ export function SettingsView({
                 <button 
                   onClick={() => setDefaultMode('system')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all",
-                    defaultMode === 'system' ? "bg-app-card shadow-sm text-app-fg" : "text-app-brown/40 hover:text-app-fg"
+                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                    defaultMode === 'system' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
                   )}
                 >
                   <Monitor size={14} /> Virtual Meeting
@@ -168,18 +168,18 @@ export function SettingsView({
 
           {/* Appearance Section */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-app-brown/30">
+            <div className="flex items-center gap-2 text-app-accent">
               <Sun size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Appearance</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Appearance</span>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-app-brown/60">Theme</label>
-              <div className="flex bg-app-bg p-1 rounded-xl w-fit border border-app-border">
+              <label className="text-xs font-bold text-app-fg/40">Theme</label>
+              <div className="flex glass p-1.5 rounded-2xl w-fit">
                 <button 
                   onClick={() => setTheme('light')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all",
-                    theme === 'light' ? "bg-app-card shadow-sm text-app-fg" : "text-app-brown/40 hover:text-app-fg"
+                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                    theme === 'light' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
                   )}
                 >
                   <Sun size={14} /> Light
@@ -187,8 +187,8 @@ export function SettingsView({
                 <button 
                   onClick={() => setTheme('dark')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all",
-                    theme === 'dark' ? "bg-app-card shadow-sm text-app-fg" : "text-app-brown/40 hover:text-app-fg"
+                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                    theme === 'dark' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
                   )}
                 >
                   <Moon size={14} /> Dark
@@ -199,17 +199,17 @@ export function SettingsView({
 
           {/* AI Preferences */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-app-brown/30">
+            <div className="flex items-center gap-2 text-app-accent">
               <Sparkles size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">AI Preferences</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">AI Preferences</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-medium text-app-brown/60">Output Language</label>
+                <label className="text-xs font-bold text-app-fg/40">Output Language</label>
                 <select 
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full px-4 py-3 bg-app-bg border border-app-border rounded-xl text-sm focus:ring-2 focus:ring-app-green/10 focus:border-app-green transition-all text-app-fg"
+                  className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg appearance-none cursor-pointer"
                 >
                   <option value="english">English</option>
                   <option value="portuguese">Português (Europeu)</option>
@@ -219,13 +219,13 @@ export function SettingsView({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-medium text-app-brown/60">Summary Detail Level</label>
-                <div className="flex bg-app-bg p-1 rounded-xl w-fit border border-app-border">
+                <label className="text-xs font-bold text-app-fg/40">Summary Detail Level</label>
+                <div className="flex glass p-1.5 rounded-2xl w-fit">
                   <button 
                     onClick={() => setSummaryDetail('concise')}
                     className={cn(
-                      "px-4 py-2 rounded-lg text-xs font-medium transition-all",
-                      summaryDetail === 'concise' ? "bg-app-card shadow-sm text-app-fg" : "text-app-brown/40 hover:text-app-fg"
+                      "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                      summaryDetail === 'concise' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
                     )}
                   >
                     Concise
@@ -233,8 +233,8 @@ export function SettingsView({
                   <button 
                     onClick={() => setSummaryDetail('detailed')}
                     className={cn(
-                      "px-4 py-2 rounded-lg text-xs font-medium transition-all",
-                      summaryDetail === 'detailed' ? "bg-app-card shadow-sm text-app-fg" : "text-app-brown/40 hover:text-app-fg"
+                      "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                      summaryDetail === 'detailed' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
                     )}
                   >
                     Detailed
@@ -245,44 +245,44 @@ export function SettingsView({
           </section>
 
           {/* About Section */}
-          <section className="pt-6 border-t border-app-border flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-app-dark-green rounded-xl flex items-center justify-center">
-                <Sparkles className="text-app-cream" size={20} />
+          <section className="pt-8 border-t border-app-border flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-app-accent text-app-light-gold rounded-2xl flex items-center justify-center shadow-lg shadow-app-accent/20">
+                <Sparkles size={24} />
               </div>
               <div>
-                <p className="text-sm font-bold text-app-fg">EchoNotes v1.2.0</p>
-                <p className="text-[10px] text-app-brown/30 uppercase tracking-widest">Powered by Gemini 3 Flash</p>
+                <p className="text-sm font-black text-app-fg uppercase tracking-tight">EchoNotes v1.2.0</p>
+                <p className="text-[10px] text-app-fg/40 uppercase tracking-[0.2em] font-black mt-1">Powered by Gemini AI</p>
               </div>
             </div>
             <button 
               onClick={onSignOut}
-              className="flex items-center gap-2 px-4 py-2 text-rose-600 hover:bg-rose-500/10 rounded-xl transition-colors text-xs font-bold"
+              className="flex items-center gap-2 px-5 py-2.5 text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all text-xs font-black uppercase tracking-widest glass"
             >
-              <LogOut size={14} /> Sign Out
+              <LogOut size={16} /> Sign Out
             </button>
           </section>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 bg-app-bg border-t border-app-border flex justify-end gap-3">
+        <div className="p-8 glass flex justify-end items-center gap-6">
           <button 
             onClick={onClose}
-            className="px-6 py-2 text-sm font-medium text-app-brown/60 hover:text-app-fg transition-colors"
+            className="text-xs font-black uppercase tracking-[0.2em] text-app-fg/40 hover:text-app-fg transition-colors"
           >
             Cancel
           </button>
           <button 
             onClick={handleSave}
             className={cn(
-              "flex items-center gap-2 px-8 py-2 rounded-xl text-sm font-bold transition-all",
+              "flex items-center gap-3 px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all shadow-2xl",
               isSaved 
-                ? "bg-app-green text-white" 
-                : "bg-app-dark-green text-app-cream hover:opacity-90"
+                ? "bg-emerald-500 text-white shadow-emerald-500/20" 
+                : "bg-app-accent text-app-light-gold shadow-app-accent/30 hover:scale-105 active:scale-95"
             )}
           >
-            {isSaved ? <Check size={16} /> : <Save size={16} />}
-            {isSaved ? 'Settings Saved' : 'Save Changes'}
+            {isSaved ? <Check size={18} /> : <Save size={18} />}
+            {isSaved ? 'Saved' : 'Save Changes'}
           </button>
         </div>
       </motion.div>

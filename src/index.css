@@ -23,39 +23,62 @@
 
 @layer base {
   :root {
-    --app-bg: #FFFFFF;
-    --app-fg: #000000;
-    --app-accent: #4F9E6D;
-    --app-card: #F9F5E3;
-    --app-border: rgba(75, 61, 35, 0.12);
+    --app-bg: #fefae0;
+    --app-fg: #283618;
+    --app-accent: #606c38;
+    --app-card: rgba(254, 250, 224, 0.7);
+    --app-border: rgba(96, 108, 56, 0.2);
     
-    --app-green: #4F9E6D;
-    --app-dark-green: #2C6B4E;
-    --app-gold: #CDAA2B;
-    --app-light-gold: #E7C07D;
-    --app-brown: #4B3D23;
-    --app-cream: #F9F5E3;
+    --app-green: #606c38;
+    --app-dark-green: #283618;
+    --app-gold: #dda15e;
+    --app-light-gold: #fefae0;
+    --app-brown: #bc6c25;
+    --app-cream: #fefae0;
+
+    --glass-bg: rgba(254, 250, 224, 0.4);
+    --glass-border: rgba(96, 108, 56, 0.1);
   }
 
   .dark {
-    --app-bg: #1A1A17;
-    --app-fg: #F9F5E3;
-    --app-accent: #4F9E6D;
-    --app-card: #2C2C26;
-    --app-border: rgba(231, 192, 125, 0.1);
+    --app-bg: #283618;
+    --app-fg: #fefae0;
+    --app-accent: #dda15e;
+    --app-card: rgba(40, 54, 24, 0.7);
+    --app-border: rgba(254, 250, 224, 0.1);
     
-    --app-green: #4F9E6D;
-    --app-dark-green: #6DBF8B;
-    --app-gold: #CDAA2B;
-    --app-light-gold: #E7C07D;
-    --app-brown: #E7C07D;
-    --app-cream: #2C2C26;
+    --app-green: #606c38;
+    --app-dark-green: #dda15e;
+    --app-gold: #dda15e;
+    --app-light-gold: #bc6c25;
+    --app-brown: #bc6c25;
+    --app-cream: #283618;
+
+    --glass-bg: rgba(40, 54, 24, 0.6);
+    --glass-border: rgba(254, 250, 224, 0.1);
   }
 
   body {
     background-color: var(--app-bg);
     color: var(--app-fg);
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(96, 108, 56, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(221, 161, 94, 0.1) 0px, transparent 50%);
+    background-attachment: fixed;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
+}
+
+@utility glass {
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+}
+
+@utility glass-dark {
+  background-color: rgba(40, 54, 24, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(254, 250, 224, 0.1);
 }
 

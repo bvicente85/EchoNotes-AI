@@ -406,16 +406,16 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
               {data.title}
             </h1>
           )}
-          <p className="text-sm text-black/70 font-normal leading-relaxed max-w-4xl line-clamp-2 border-l-2 border-app-green/30 pl-4 mt-4">
+          <p className="text-sm text-app-fg/70 font-normal leading-relaxed max-w-4xl line-clamp-2 border-l-2 border-app-accent/30 pl-4 mt-4">
             {data.summary.replace(/[#*`]/g, '').trim()}
           </p>
         </div>
 
         {/* Meeting Metadata */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-5 bg-app-card rounded-2xl border border-app-border shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-5 glass rounded-2xl shadow-sm">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-black uppercase tracking-widest flex items-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-app-green" />
+            <label className="text-[10px] font-bold text-app-fg uppercase tracking-widest flex items-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-app-accent" />
               Client Name
             </label>
             <input
@@ -423,19 +423,19 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
               value={data.clientName}
               onChange={(e) => updateData({ ...data, clientName: e.target.value })}
               placeholder="Enter client name..."
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-base font-medium text-black placeholder:text-app-brown/30"
+              className="w-full bg-transparent border-none focus:ring-0 p-0 text-base font-bold text-app-fg placeholder:text-app-fg/20"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-black uppercase tracking-widest flex items-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-app-green" />
+            <label className="text-[10px] font-bold text-app-fg uppercase tracking-widest flex items-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-app-accent" />
               Meeting Date & Time
             </label>
             <input
               type="datetime-local"
               value={data.meetingDate}
               onChange={(e) => updateData({ ...data, meetingDate: e.target.value })}
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-base font-medium text-black [color-scheme:light] dark:[color-scheme:dark]"
+              className="w-full bg-transparent border-none focus:ring-0 p-0 text-base font-bold text-app-fg [color-scheme:light] dark:[color-scheme:dark]"
             />
           </div>
         </div>
@@ -445,20 +445,20 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-app-green/10 flex items-center justify-center text-app-green">
+            <div className="w-10 h-10 rounded-xl bg-app-accent/10 flex items-center justify-center text-app-accent">
               <FileText size={20} />
             </div>
             <h2 className="text-2xl font-bold text-app-fg">Executive Summary</h2>
           </div>
           <button 
             onClick={() => setIsEditingSummary(!isEditingSummary)}
-            className="text-[10px] font-bold uppercase tracking-widest text-app-green hover:opacity-80 transition-opacity bg-app-green/5 px-3 py-1.5 rounded-full border border-app-green/10"
+            className="text-[10px] font-bold uppercase tracking-widest text-app-accent hover:opacity-80 transition-opacity glass px-3 py-1.5 rounded-full"
           >
             {isEditingSummary ? 'Preview Markdown' : 'Edit Source'}
           </button>
         </div>
         
-        <div className="bg-app-card rounded-3xl border border-app-border p-8 shadow-md relative group">
+        <div className="glass rounded-3xl p-8 shadow-xl relative group">
           {isEditingSummary ? (
             <textarea
               autoFocus
@@ -471,7 +471,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
           ) : (
             <div 
               onClick={() => setIsEditingSummary(true)}
-              className="prose prose-base md:prose-lg dark:prose-invert max-w-none prose-headings:font-display prose-headings:tracking-tight prose-a:text-app-green prose-strong:text-app-dark-green text-black cursor-text"
+              className="prose prose-base md:prose-lg dark:prose-invert max-w-none prose-headings:font-display prose-headings:tracking-tight prose-a:text-app-accent prose-strong:text-app-fg text-app-fg/90 cursor-text"
             >
               <ReactMarkdown>{data.summary}</ReactMarkdown>
             </div>
@@ -480,13 +480,13 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
       </section>
 
       {/* Action Bar - Export Options */}
-      <div className="flex flex-nowrap items-center gap-2 p-2 bg-app-card/30 backdrop-blur-md rounded-2xl border border-app-border/50 sticky top-4 z-10 shadow-lg overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1 px-1.5 py-1 bg-app-bg rounded-xl border border-app-border shadow-inner shrink-0">
+      <div className="flex flex-nowrap items-center gap-2 p-2 glass sticky top-4 z-40 shadow-2xl overflow-x-auto no-scrollbar rounded-2xl">
+        <div className="flex items-center gap-1 px-1.5 py-1 glass rounded-xl shadow-inner shrink-0 scale-90 md:scale-100">
           <button
             onClick={undo}
             disabled={!canUndo}
             title="Undo (Ctrl+Z)"
-            className="p-2 text-app-brown/40 hover:text-app-fg disabled:text-app-brown/10 disabled:cursor-not-allowed transition-colors"
+            className="p-2 text-app-fg/40 hover:text-app-fg disabled:opacity-10 disabled:cursor-not-allowed transition-colors"
           >
             <Undo size={18} />
           </button>
@@ -495,7 +495,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
             onClick={redo}
             disabled={!canRedo}
             title="Redo (Ctrl+Y)"
-            className="p-2 text-app-brown/40 hover:text-app-fg disabled:text-app-brown/10 disabled:cursor-not-allowed transition-colors"
+            className="p-2 text-app-fg/40 hover:text-app-fg disabled:opacity-10 disabled:cursor-not-allowed transition-colors"
           >
             <Redo size={18} />
           </button>
@@ -503,73 +503,52 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
 
         <div className="h-8 w-px bg-app-border mx-1 hidden md:block" />
 
-        <div className="flex items-center gap-1.5 px-3 py-2 bg-app-bg rounded-xl border border-app-border shadow-inner shrink-0">
+        <div className="flex items-center gap-1.5 px-3 py-2 glass rounded-xl shadow-inner shrink-0 scale-90 md:scale-100">
           <input 
             type="checkbox" 
             id="includeTranscript"
             checked={includeTranscript}
             onChange={(e) => setIncludeTranscript(e.target.checked)}
-            className="w-3.5 h-3.5 rounded border-app-border text-app-green focus:ring-app-green bg-app-bg"
+            className="w-3.5 h-3.5 rounded border-app-border text-app-accent focus:ring-app-accent bg-transparent"
           />
-          <label htmlFor="includeTranscript" className="text-[9px] font-bold text-app-brown/60 cursor-pointer select-none uppercase tracking-wider whitespace-nowrap">
+          <label htmlFor="includeTranscript" className="text-[9px] font-black text-app-fg/60 cursor-pointer select-none uppercase tracking-[0.2em] whitespace-nowrap">
             Include Transcript
           </label>
         </div>
 
-        <div className="flex items-center gap-1.5 ml-auto shrink-0">
+        <div className="flex items-center gap-1.5 ml-auto shrink-0 pr-1">
           <button 
             onClick={() => copyToClipboard('text')}
-            className="flex items-center gap-1.5 px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-app-brown/60 hover:text-app-fg hover:bg-app-bg rounded-xl transition-all border border-app-border shadow-sm whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-app-fg/60 hover:text-app-fg glass rounded-xl transition-all shadow-sm whitespace-nowrap"
           >
-            {copied ? <Check size={12} className="text-app-green" /> : <Copy size={12} />}
+            {copied ? <Check size={12} className="text-app-accent" /> : <Copy size={12} />}
             <span>{copied ? 'Copied!' : 'Copy'}</span>
           </button>
 
           <button 
             onClick={() => copyToClipboard('markdown')}
-            className="flex items-center gap-1.5 px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-app-green hover:text-white hover:bg-app-green rounded-xl transition-all border border-app-green/20 shadow-sm whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-app-accent hover:text-white hover:bg-app-accent glass rounded-xl transition-all shadow-sm whitespace-nowrap"
           >
             <Hash size={12} />
             <span>Markdown</span>
           </button>
 
-          <button 
-            onClick={downloadMarkdown}
-            className="flex items-center gap-1.5 px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-app-green hover:bg-app-green/10 rounded-xl transition-all border border-app-green/20 shadow-sm whitespace-nowrap"
-          >
-            <Download size={12} />
-            <span>MD</span>
-          </button>
-
-          <button 
-            onClick={downloadJSON}
-            className="flex items-center gap-1.5 px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-app-gold hover:bg-app-gold/5 rounded-xl transition-all border border-app-gold/20 shadow-sm whitespace-nowrap"
-          >
-            <FileJson size={12} />
-            <span>JSON</span>
-          </button>
+          <div className="h-8 w-px bg-app-border mx-1 hidden sm:block" />
 
           <button 
             onClick={downloadPDF}
-            className="flex items-center gap-1.5 px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-app-dark-green hover:bg-app-dark-green/5 rounded-xl transition-all border border-app-dark-green/20 shadow-sm whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-app-accent hover:bg-app-accent/10 glass rounded-xl transition-all shadow-sm whitespace-nowrap"
           >
             <FileText size={12} />
             <span>PDF</span>
           </button>
 
           <button 
-            onClick={downloadReport}
-            className="flex items-center gap-1.5 px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-app-green hover:bg-app-green/5 rounded-xl transition-all border border-app-green/20 shadow-sm whitespace-nowrap"
-          >
-            <Download size={12} />
-            <span>TXT</span>
-          </button>
-
-          <button 
             onClick={onReset}
-            className="px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-app-brown/40 hover:text-app-fg transition-colors whitespace-nowrap"
+            className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 glass rounded-xl transition-all shadow-sm whitespace-nowrap"
           >
-            New
+            <Trash2 size={12} />
+            <span>Discard</span>
           </button>
         </div>
       </div>
@@ -577,14 +556,14 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* Highlights */}
         <section className="space-y-6">
-          <div className="flex items-center justify-between text-black uppercase tracking-widest text-xs font-bold border-b border-app-border pb-2">
+          <div className="flex items-center justify-between text-app-fg uppercase tracking-[0.2em] text-[10px] font-black border-b border-app-accent/20 pb-2">
             <div className="flex items-center gap-2">
-              <ListFilter size={16} className="text-app-green" />
+              <ListFilter size={16} className="text-app-accent" />
               <span>Key Highlights</span>
             </div>
             <button 
               onClick={() => updateData({ ...data, highlights: [...data.highlights, ''] })}
-              className="p-1.5 hover:bg-app-green/10 rounded-lg transition-colors text-app-green"
+              className="p-1.5 hover:bg-app-accent/10 rounded-lg transition-colors text-app-accent"
             >
               <Plus size={16} />
             </button>
@@ -596,9 +575,9 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={i} 
-                className="flex gap-4 text-app-fg group/item bg-app-card/30 p-3 rounded-xl border border-transparent hover:border-app-border transition-all"
+                className="flex gap-4 text-app-fg group/item glass p-4 rounded-xl shadow-sm border-transparent hover:border-app-accent/20 transition-all"
               >
-                <span className="text-app-green font-bold mt-1.5">•</span>
+                <span className="text-app-accent font-black mt-1.5">•</span>
                 <textarea
                   value={item}
                   onChange={(e) => {
@@ -617,7 +596,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                 />
                 <button 
                   onClick={() => updateData({ ...data, highlights: data.highlights.filter((_, index) => index !== i) })}
-                  className="opacity-0 group-hover/item:opacity-100 p-1.5 hover:text-rose-500 transition-all text-app-brown/30"
+                  className="opacity-0 group-hover/item:opacity-100 p-1.5 hover:text-rose-500 transition-all text-app-fg/20"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -628,14 +607,14 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
 
         {/* Key Decisions */}
         <section className="space-y-6">
-          <div className="flex items-center justify-between text-black uppercase tracking-widest text-xs font-bold border-b border-app-border pb-2">
+          <div className="flex items-center justify-between text-app-fg uppercase tracking-[0.2em] text-[10px] font-black border-b border-app-accent/20 pb-2">
             <div className="flex items-center gap-2">
-              <Gavel size={16} className="text-app-gold" />
+              <Gavel size={16} className="text-app-accent" />
               <span>Key Decisions</span>
             </div>
             <button 
               onClick={() => updateData({ ...data, keyDecisions: [...(data.keyDecisions || []), ''] })}
-              className="p-1.5 hover:bg-app-gold/10 rounded-lg transition-colors text-app-gold"
+              className="p-1.5 hover:bg-app-accent/10 rounded-lg transition-colors text-app-accent"
             >
               <Plus size={16} />
             </button>
@@ -647,10 +626,10 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={i} 
-                className="flex gap-4 items-start bg-app-gold/5 p-4 rounded-2xl border border-app-gold/10 group/item hover:bg-app-gold/10 transition-all"
+                className="flex gap-4 items-start bg-app-accent/5 p-4 rounded-2xl border border-app-accent/10 group/item hover:bg-app-accent/10 transition-all shadow-sm"
               >
-                <div className="w-5 h-5 rounded-full bg-app-gold flex-shrink-0 flex items-center justify-center mt-0.5">
-                  <Check size={12} className="text-white" />
+                <div className="w-5 h-5 rounded-full bg-app-accent flex-shrink-0 flex items-center justify-center mt-0.5">
+                  <Check size={12} className="text-app-light-gold" />
                 </div>
                 <textarea
                   value={item}
@@ -670,7 +649,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                 />
                 <button 
                   onClick={() => updateData({ ...data, keyDecisions: (data.keyDecisions || []).filter((_, index) => index !== i) })}
-                  className="opacity-0 group-hover/item:opacity-100 p-1.5 hover:text-rose-500 transition-all text-app-brown/30"
+                  className="opacity-0 group-hover/item:opacity-100 p-1.5 hover:text-rose-500 transition-all text-app-fg/20"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -681,14 +660,14 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
 
         {/* Next Actions */}
         <section className="space-y-6">
-          <div className="flex items-center justify-between text-black uppercase tracking-widest text-xs font-bold border-b border-app-border pb-2">
+          <div className="flex items-center justify-between text-app-fg uppercase tracking-[0.2em] text-[10px] font-black border-b border-app-accent/20 pb-2">
             <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-app-dark-green" />
+              <CheckCircle2 size={16} className="text-app-accent" />
               <span>Next Actions</span>
             </div>
             <button 
               onClick={() => updateData({ ...data, nextActions: [...data.nextActions, ''] })}
-              className="p-1.5 hover:bg-app-dark-green/10 rounded-lg transition-colors text-app-dark-green"
+              className="p-1.5 hover:bg-app-accent/10 rounded-lg transition-colors text-app-accent"
             >
               <Plus size={16} />
             </button>
@@ -700,9 +679,9 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={i} 
-                className="flex gap-4 items-start bg-app-dark-green/5 p-4 rounded-2xl border border-app-dark-green/10 group/item hover:bg-app-dark-green/10 transition-all"
+                className="flex gap-4 items-start bg-app-accent/5 p-4 rounded-2xl border border-app-accent/10 group/item hover:bg-app-accent/10 transition-all shadow-sm"
               >
-                <span className="text-app-dark-green font-bold text-sm mt-0.5">{i + 1}.</span>
+                <span className="text-app-accent font-black text-sm mt-0.5">{i + 1}.</span>
                 <textarea
                   value={item}
                   onChange={(e) => {
@@ -721,7 +700,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                 />
                 <button 
                   onClick={() => updateData({ ...data, nextActions: data.nextActions.filter((_, index) => index !== i) })}
-                  className="opacity-0 group-hover/item:opacity-100 p-1.5 hover:text-rose-500 transition-all text-app-brown/30"
+                  className="opacity-0 group-hover/item:opacity-100 p-1.5 hover:text-rose-500 transition-all text-app-fg/20"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -755,11 +734,9 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
           {data.transcript.map((entry, i) => {
             // Simple color assignment based on speaker name using the organic palette
             const colors = [
-              'bg-app-green/10 text-app-green border-app-green/20',
-              'bg-app-gold/10 text-app-gold border-app-gold/20',
-              'bg-app-dark-green/10 text-app-dark-green border-app-dark-green/20',
-              'bg-app-brown/10 text-app-brown border-app-brown/20',
-              'bg-app-light-gold/10 text-app-light-gold border-app-light-gold/20',
+              'bg-app-accent/10 text-app-accent border-app-accent/20',
+              'bg-app-fg/10 text-app-fg border-app-fg/20',
+              'bg-app-accent/5 text-app-accent border-app-accent/10',
             ];
             const colorIndex = entry.speaker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
             const colorClass = colors[colorIndex];
@@ -782,19 +759,19 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                         if (e.key === 'Enter') handleSpeakerSave(i);
                         if (e.key === 'Escape') setEditingSpeakerIndex(null);
                       }}
-                      className="text-[10px] font-mono font-bold text-app-fg uppercase tracking-tight bg-app-card border border-app-green rounded px-1 py-0 focus:outline-none"
+                      className="text-[10px] font-mono font-bold text-app-fg uppercase tracking-tight glass border border-app-accent rounded px-1 py-0 focus:outline-none"
                     />
                   ) : (
                     <span 
                       onClick={() => handleSpeakerClick(i, entry.speaker)}
-                      className="text-[10px] font-mono font-bold text-black uppercase tracking-tight group-hover:text-app-green transition-colors cursor-pointer hover:underline decoration-dotted underline-offset-2"
+                      className="text-[10px] font-mono font-bold text-app-fg uppercase tracking-tight group-hover:text-app-accent transition-colors cursor-pointer hover:underline decoration-dotted underline-offset-2"
                       title="Click to rename speaker"
                     >
                       {entry.speaker}
                     </span>
                   )}
                   
-                  <span className="text-[9px] font-mono text-app-brown/60">
+                  <span className="text-[9px] font-mono text-app-fg/40">
                     • {entry.timestamp}
                   </span>
                 </div>
@@ -807,7 +784,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                     newTranscript[i] = { ...entry, text: e.target.value };
                     updateData({ ...data, transcript: newTranscript });
                   }}
-                  className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-black leading-snug font-normal pl-7 resize-none min-h-[20px]"
+                  className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-app-fg/80 leading-snug font-normal pl-7 resize-none min-h-[20px]"
                   rows={1}
                   onInput={(e) => {
                     const target = e.target as HTMLTextAreaElement;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload } from 'lucide-react';
+import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateMeetingReport, MeetingReport, MeetingAnalysisError } from './services/gemini';
 import { AudioFileUpload } from './components/AudioFileUpload';
@@ -531,14 +531,14 @@ export default function App() {
 
   return (
     <div className={`min-h-screen bg-app-bg text-app-fg transition-colors duration-300 font-sans ${theme === 'dark' ? 'dark' : ''}`}>
-      <nav className="h-20 border-b border-app-border px-6 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-50">
+      <nav className="h-20 border-b border-app-border px-6 flex items-center justify-between glass sticky top-0 z-50">
         <div className="flex items-center gap-3 cursor-pointer group" onClick={handleGoHome}>
-          <div className="w-10 h-10 bg-app-dark-green rounded-xl flex items-center justify-center text-app-cream shadow-lg shadow-app-green/20 group-hover:scale-105 transition-transform">
+          <div className="w-10 h-10 bg-app-accent rounded-xl flex items-center justify-center text-app-light-gold shadow-lg shadow-app-green/20 group-hover:scale-105 transition-transform">
             <Mic size={20} className="group-hover:animate-pulse" />
           </div>
           <div>
-            <h1 className="text-xl font-display font-black tracking-tighter leading-none text-black">EchoNote</h1>
-            <span className="text-[10px] font-mono text-app-dark-green uppercase tracking-[0.2em] font-bold">AI Assistant</span>
+            <h1 className="text-xl font-display font-black tracking-tighter leading-none text-app-fg">EchoNote</h1>
+            <span className="text-[10px] font-mono text-app-accent uppercase tracking-[0.2em] font-bold">AI Assistant</span>
           </div>
         </div>
 
@@ -546,7 +546,7 @@ export default function App() {
           {isAdmin && (
             <button 
               onClick={() => setShowAdminDashboard(true)}
-              className="p-2.5 text-black/40 hover:text-black hover:bg-app-cream rounded-xl transition-all"
+              className="p-2.5 text-app-fg/40 hover:text-app-fg hover:bg-app-accent/10 rounded-xl transition-all"
               title="Admin Dashboard"
             >
               <LayoutGrid size={20} />
@@ -554,16 +554,16 @@ export default function App() {
           )}
           <button 
             onClick={() => setShowHistory(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-app-cream hover:bg-black/5 rounded-xl transition-all border border-app-border"
+            className="flex items-center gap-2 px-4 py-2 glass hover:bg-app-accent/10 rounded-xl transition-all"
           >
-            <History size={18} className="text-black/60" />
-            <span className="text-sm font-bold text-black/80">Recents</span>
+            <History size={18} className="text-app-fg/60" />
+            <span className="text-sm font-bold text-app-fg/80">Recents</span>
           </button>
           
           <div className="relative">
             <button 
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-10 h-10 rounded-xl bg-app-card border border-app-border flex items-center justify-center overflow-hidden hover:border-black/20 transition-all shadow-sm"
+              className="w-10 h-10 rounded-xl glass flex items-center justify-center overflow-hidden hover:border-app-accent/30 transition-all shadow-sm"
             >
               {user.user_metadata?.avatar_url ? (
                 <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -585,18 +585,18 @@ export default function App() {
                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-app-border p-2 z-50 overflow-hidden"
+                    className="absolute right-0 mt-2 w-56 glass rounded-2xl shadow-2xl p-2 z-50 overflow-hidden"
                   >
                     <div className="p-3 border-b border-app-border mb-1">
-                      <p className="text-xs font-bold text-black truncate">{displayName || user.email}</p>
-                      <p className="text-[10px] text-black/40 truncate">{user.email}</p>
+                      <p className="text-xs font-bold text-app-fg truncate">{displayName || user.email}</p>
+                      <p className="text-[10px] text-app-fg/40 truncate">{user.email}</p>
                     </div>
                     <button 
                       onClick={() => {
                         setShowSettings(true);
                         setShowUserMenu(false);
                       }}
-                      className="w-full flex items-center gap-3 p-3 text-sm text-black/60 hover:text-black hover:bg-app-cream rounded-xl transition-all"
+                      className="w-full flex items-center gap-3 p-3 text-sm text-app-fg/60 hover:text-app-fg hover:bg-app-accent/10 rounded-xl transition-all"
                     >
                       <Settings size={16} />
                       Settings
@@ -607,7 +607,7 @@ export default function App() {
                           setShowAdminDashboard(true);
                           setShowUserMenu(false);
                         }}
-                        className="w-full flex items-center gap-3 p-3 text-sm text-black/60 hover:text-black hover:bg-app-cream rounded-xl transition-all"
+                        className="w-full flex items-center gap-3 p-3 text-sm text-app-fg/60 hover:text-app-fg hover:bg-app-accent/10 rounded-xl transition-all"
                       >
                         <LayoutGrid size={16} />
                         Admin Panel
@@ -615,7 +615,7 @@ export default function App() {
                     )}
                     <button 
                       onClick={handleSignOut}
-                      className="w-full flex items-center gap-3 p-3 text-sm text-rose-500 hover:bg-rose-50 rounded-xl transition-all mt-1"
+                      className="w-full flex items-center gap-3 p-3 text-sm text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all mt-1"
                     >
                       <LogOut size={16} />
                       Sign Out
@@ -642,23 +642,23 @@ export default function App() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="w-full max-w-md h-full bg-app-bg shadow-2xl flex flex-col border-l border-app-border"
+              className="w-full max-w-md h-full glass shadow-2xl flex flex-col"
               onClick={e => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-app-border bg-white/50 backdrop-blur-md">
+              <div className="p-6 border-b border-app-border glass">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-display font-black tracking-tight text-black">History</h2>
+                  <h2 className="text-2xl font-display font-black tracking-tight text-app-fg">History</h2>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setIsClearingAll(true)}
-                      className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                      className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
                       title="Clear all history"
                     >
                       <Trash2 size={20} />
                     </button>
                     <button 
                       onClick={() => setShowHistory(false)}
-                      className="p-2 text-black/20 hover:text-black hover:bg-app-cream rounded-xl transition-all"
+                      className="p-2 text-app-fg/20 hover:text-app-fg hover:bg-app-accent/10 rounded-xl transition-all"
                     >
                       <X size={20} />
                     </button>
@@ -667,13 +667,13 @@ export default function App() {
 
                 <div className="space-y-4">
                   <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-black/20 group-focus-within:text-app-dark-green transition-colors" size={18} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-app-fg/20 group-focus-within:text-app-accent transition-colors" size={18} />
                     <input 
                       type="text"
                       placeholder="Search meetings..."
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full bg-white border border-app-border rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-app-green/5 focus:border-app-dark-green transition-all"
+                      className="w-full glass rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all"
                     />
                   </div>
 
@@ -682,14 +682,14 @@ export default function App() {
                       onClick={() => {
                         setSortField(sortField === 'date' ? 'title' : 'date');
                       }}
-                      className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-black/40 hover:text-black transition-colors"
+                      className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-app-fg/40 hover:text-app-fg transition-colors"
                     >
                       <ArrowUpDown size={12} />
                       Sorted by {sortField}
                     </button>
                     <button 
                       onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                      className="text-[10px] font-bold uppercase tracking-widest text-black/40 hover:text-black transition-colors"
+                      className="text-[10px] font-bold uppercase tracking-widest text-app-fg/40 hover:text-app-fg transition-colors"
                     >
                       {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
                     </button>
@@ -894,11 +894,11 @@ export default function App() {
                 className="w-full flex flex-col items-center gap-6 md:gap-8"
               >
                 <div className="text-center space-y-3 max-w-2xl">
-                  <h2 className="text-4xl md:text-5xl font-display font-bold leading-tight tracking-tighter text-black">
+                  <h2 className="text-4xl md:text-5xl font-display font-bold leading-tight tracking-tighter text-app-fg">
                     Capture every word, <br />
-                    <span className="text-app-dark-green">understand every voice.</span>
+                    <span className="text-app-accent">understand every voice.</span>
                   </h2>
-                  <p className="text-black/80 text-sm md:text-base font-normal px-4">
+                  <p className="text-app-fg/80 text-sm md:text-base font-normal px-4">
                     EchoNotes uses advanced AI to transcribe, identify speakers, and summarize your business meetings in real-time.
                   </p>
                 </div>
@@ -924,12 +924,12 @@ export default function App() {
                 )}
 
                 {!isRecording && (
-                  <div className="flex bg-app-card p-1 rounded-xl border border-app-border shadow-sm mb-4">
+                  <div className="flex glass p-1.5 rounded-2xl mb-4">
                     <button 
                       onClick={() => setRecordingMode('mic')}
                       className={cn(
-                        "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
-                        recordingMode === 'mic' ? "bg-app-dark-green text-app-cream shadow-md" : "text-app-brown/40 hover:text-app-fg"
+                        "px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
+                        recordingMode === 'mic' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
                       )}
                     >
                       <Mic size={14} />
@@ -938,8 +938,8 @@ export default function App() {
                     <button 
                       onClick={() => setRecordingMode('system')}
                       className={cn(
-                        "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
-                        recordingMode === 'system' ? "bg-app-dark-green text-app-cream shadow-md" : "text-app-brown/40 hover:text-app-fg"
+                        "px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
+                        recordingMode === 'system' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
                       )}
                     >
                       <Headphones size={14} />
@@ -948,8 +948,8 @@ export default function App() {
                     <button 
                       onClick={() => setRecordingMode('upload')}
                       className={cn(
-                        "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
-                        recordingMode === 'upload' ? "bg-app-dark-green text-app-cream shadow-md" : "text-app-brown/40 hover:text-app-fg"
+                        "px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
+                        recordingMode === 'upload' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
                       )}
                     >
                       <Upload size={14} />
@@ -969,35 +969,36 @@ export default function App() {
                       <motion.div 
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-amber-50 border border-amber-100 p-5 rounded-xl max-w-md text-center space-y-3 shadow-sm mb-4"
+                        className="glass p-6 rounded-2xl max-w-md text-center space-y-4 shadow-xl mb-4"
                       >
-                        <p className="text-xs text-amber-800 font-bold uppercase tracking-wider">
-                          How to capture meeting audio:
+                        <p className="text-xs text-app-brown font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                          <Monitor size={14} className="text-app-accent" />
+                          Virtual Meeting Setup
                         </p>
-                        <div className="text-[11px] text-amber-700 leading-relaxed text-left space-y-2">
-                          <p>1. Click <strong>Start Meeting</strong> below.</p>
-                          <p>2. In the browser popup, click the <strong>"Entire Screen"</strong> tab at the top.</p>
-                          <p>3. Click the <strong>image of your screen</strong> to select it.</p>
-                          <p>4. <span className="text-amber-900 font-bold underline">Check the box</span> at the bottom that says <strong>"Share system audio"</strong>.</p>
-                          <p>5. Click <strong>Share</strong>.</p>
+                        <div className="text-[12px] text-app-fg/70 leading-relaxed text-left space-y-3">
+                          <p className="flex gap-3"><span className="w-5 h-5 flex-shrink-0 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center font-bold">1</span> <span>Click <strong>Start Meeting</strong> below.</span></p>
+                          <p className="flex gap-3"><span className="w-5 h-5 flex-shrink-0 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center font-bold">2</span> <span>In the browser popup, click the <strong>"Entire Screen"</strong> tab.</span></p>
+                          <p className="flex gap-3"><span className="w-5 h-5 flex-shrink-0 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center font-bold">3</span> <span>Click the <strong>image of your screen</strong> to select it.</span></p>
+                          <p className="flex gap-3"><span className="w-5 h-5 flex-shrink-0 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center font-bold">4</span> <span><span className="text-app-accent font-black underline decoration-2">Check the box</span> at the bottom: <strong>"Share system audio"</strong>.</span></p>
+                          <p className="flex gap-3"><span className="w-5 h-5 flex-shrink-0 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center font-bold">5</span> <span>Click <strong>Share</strong> to begin.</span></p>
                         </div>
                       </motion.div>
                     )}
 
-                    <div className="relative w-64 h-64 md:w-72 md:h-72 flex items-center justify-center">
-                      <div className="absolute inset-0 border border-app-brown/5 rounded-full" />
+                    <div className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
+                      <div className="absolute inset-0 border border-app-accent/10 rounded-full" />
                       
                       {isRecording && (
                         <motion.div 
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-app-bg px-3 py-1 rounded-full border border-rose-100 shadow-sm"
+                          className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 glass px-4 py-1.5 rounded-full border border-rose-500/20 shadow-lg"
                         >
-                          <span className="relative flex h-2 w-2">
+                          <span className="relative flex h-2.5 w-2.5">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
                           </span>
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-rose-600">Live Recording</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-rose-600">Live Recording</span>
                         </motion.div>
                       )}
                       
@@ -1025,21 +1026,21 @@ export default function App() {
                       <button
                         onClick={isRecording ? stopRecording : startRecording}
                         className={cn(
-                          "relative z-10 w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all duration-500 group",
+                          "relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all duration-500 group",
                           isRecording 
-                            ? "bg-app-dark-green text-app-cream shadow-2xl shadow-app-green/40 ring-4 ring-app-green/10" 
-                            : "bg-app-bg border border-app-border hover:border-app-green hover:shadow-xl text-app-fg"
+                            ? "bg-rose-500 text-white shadow-2xl shadow-rose-500/20 ring-4 ring-rose-500/10" 
+                            : "glass hover:border-app-accent hover:shadow-2xl text-app-fg"
                         )}
                       >
                         {isRecording ? (
                           <>
-                            <Square fill="currentColor" size={32} />
-                            <span className="mt-4 font-mono text-xs tracking-widest uppercase">Stop Session</span>
+                            <Square fill="currentColor" size={36} />
+                            <span className="mt-4 font-mono text-[10px] tracking-[0.3em] uppercase font-black">Stop Meeting</span>
                           </>
                         ) : (
                           <>
-                            <Mic size={32} />
-                            <span className="mt-4 font-mono text-xs tracking-widest uppercase">Start Meeting</span>
+                            <Mic size={36} />
+                            <span className="mt-4 font-mono text-[10px] tracking-[0.3em] uppercase font-black">Start Meeting</span>
                           </>
                         )}
                       </button>
