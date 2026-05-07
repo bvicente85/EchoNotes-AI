@@ -209,8 +209,12 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    const clientSuffix = data.clientName ? `-${data.clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}` : '';
-    link.download = `meeting-report${clientSuffix}-${new Date(data.meetingDate).toISOString().split('T')[0]}.md`;
+    
+    // meeting-report-NOME DO CLIENTE-data de realzação.md
+    const clientName = data.clientName ? data.clientName.trim().replace(/[^a-z0-9]/gi, '-') : 'General';
+    const dateStr = new Date(data.meetingDate).toISOString().split('T')[0];
+    
+    link.download = `meeting-report-${clientName}-${dateStr}.md`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -530,7 +534,15 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
             className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-app-accent hover:text-white hover:bg-app-accent glass rounded-xl transition-all shadow-sm whitespace-nowrap"
           >
             <Hash size={12} />
-            <span>Markdown</span>
+            <span>Copy MD</span>
+          </button>
+
+          <button 
+            onClick={downloadMarkdown}
+            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-app-accent hover:bg-app-accent/10 glass rounded-xl transition-all shadow-sm whitespace-nowrap"
+          >
+            <Download size={12} />
+            <span>Down MD</span>
           </button>
 
           <div className="h-8 w-px bg-app-border mx-1 hidden sm:block" />
