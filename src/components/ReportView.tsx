@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, CheckCircle2, ListFilter, MessageSquare, Download, FileJson, Plus, Trash2, Copy, Check, Undo, Redo, Gavel, Hash } from 'lucide-react';
+import { FileText, CheckCircle2, ListFilter, MessageSquare, Download, FileJson, Plus, Trash2, Copy, Check, Undo, Redo, Gavel, Hash, User, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MeetingReport } from '../services/gemini';
 import { jsPDF } from 'jspdf';
@@ -385,427 +385,461 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
       className="max-w-5xl mx-auto p-4 md:p-8 space-y-10 pb-32"
     >
       {/* Header Section: Title & Metadata */}
-      <div className="space-y-6">
-        <div className="space-y-2">
-          {isEditingTitle ? (
-            <input
-              autoFocus
-              value={data.title}
-              onChange={(e) => updateData({ ...data, title: e.target.value })}
-              onBlur={() => setIsEditingTitle(false)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') setIsEditingTitle(false);
-                if (e.key === 'Escape') {
-                  updateData({ ...data, title: initialTitle || 'Meeting Intelligence Report' });
-                  setIsEditingTitle(false);
-                }
-              }}
-              className="text-3xl md:text-4xl font-display font-bold text-app-fg bg-transparent border-b-2 border-app-accent focus:outline-none w-full py-2"
-            />
-          ) : (
-            <h1 
-              onClick={() => setIsEditingTitle(true)}
-              className="text-3xl md:text-4xl font-display font-bold text-app-fg cursor-pointer hover:text-app-accent transition-colors leading-tight break-words"
+      <div className="space-y-8">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+          <div className="space-y-4 max-w-3xl">
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1 bg-app-accent/10 text-app-accent text-[10px] font-black uppercase tracking-[0.2em] rounded-full ring-1 ring-app-accent/20">
+                Session Analysis
+              </span>
+              <span className="text-[10px] font-mono text-app-fg/40 uppercase tracking-[0.2em]">
+                {new Date(data.meetingDate).toLocaleDateString()}
+              </span>
+            </div>
+            {isEditingTitle ? (
+              <input
+                autoFocus
+                value={data.title}
+                onChange={(e) => updateData({ ...data, title: e.target.value })}
+                onBlur={() => setIsEditingTitle(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setIsEditingTitle(false);
+                  if (e.key === 'Escape') {
+                    updateData({ ...data, title: initialTitle || 'Meeting Intelligence Report' });
+                    setIsEditingTitle(false);
+                  }
+                }}
+                className="text-4xl md:text-5xl font-display font-black text-app-fg bg-transparent border-b-2 border-app-accent focus:outline-none w-full py-2 tracking-tight"
+              />
+            ) : (
+              <h1 
+                onClick={() => setIsEditingTitle(true)}
+                className="text-4xl md:text-5xl font-display font-black text-app-fg cursor-pointer hover:text-app-accent transition-colors leading-[1.1] tracking-tight break-words"
+              >
+                {data.title}
+              </h1>
+            )}
+          </div>
+          
+          <div className="flex gap-3 shrink-0">
+            <button 
+              onClick={downloadPDF}
+              className="px-6 py-3 bg-app-dark-green text-app-light-gold rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 active:scale-95 transition-all"
             >
-              {data.title}
-            </h1>
-          )}
-          <p className="text-sm text-app-fg/70 font-normal leading-relaxed max-w-4xl line-clamp-2 border-l-2 border-app-accent/30 pl-4 mt-4">
-            {data.summary.replace(/[#*`]/g, '').trim()}
-          </p>
+              Export PDF
+            </button>
+            <button 
+              onClick={onReset}
+              className="p-3 glass rounded-2xl text-rose-500 hover:bg-rose-500/10 transition-colors"
+              title="Discard Report"
+            >
+              <Trash2 size={20} />
+            </button>
+          </div>
         </div>
 
-        {/* Meeting Metadata */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-5 glass rounded-2xl shadow-sm">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-app-fg uppercase tracking-widest flex items-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-app-accent" />
-              Client Name
+        {/* Global Metadata Inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 glass rounded-[2.5rem] shadow-sm inner-glow">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.3em] flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-app-accent" />
+              Identidade do Cliente
             </label>
             <input
               type="text"
               value={data.clientName}
               onChange={(e) => updateData({ ...data, clientName: e.target.value })}
-              placeholder="Enter client name..."
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-base font-bold text-app-fg placeholder:text-app-fg/20"
+              placeholder="Enterprise Global Ltda."
+              className="w-full bg-transparent border-none focus:ring-0 p-0 text-lg font-black text-app-fg placeholder:text-app-fg/10 tracking-tight"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-app-fg uppercase tracking-widest flex items-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-app-accent" />
-              Meeting Date & Time
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.3em] flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-app-accent" />
+              Cronologia da Sessão
             </label>
             <input
               type="datetime-local"
               value={data.meetingDate}
               onChange={(e) => updateData({ ...data, meetingDate: e.target.value })}
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-base font-bold text-app-fg [color-scheme:light] dark:[color-scheme:dark]"
+              className="w-full bg-transparent border-none focus:ring-0 p-0 text-lg font-black text-app-fg [color-scheme:light] dark:[color-scheme:dark] tracking-tight"
             />
           </div>
         </div>
-      </div>
-
-      {/* Summary Section - Moved up */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-app-accent/10 flex items-center justify-center text-app-accent">
-              <FileText size={20} />
+        {/* Intelligence Grid Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="glass p-5 rounded-3xl border-transparent hover:border-app-accent/20 transition-all group">
+            <div className="flex items-center justify-between mb-2">
+              <User size={16} className="text-app-fg/30" />
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full">Active</span>
             </div>
-            <h2 className="text-2xl font-bold text-app-fg">Executive Summary</h2>
+            <p className="text-2xl font-display font-black text-app-fg">{data.transcript.reduce((acc, t) => acc.add(t.speaker), new Set()).size}</p>
+            <p className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.2em] mt-1">Intervenientes</p>
           </div>
-          <button 
-            onClick={() => setIsEditingSummary(!isEditingSummary)}
-            className="text-[10px] font-bold uppercase tracking-widest text-app-accent hover:opacity-80 transition-opacity glass px-3 py-1.5 rounded-full"
-          >
-            {isEditingSummary ? 'Preview Markdown' : 'Edit Source'}
-          </button>
-        </div>
-        
-        <div className="glass rounded-3xl p-8 shadow-xl relative group">
-          {isEditingSummary ? (
-            <textarea
-              autoFocus
-              value={data.summary}
-              onChange={(e) => updateData({ ...data, summary: e.target.value })}
-              onBlur={() => setIsEditingSummary(false)}
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-base md:text-lg leading-relaxed text-app-fg min-h-[250px] resize-none font-mono"
-              placeholder="Enter executive summary..."
-            />
-          ) : (
-            <div 
-              onClick={() => setIsEditingSummary(true)}
-              className="prose prose-base md:prose-lg dark:prose-invert max-w-none prose-headings:font-display prose-headings:tracking-tight prose-a:text-app-accent prose-strong:text-app-fg text-app-fg/90 cursor-text"
-            >
-              <ReactMarkdown>{data.summary}</ReactMarkdown>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Action Bar - Export Options */}
-      <div className="flex flex-nowrap items-center gap-2 p-2 glass sticky top-4 z-40 shadow-2xl overflow-x-auto no-scrollbar rounded-2xl">
-        <div className="flex items-center gap-1 px-1.5 py-1 glass rounded-xl shadow-inner shrink-0 scale-90 md:scale-100">
-          <button
-            onClick={undo}
-            disabled={!canUndo}
-            title="Undo (Ctrl+Z)"
-            className="p-2 text-app-fg/40 hover:text-app-fg disabled:opacity-10 disabled:cursor-not-allowed transition-colors"
-          >
-            <Undo size={18} />
-          </button>
-          <div className="w-px h-5 bg-app-border mx-1" />
-          <button
-            onClick={redo}
-            disabled={!canRedo}
-            title="Redo (Ctrl+Y)"
-            className="p-2 text-app-fg/40 hover:text-app-fg disabled:opacity-10 disabled:cursor-not-allowed transition-colors"
-          >
-            <Redo size={18} />
-          </button>
-        </div>
-
-        <div className="h-8 w-px bg-app-border mx-1 hidden md:block" />
-
-        <div className="flex items-center gap-1.5 px-3 py-2 glass rounded-xl shadow-inner shrink-0 scale-90 md:scale-100">
-          <input 
-            type="checkbox" 
-            id="includeTranscript"
-            checked={includeTranscript}
-            onChange={(e) => setIncludeTranscript(e.target.checked)}
-            className="w-3.5 h-3.5 rounded border-app-border text-app-accent focus:ring-app-accent bg-transparent"
-          />
-          <label htmlFor="includeTranscript" className="text-[9px] font-black text-app-fg/60 cursor-pointer select-none uppercase tracking-[0.2em] whitespace-nowrap">
-            Include Transcript
-          </label>
-        </div>
-
-        <div className="flex items-center gap-1.5 ml-auto shrink-0 pr-1">
-          <button 
-            onClick={() => copyToClipboard('text')}
-            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-app-fg/60 hover:text-app-fg glass rounded-xl transition-all shadow-sm whitespace-nowrap"
-          >
-            {copied ? <Check size={12} className="text-app-accent" /> : <Copy size={12} />}
-            <span>{copied ? 'Copied!' : 'Copy'}</span>
-          </button>
-
-          <button 
-            onClick={() => copyToClipboard('markdown')}
-            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-app-accent hover:text-white hover:bg-app-accent glass rounded-xl transition-all shadow-sm whitespace-nowrap"
-          >
-            <Hash size={12} />
-            <span>Copy MD</span>
-          </button>
-
-          <button 
-            onClick={downloadMarkdown}
-            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-app-accent hover:bg-app-accent/10 glass rounded-xl transition-all shadow-sm whitespace-nowrap"
-          >
-            <Download size={12} />
-            <span>Down MD</span>
-          </button>
-
-          <div className="h-8 w-px bg-app-border mx-1 hidden sm:block" />
-
-          <button 
-            onClick={downloadPDF}
-            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-app-accent hover:bg-app-accent/10 glass rounded-xl transition-all shadow-sm whitespace-nowrap"
-          >
-            <FileText size={12} />
-            <span>PDF</span>
-          </button>
-
-          <button 
-            onClick={onReset}
-            className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 glass rounded-xl transition-all shadow-sm whitespace-nowrap"
-          >
-            <Trash2 size={12} />
-            <span>Discard</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Highlights */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between text-app-fg uppercase tracking-[0.2em] text-[10px] font-black border-b border-app-accent/20 pb-2">
-            <div className="flex items-center gap-2">
-              <ListFilter size={16} className="text-app-accent" />
-              <span>Key Highlights</span>
-            </div>
-            <button 
-              onClick={() => updateData({ ...data, highlights: [...data.highlights, ''] })}
-              className="p-1.5 hover:bg-app-accent/10 rounded-lg transition-colors text-app-accent"
-            >
-              <Plus size={16} />
-            </button>
-          </div>
-          <ul className="space-y-4">
-            {data.highlights.map((item, i) => (
-              <motion.li 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                key={i} 
-                className="flex gap-4 text-app-fg group/item glass p-4 rounded-xl shadow-sm border-transparent hover:border-app-accent/20 transition-all"
-              >
-                <span className="text-app-accent font-black mt-1.5">•</span>
-                <textarea
-                  value={item}
-                  onChange={(e) => {
-                    const newHighlights = [...data.highlights];
-                    newHighlights[i] = e.target.value;
-                    updateData({ ...data, highlights: newHighlights });
-                  }}
-                  className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm leading-relaxed resize-none min-h-[24px]"
-                  placeholder="Enter highlight..."
-                  rows={1}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = `${target.scrollHeight}px`;
-                  }}
-                />
-                <button 
-                  onClick={() => updateData({ ...data, highlights: data.highlights.filter((_, index) => index !== i) })}
-                  className="opacity-0 group-hover/item:opacity-100 p-1.5 hover:text-rose-500 transition-all text-app-fg/20"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </motion.li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Key Decisions */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between text-app-fg uppercase tracking-[0.2em] text-[10px] font-black border-b border-app-accent/20 pb-2">
-            <div className="flex items-center gap-2">
-              <Gavel size={16} className="text-app-accent" />
-              <span>Key Decisions</span>
-            </div>
-            <button 
-              onClick={() => updateData({ ...data, keyDecisions: [...(data.keyDecisions || []), ''] })}
-              className="p-1.5 hover:bg-app-accent/10 rounded-lg transition-colors text-app-accent"
-            >
-              <Plus size={16} />
-            </button>
-          </div>
-          <ul className="space-y-4">
-            {(data.keyDecisions || []).map((item, i) => (
-              <motion.li 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                key={i} 
-                className="flex gap-4 items-start bg-app-accent/5 p-4 rounded-2xl border border-app-accent/10 group/item hover:bg-app-accent/10 transition-all shadow-sm"
-              >
-                <div className="w-5 h-5 rounded-full bg-app-accent flex-shrink-0 flex items-center justify-center mt-0.5">
-                  <Check size={12} className="text-app-light-gold" />
-                </div>
-                <textarea
-                  value={item}
-                  onChange={(e) => {
-                    const newDecisions = [...(data.keyDecisions || [])];
-                    newDecisions[i] = e.target.value;
-                    updateData({ ...data, keyDecisions: newDecisions });
-                  }}
-                  className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm text-app-fg font-medium leading-relaxed resize-none min-h-[24px]"
-                  placeholder="Enter decision..."
-                  rows={1}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = `${target.scrollHeight}px`;
-                  }}
-                />
-                <button 
-                  onClick={() => updateData({ ...data, keyDecisions: (data.keyDecisions || []).filter((_, index) => index !== i) })}
-                  className="opacity-0 group-hover/item:opacity-100 p-1.5 hover:text-rose-500 transition-all text-app-fg/20"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </motion.li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Next Actions */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between text-app-fg uppercase tracking-[0.2em] text-[10px] font-black border-b border-app-accent/20 pb-2">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-app-accent" />
-              <span>Next Actions</span>
-            </div>
-            <button 
-              onClick={() => updateData({ ...data, nextActions: [...data.nextActions, ''] })}
-              className="p-1.5 hover:bg-app-accent/10 rounded-lg transition-colors text-app-accent"
-            >
-              <Plus size={16} />
-            </button>
-          </div>
-          <ul className="space-y-4">
-            {data.nextActions.map((item, i) => (
-              <motion.li 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                key={i} 
-                className="flex gap-4 items-start bg-app-accent/5 p-4 rounded-2xl border border-app-accent/10 group/item hover:bg-app-accent/10 transition-all shadow-sm"
-              >
-                <span className="text-app-accent font-black text-sm mt-0.5">{i + 1}.</span>
-                <textarea
-                  value={item}
-                  onChange={(e) => {
-                    const newActions = [...data.nextActions];
-                    newActions[i] = e.target.value;
-                    updateData({ ...data, nextActions: newActions });
-                  }}
-                  className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm text-app-fg leading-relaxed resize-none min-h-[24px]"
-                  placeholder="Enter action item..."
-                  rows={1}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = `${target.scrollHeight}px`;
-                  }}
-                />
-                <button 
-                  onClick={() => updateData({ ...data, nextActions: data.nextActions.filter((_, index) => index !== i) })}
-                  className="opacity-0 group-hover/item:opacity-100 p-1.5 hover:text-rose-500 transition-all text-app-fg/20"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </motion.li>
-            ))}
-          </ul>
-        </section>
-      </div>
-
-      {/* Transcript */}
-      <section className="space-y-6 pt-8 border-t border-app-border">
-        <div className="flex items-center justify-between text-black uppercase tracking-widest text-[10px] font-bold">
-          <div className="flex items-center gap-2">
-            <MessageSquare size={14} />
-            <span>Full Transcript</span>
-          </div>
-          <button 
-            onClick={() => {
-              const text = data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.text}`).join('\n\n');
-              navigator.clipboard.writeText(text);
-              setCopiedTranscript(true);
-              setTimeout(() => setCopiedTranscript(false), 2000);
-            }}
-            className="flex items-center gap-1.5 px-2 py-1 hover:bg-app-card rounded-lg transition-all text-app-brown/60 hover:text-app-fg"
-          >
-            {copiedTranscript ? <Check size={12} className="text-app-green" /> : <Copy size={12} />}
-            <span>{copiedTranscript ? 'Copied!' : 'Copy Transcript'}</span>
-          </button>
-        </div>
-        <div className="space-y-5">
-          {data.transcript.map((entry, i) => {
-            // Simple color assignment based on speaker name using the organic palette
-            const colors = [
-              'bg-app-accent/10 text-app-accent border-app-accent/20',
-              'bg-app-fg/10 text-app-fg border-app-fg/20',
-              'bg-app-accent/5 text-app-accent border-app-accent/10',
-            ];
-            const colorIndex = entry.speaker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
-            const colorClass = colors[colorIndex];
-
-            return (
-              <div key={i} className="group">
-                {/* Header: Speaker & Timestamp */}
-                <div className="flex items-center gap-2 mb-1">
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-[9px] font-bold ${colorClass}`}>
-                    {entry.speaker.charAt(0).toUpperCase()}
-                  </div>
-                  
-                  {editingSpeakerIndex === i ? (
-                    <input
-                      autoFocus
-                      value={editingSpeakerValue}
-                      onChange={(e) => setEditingSpeakerValue(e.target.value)}
-                      onBlur={() => handleSpeakerSave(i)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSpeakerSave(i);
-                        if (e.key === 'Escape') setEditingSpeakerIndex(null);
-                      }}
-                      className="text-[10px] font-mono font-bold text-app-fg uppercase tracking-tight glass border border-app-accent rounded px-1 py-0 focus:outline-none"
-                    />
-                  ) : (
-                    <span 
-                      onClick={() => handleSpeakerClick(i, entry.speaker)}
-                      className="text-[10px] font-mono font-bold text-app-fg uppercase tracking-tight group-hover:text-app-accent transition-colors cursor-pointer hover:underline decoration-dotted underline-offset-2"
-                      title="Click to rename speaker"
-                    >
-                      {entry.speaker}
-                    </span>
-                  )}
-                  
-                  <span className="text-[9px] font-mono text-app-fg/40">
-                    • {entry.timestamp}
-                  </span>
-                </div>
-                
-                {/* Speech Text - Editable */}
-                <textarea
-                  value={entry.text}
-                  onChange={(e) => {
-                    const newTranscript = [...data.transcript];
-                    newTranscript[i] = { ...entry, text: e.target.value };
-                    updateData({ ...data, transcript: newTranscript });
-                  }}
-                  className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-app-fg/80 leading-snug font-normal pl-7 resize-none min-h-[20px]"
-                  rows={1}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = `${target.scrollHeight}px`;
-                  }}
-                />
+          <div className="glass p-5 rounded-3xl border-transparent hover:border-app-accent/20 transition-all overflow-hidden relative">
+            <div className="flex items-center justify-between mb-2">
+              <MessageSquare size={16} className="text-app-fg/30" />
+              <div className="flex gap-[2px] items-end h-3">
+                {[4, 7, 5, 9, 3, 6, 8].map((h, i) => (
+                  <div key={i} className="w-1 bg-app-accent/30 rounded-full" style={{ height: `${h * 10}%` }} />
+                ))}
               </div>
-            );
+            </div>
+            <p className="text-2xl font-display font-black text-app-fg">{data.transcript.length}</p>
+            <p className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.2em] mt-1">Total Interações</p>
+          </div>
+          <div className="glass p-5 rounded-3xl border-transparent hover:border-app-accent/20 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <Gavel size={16} className="text-app-fg/30" />
+              <span className="text-[10px] font-black text-app-accent uppercase tracking-widest">Enforced</span>
+            </div>
+            <p className="text-2xl font-display font-black text-app-fg">{data.keyDecisions.length}</p>
+            <p className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.2em] mt-1">Decisões Críticas</p>
+          </div>
+          <div className="glass p-5 rounded-3xl border-transparent hover:border-app-accent/20 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <CheckCircle2 size={16} className="text-app-fg/30" />
+              <div className="flex -space-x-2 group-hover:-space-x-1 transition-all">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="w-5 h-5 rounded-full glass border-app-accent/20 flex items-center justify-center text-[8px] font-black">
+                    {i}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="text-2xl font-display font-black text-app-fg">{data.nextActions.length}</p>
+            <p className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.2em] mt-1">Ações Pendentes</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Intelligence Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Deep Analysis Column */}
+        <div className="lg:col-span-8 space-y-8">
+          <section className="space-y-4">
+            <div className="flex items-center justify-between px-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-app-dark-green text-app-accent flex items-center justify-center shadow-lg">
+                  <FileText size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-display font-black text-app-fg tracking-tight leading-none">Executive Insight</h2>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-fg/40 mt-1">Drafted by Gemini Assistant</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsEditingSummary(!isEditingSummary)}
+                className="text-[10px] font-black uppercase tracking-widest text-app-accent hover:bg-app-accent/10 border border-app-accent/20 px-5 py-2.5 rounded-2xl transition-all glass shadow-sm"
+              >
+                {isEditingSummary ? 'Finalize Edit' : 'Modify Core Analysis'}
+              </button>
+            </div>
+            
+            <div className="glass rounded-[3rem] p-10 shadow-2xl relative inner-glow">
+              <div className="absolute top-8 right-8 text-app-accent opacity-10">
+                <Sparkles size={120} />
+              </div>
+              {isEditingSummary ? (
+                <textarea
+                  autoFocus
+                  value={data.summary}
+                  onChange={(e) => updateData({ ...data, summary: e.target.value })}
+                  onBlur={() => setIsEditingSummary(false)}
+                  className="w-full bg-transparent border-none focus:ring-0 p-0 text-lg leading-relaxed text-app-fg min-h-[350px] resize-none font-mono"
+                  placeholder="Enter strategic analysis..."
+                />
+              ) : (
+                <div 
+                  onClick={() => setIsEditingSummary(true)}
+                  className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-display prose-headings:font-black prose-headings:tracking-tight prose-a:text-app-accent prose-strong:text-app-fg text-app-fg/80 cursor-text leading-[1.8]"
+                >
+                  <ReactMarkdown>{data.summary}</ReactMarkdown>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Key Decisions - Sophisticated Layout */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-4 px-4">
+              <div className="w-12 h-12 rounded-2xl glass text-emerald-500 flex items-center justify-center shadow-lg border-emerald-500/20">
+                <Gavel size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-display font-black text-app-fg tracking-tight leading-none">Key Decisions</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-fg/40 mt-1">Binding Outcomes & Directives</p>
+              </div>
+              <button 
+                onClick={() => updateData({ ...data, keyDecisions: [...data.keyDecisions, ''] })}
+                className="ml-auto w-10 h-10 glass rounded-full flex items-center justify-center text-app-accent hover:rotate-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data.keyDecisions.map((decision, i) => (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  key={i}
+                  className="glass p-6 rounded-[2rem] border-emerald-500/10 hover:border-emerald-500/30 transition-all group flex flex-col justify-between min-h-[140px]"
+                >
+                  <textarea
+                    value={decision}
+                    onChange={(e) => {
+                      const newDecisions = [...data.keyDecisions];
+                      newDecisions[i] = e.target.value;
+                      updateData({ ...data, keyDecisions: newDecisions });
+                    }}
+                    placeholder="Describe the decision reached..."
+                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-bold text-app-fg/90 resize-none leading-snug"
+                    rows={3}
+                  />
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="flex items-center gap-2">
+                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                       <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500">Ratified</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const newDecisions = data.keyDecisions.filter((_, idx) => idx !== i);
+                        updateData({ ...data, keyDecisions: newDecisions });
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-2 text-app-fg/20 hover:text-rose-500 transition-all scale-75 group-hover:scale-100"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+              {data.keyDecisions.length === 0 && (
+                <div className="md:col-span-2 py-12 glass rounded-[2.5rem] flex flex-col items-center justify-center text-center opacity-30 border-dashed border-2">
+                  <Gavel size={32} className="mb-4" />
+                  <p className="text-sm font-black uppercase tracking-widest">Nenhuma decisão registada</p>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {/* Sidebar Data-Rich Cards */}
+        <aside className="lg:col-span-4 space-y-8 h-fit lg:sticky lg:top-8">
+          {/* Action Bar - Floating Export */}
+          <div className="glass p-4 rounded-3xl shadow-xl space-y-3">
+             <div className="flex items-center justify-between mb-2 px-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-app-fg/40">Data Management</span>
+                <div className="flex gap-1">
+                   <button onClick={undo} disabled={!canUndo} className="p-1.5 glass rounded-lg disabled:opacity-20"><Undo size={14} /></button>
+                   <button onClick={redo} disabled={!canRedo} className="p-1.5 glass rounded-lg disabled:opacity-20"><Redo size={14} /></button>
+                </div>
+             </div>
+             <button 
+              onClick={() => copyToClipboard('markdown')}
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 glass rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-app-accent hover:bg-app-accent hover:text-white transition-all shadow-sm"
+             >
+               <Hash size={16} /> Copy Markdown
+             </button>
+             <button 
+              onClick={downloadPDF}
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-app-dark-green text-app-light-gold rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+             >
+               <Download size={16} /> Generate Report
+             </button>
+          </div>
+
+          <section className="space-y-6">
+            <div className="flex items-center justify-between px-3">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-app-fg/40">Strategic Highlights</h3>
+              <button 
+                onClick={() => updateData({ ...data, highlights: [...data.highlights, ''] })}
+                className="w-8 h-8 glass rounded-full flex items-center justify-center text-app-accent hover:bg-app-accent/10 transition-colors"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              {data.highlights.map((item, i) => (
+                <motion.div 
+                  key={i}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="glass p-6 rounded-[2rem] border-transparent hover:border-app-accent/10 transition-all group relative"
+                >
+                  <div className="absolute top-6 left-6 w-2 h-2 rounded-full bg-app-accent/40 group-hover:bg-app-accent transition-colors" />
+                  <textarea
+                    value={item}
+                    onChange={(e) => {
+                      const newHighlights = [...data.highlights];
+                      newHighlights[i] = e.target.value;
+                      updateData({ ...data, highlights: newHighlights });
+                    }}
+                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs font-bold text-app-fg leading-relaxed pl-6 resize-none"
+                    rows={2}
+                  />
+                  <button 
+                    onClick={() => {
+                      const newHighlights = data.highlights.filter((_, idx) => idx !== i);
+                      updateData({ ...data, highlights: newHighlights });
+                    }}
+                    className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 p-2 text-rose-500 scale-75 transition-all"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-6 pt-4">
+            <div className="flex items-center justify-between px-3">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-app-fg/40">Immediate Next Actions</h3>
+              <button 
+                onClick={() => updateData({ ...data, nextActions: [...data.nextActions, ''] })}
+                className="w-8 h-8 glass rounded-full flex items-center justify-center text-app-accent hover:bg-app-accent/10 transition-colors"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {data.nextActions.map((action, i) => (
+                <motion.div 
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="glass p-5 rounded-2xl flex items-start gap-4 hover:shadow-lg transition-all group"
+                >
+                  <div className="w-5 h-5 rounded flex items-center justify-center border border-app-accent/30 text-app-accent mt-0.5 shrink-0">
+                    <span className="text-[9px] font-black">{i + 1}</span>
+                  </div>
+                  <textarea
+                    value={action}
+                    onChange={(e) => {
+                      const newActions = [...data.nextActions];
+                      newActions[i] = e.target.value;
+                      updateData({ ...data, nextActions: newActions });
+                    }}
+                    className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-xs font-bold text-app-fg/80 leading-snug resize-none"
+                    rows={2}
+                  />
+                  <button 
+                    onClick={() => {
+                      const newActions = data.nextActions.filter((_, idx) => idx !== i);
+                      updateData({ ...data, nextActions: newActions });
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-app-fg/20 hover:text-rose-500 transition-all shrink-0"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      {/* Transcript Section */}
+      <section className="space-y-8 mt-12 bg-app-dark-green rounded-[3rem] p-10 md:p-16 shadow-2xl relative overflow-hidden text-app-light-gold">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-app-accent/5 blur-[120px] rounded-full -mr-48 -mt-48" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-app-accent/5 blur-[80px] rounded-full -ml-32 -mb-32" />
+        
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10 border-b border-white/10 pb-8 mb-12">
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl glass text-app-accent flex items-center justify-center shadow-lg border-white/5">
+                <MessageSquare size={24} />
+              </div>
+              <div>
+                <h2 className="text-3xl font-display font-black text-white tracking-tight leading-none">Intelligence Logs</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-2">Diarized Transcript & Voice Analysis</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+             <div className="glass px-5 py-3 rounded-2xl flex items-center gap-3 border-white/5">
+                <input 
+                  type="checkbox" 
+                  id="includeTranscriptBottom"
+                  checked={includeTranscript}
+                  onChange={(e) => setIncludeTranscript(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/10 text-app-accent focus:ring-app-accent bg-transparent"
+                />
+                <label htmlFor="includeTranscriptBottom" className="text-[10px] font-black text-white/80 cursor-pointer uppercase tracking-widest">Expose in Export</label>
+             </div>
+             <button 
+              onClick={downloadOnlyTranscript}
+              className="px-6 py-3.5 glass hover:bg-white/5 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all border-white/10"
+             >
+               Export RAW (.txt)
+             </button>
+          </div>
+        </div>
+
+        <div className="space-y-4 relative z-10 max-h-[800px] overflow-y-auto custom-scrollbar-white pr-4">
+          {data.transcript.map((entry, i) => {
+             const colorIndex = entry.speaker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 2;
+             return (
+              <motion.div 
+                key={i} 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="group flex gap-6 p-6 rounded-2xl hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
+              >
+                <div className="flex flex-col items-center gap-2 shrink-0 pt-1">
+                   <div className={cn(
+                     "w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-inner",
+                     colorIndex === 0 ? "bg-app-accent text-app-dark-green" : "bg-white/10 text-white"
+                   )}>
+                      {entry.speaker.charAt(0).toUpperCase()}
+                   </div>
+                   <div className="w-px flex-1 bg-white/5" />
+                </div>
+
+                <div className="flex-1 space-y-2">
+                   <div className="flex items-center gap-3">
+                      {editingSpeakerIndex === i ? (
+                        <input
+                          autoFocus
+                          value={editingSpeakerValue}
+                          onChange={(e) => setEditingSpeakerValue(e.target.value)}
+                          onBlur={() => handleSpeakerSave(i)}
+                          className="bg-transparent border-b border-app-accent text-[10px] font-black text-white uppercase tracking-widest focus:outline-none"
+                        />
+                      ) : (
+                        <span 
+                          onClick={() => handleSpeakerClick(i, entry.speaker)}
+                          className="text-[10px] font-black text-app-accent uppercase tracking-[0.3em] cursor-pointer hover:underline"
+                        >
+                          {entry.speaker}
+                        </span>
+                      )}
+                      <span className="text-[9px] font-mono text-white/20 uppercase tracking-widest">
+                        [{entry.timestamp}]
+                      </span>
+                   </div>
+                   <textarea
+                    value={entry.text}
+                    onChange={(e) => {
+                      const newTranscript = [...data.transcript];
+                      newTranscript[i] = { ...entry, text: e.target.value };
+                      updateData({ ...data, transcript: newTranscript });
+                    }}
+                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-white/70 leading-relaxed font-normal resize-none min-h-[20px]"
+                    rows={1}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = `${target.scrollHeight}px`;
+                    }}
+                  />
+                </div>
+              </motion.div>
+             );
           })}
         </div>
       </section>

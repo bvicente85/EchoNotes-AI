@@ -23,47 +23,59 @@
 
 @layer base {
   :root {
-    --app-bg: #fefae0;
-    --app-fg: #283618;
-    --app-accent: #606c38;
-    --app-card: rgba(254, 250, 224, 0.7);
-    --app-border: rgba(96, 108, 56, 0.2);
+    /* Base Colors - High End Enterprise Scale */
+    --app-bg: #fcfaf2;  /* Bone/Creme refined */
+    --app-fg: #0a1205;  /* Deep Forest Inverted */
     
-    --app-green: #606c38;
-    --app-dark-green: #283618;
-    --app-gold: #dda15e;
+    /* Greens Scale */
+    --green-900: #0f1c11; /* Deep Forest (Authority) */
+    --green-800: #1a2e1d;
+    --green-700: #283618; /* Black Forest */
+    --green-600: #606c38; /* Olive Leaf */
+    --green-500: #8da47e;
+    --green-400: #b7e4c7; /* Soft Mint */
+    --green-300: #d8f3dc;
+    --green-active: #00cc7a; /* Vibrant Mint (Action/IA) */
+    
+    --app-accent: var(--green-600);
+    --app-card: rgba(255, 255, 255, 0.6);
+    --app-border: rgba(15, 28, 17, 0.08); /* Ultra-thin appearance */
+    
+    --app-green: var(--green-600);
+    --app-dark-green: var(--green-900);
+    --app-gold: #bc6c25; /* Copperwood accent */
     --app-light-gold: #fefae0;
     --app-brown: #bc6c25;
     --app-cream: #fefae0;
 
-    --glass-bg: rgba(254, 250, 224, 0.4);
-    --glass-border: rgba(96, 108, 56, 0.1);
+    --glass-bg: rgba(255, 255, 255, 0.4);
+    --glass-border: rgba(15, 28, 17, 0.05);
   }
 
   .dark {
-    --app-bg: #283618;
+    --app-bg: #0a0f0b;
     --app-fg: #fefae0;
-    --app-accent: #dda15e;
-    --app-card: rgba(40, 54, 24, 0.7);
-    --app-border: rgba(254, 250, 224, 0.1);
+    --app-accent: var(--green-400);
+    --app-card: rgba(15, 28, 17, 0.6);
+    --app-border: rgba(255, 255, 255, 0.06);
     
-    --app-green: #606c38;
-    --app-dark-green: #dda15e;
+    --app-green: var(--green-400);
+    --app-dark-green: var(--green-active);
     --app-gold: #dda15e;
     --app-light-gold: #bc6c25;
     --app-brown: #bc6c25;
-    --app-cream: #283618;
+    --app-cream: #0f1c11;
 
-    --glass-bg: rgba(40, 54, 24, 0.6);
-    --glass-border: rgba(254, 250, 224, 0.1);
+    --glass-bg: rgba(15, 28, 17, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.08);
   }
 
   body {
     background-color: var(--app-bg);
     color: var(--app-fg);
     background-image: 
-      radial-gradient(at 0% 0%, rgba(96, 108, 56, 0.1) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(221, 161, 94, 0.1) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgba(0, 204, 122, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(96, 108, 56, 0.03) 0px, transparent 50%);
     background-attachment: fixed;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
@@ -71,14 +83,24 @@
 
 @utility glass {
   background-color: var(--glass-bg);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.02),
+    0 2px 4px -1px rgba(0, 0, 0, 0.01),
+    inset 0 0 12px 0 rgba(255, 255, 255, 0.2);
 }
 
-@utility glass-dark {
-  background-color: rgba(40, 54, 24, 0.8);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(254, 250, 224, 0.1);
+@utility inner-glow {
+  box-shadow: inset 0 0 20px 0 rgba(0, 204, 122, 0.05);
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(.8); opacity: .5; }
+  80%, 100% { transform: scale(1.3); opacity: 0; }
+}
+
+@utility animate-pulse-ring {
+  animation: pulse-ring 3s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
 }
 

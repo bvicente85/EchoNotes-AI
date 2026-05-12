@@ -531,102 +531,121 @@ export default function App() {
 
   return (
     <div className={`min-h-screen bg-app-bg text-app-fg transition-colors duration-300 font-sans ${theme === 'dark' ? 'dark' : ''}`}>
-      <nav className="h-20 border-b border-app-border px-6 flex items-center justify-between glass sticky top-0 z-50">
-        <div className="flex items-center gap-3 cursor-pointer group" onClick={handleGoHome}>
-          <div className="w-10 h-10 bg-app-accent rounded-xl flex items-center justify-center text-app-light-gold shadow-lg shadow-app-green/20 group-hover:scale-105 transition-transform">
-            <Mic size={20} className="group-hover:animate-pulse" />
+      <div className="flex flex-col lg:flex-row min-h-screen">
+        {/* Sidebar - Desktop Enterprise Authority */}
+        <aside className="w-full lg:w-72 lg:h-screen lg:fixed lg:left-0 lg:top-0 bg-app-dark-green text-app-light-gold border-r border-white/5 z-50 flex flex-col shadow-2xl">
+          <div className="h-20 px-8 flex items-center gap-4 border-b border-white/5">
+            <div className="w-10 h-10 bg-app-accent rounded-xl flex items-center justify-center text-app-dark-green shadow-lg transition-transform group-hover:scale-105">
+              <Mic size={20} className="stroke-[2.5px]" />
+            </div>
+            <div>
+              <h1 className="text-xl font-display font-black tracking-tighter leading-none text-white">EchoNote</h1>
+              <span className="text-[9px] font-mono text-app-accent uppercase tracking-[0.3em] font-black opacity-70">Intelligence</span>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-display font-black tracking-tighter leading-none text-app-fg">EchoNote</h1>
-            <span className="text-[10px] font-mono text-app-accent uppercase tracking-[0.2em] font-bold">AI Assistant</span>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {isAdmin && (
-            <button 
-              onClick={() => setShowAdminDashboard(true)}
-              className="p-2.5 text-app-fg/40 hover:text-app-fg hover:bg-app-accent/10 rounded-xl transition-all"
-              title="Admin Dashboard"
-            >
-              <LayoutGrid size={20} />
-            </button>
-          )}
-          <button 
-            onClick={() => setShowHistory(true)}
-            className="flex items-center gap-2 px-4 py-2 glass hover:bg-app-accent/10 rounded-xl transition-all"
-          >
-            <History size={18} className="text-app-fg/60" />
-            <span className="text-sm font-bold text-app-fg/80">Recents</span>
-          </button>
-          
-          <div className="relative">
-            <button 
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-10 h-10 rounded-xl glass flex items-center justify-center overflow-hidden hover:border-app-accent/30 transition-all shadow-sm"
-            >
-              {user.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              ) : (
-                <UserIcon size={20} className="text-black/30" />
-              )}
-            </button>
-            <AnimatePresence>
-              {showUserMenu && (
-                <>
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowUserMenu(false)}
-                  />
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    className="absolute right-0 mt-2 w-56 glass rounded-2xl shadow-2xl p-2 z-50 overflow-hidden"
-                  >
-                    <div className="p-3 border-b border-app-border mb-1">
-                      <p className="text-xs font-bold text-app-fg truncate">{displayName || user.email}</p>
-                      <p className="text-[10px] text-app-fg/40 truncate">{user.email}</p>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        setShowSettings(true);
-                        setShowUserMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 p-3 text-sm text-app-fg/60 hover:text-app-fg hover:bg-app-accent/10 rounded-xl transition-all"
-                    >
-                      <Settings size={16} />
-                      Settings
-                    </button>
-                    {isAdmin && (
-                      <button 
-                        onClick={() => {
-                          setShowAdminDashboard(true);
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 p-3 text-sm text-app-fg/60 hover:text-app-fg hover:bg-app-accent/10 rounded-xl transition-all"
-                      >
-                        <LayoutGrid size={16} />
-                        Admin Panel
-                      </button>
-                    )}
-                    <button 
-                      onClick={handleSignOut}
-                      className="w-full flex items-center gap-3 p-3 text-sm text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all mt-1"
-                    >
-                      <LogOut size={16} />
-                      Sign Out
-                    </button>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+          <div className="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 px-3 mb-4">Navigation</p>
+              <button 
+                onClick={handleGoHome}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
+                  !report ? "bg-white/10 text-white shadow-inner" : "text-white/50 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <LayoutGrid size={18} />
+                Dashboard
+              </button>
+              <button 
+                onClick={() => setShowHistory(true)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-white/50 hover:text-white hover:bg-white/5 transition-all"
+              >
+                <History size={18} />
+                Recent Sessions
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 px-3 mb-4">Pinned Meetings</p>
+              {history.slice(0, 3).map(item => (
+                <div 
+                  key={item.id} 
+                  onClick={() => handleSelectHistory(item)}
+                  className="px-4 py-3 rounded-xl glass border-white/5 hover:bg-white/10 cursor-pointer transition-all group"
+                >
+                  <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-app-accent transition-colors">{item.title}</p>
+                  <p className="text-[9px] font-mono text-white/30 mt-1">{new Date(item.date).toLocaleDateString()}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </nav>
+
+          <div className="p-6 border-t border-white/5 space-y-4">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl glass border-white/10">
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center overflow-hidden">
+                {user.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" />
+                ) : (
+                  <UserIcon size={16} className="text-white/40" />
+                )}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-[10px] font-black text-white truncate">{displayName || user.email}</p>
+                <button 
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="text-[9px] font-bold text-app-accent hover:underline flex items-center gap-1"
+                >
+                  Account Manage <ChevronDown size={8} />
+                </button>
+              </div>
+              <button 
+                onClick={() => setShowSettings(true)}
+                className="p-2 text-white/20 hover:text-white transition-colors"
+                title="Settings"
+              >
+                <Settings size={14} />
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <div className="flex-1 lg:ml-72 flex flex-col min-h-screen">
+          <header className="h-20 px-8 flex items-center justify-between glass lg:bg-transparent lg:backdrop-blur-none lg:border-none sticky top-0 z-40">
+            <div className="lg:hidden flex items-center gap-3">
+              <div className="w-8 h-8 bg-app-dark-green rounded-lg flex items-center justify-center text-app-accent">
+                <Mic size={16} />
+              </div>
+              <h1 className="text-lg font-display font-black text-app-fg">EchoNote</h1>
+            </div>
+
+            <div className="flex-1 flex justify-center">
+              {report && (
+                <div className="hidden lg:flex items-center gap-2 px-6 py-2 glass rounded-full shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-app-fg/40">Active intelligence Report</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                className="p-2.5 glass rounded-xl text-app-fg/40 hover:text-app-fg shadow-sm transition-all"
+              >
+                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+              </button>
+              {isAdmin && (
+                <button 
+                  onClick={() => setShowAdminDashboard(true)}
+                  className="p-2.5 glass rounded-xl text-app-fg/40 hover:text-app-fg shadow-sm transition-all"
+                >
+                  <LayoutGrid size={20} />
+                </button>
+              )}
+            </div>
+          </header>
 
       <AnimatePresence>
         {showHistory && (
@@ -1026,21 +1045,39 @@ export default function App() {
                       <button
                         onClick={isRecording ? stopRecording : startRecording}
                         className={cn(
-                          "relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all duration-500 group",
+                          "relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all duration-700 group",
                           isRecording 
-                            ? "bg-rose-500 text-white shadow-2xl shadow-rose-500/20 ring-4 ring-rose-500/10" 
-                            : "glass hover:border-app-accent hover:shadow-2xl text-app-fg"
+                            ? "bg-rose-600 text-white shadow-[0_0_50px_-12px_rgba(225,29,72,0.5)] ring-4 ring-rose-500/10 overflow-hidden" 
+                            : "bg-gradient-to-br from-app-dark-green via-green-800 to-app-dark-green text-white shadow-2xl hover:scale-105 active:scale-95 border border-white/10"
                         )}
                       >
+                        {/* Premium Button Glass/Bevel Effect */}
+                        {!isRecording && (
+                          <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 to-transparent pointer-events-none" />
+                        )}
+                        
                         {isRecording ? (
                           <>
-                            <Square fill="currentColor" size={36} />
-                            <span className="mt-4 font-mono text-[10px] tracking-[0.3em] uppercase font-black">Stop Meeting</span>
+                            <motion.div 
+                              initial={{ scale: 0.8 }}
+                              animate={{ scale: [0.8, 1.1, 0.8] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                              className="absolute inset-0 bg-white/10 rounded-full"
+                            />
+                            <Square fill="currentColor" size={36} className="relative z-10" />
+                            <span className="mt-4 font-mono text-[10px] tracking-[0.3em] uppercase font-black relative z-10">Stop Meeting</span>
                           </>
                         ) : (
                           <>
-                            <Mic size={36} />
-                            <span className="mt-4 font-mono text-[10px] tracking-[0.3em] uppercase font-black">Start Meeting</span>
+                            <Mic size={36} className="relative z-10" />
+                            <span className="mt-4 font-mono text-[10px] tracking-[0.3em] uppercase font-black relative z-10">Start Meeting</span>
+                            <div className="absolute bottom-10 w-12 h-1 bg-app-accent/20 rounded-full overflow-hidden">
+                              <motion.div 
+                                animate={{ x: ['-100%', '100%'] }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                                className="w-full h-full bg-app-accent"
+                              />
+                            </div>
                           </>
                         )}
                       </button>
@@ -1121,6 +1158,9 @@ export default function App() {
         <span>Secure End-to-End Analysis</span>
       </footer>
 
+        </div>
+      </div>
+      
       <AskGemini report={report} historyItems={history} />
     </div>
   );
