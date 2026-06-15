@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-display: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   --color-app-bg: var(--app-bg);
@@ -23,61 +23,56 @@
 
 @layer base {
   :root {
-    /* Base Colors - High End Enterprise Scale */
-    --app-bg: #fcfaf2;  /* Bone/Creme refined */
-    --app-fg: #0a1205;  /* Deep Forest Inverted */
+    /* Base Colors - Suma Slate Clean Theme */
+    --app-bg: #F8FAFC;  /* Off-white very soft */
+    --app-fg: #1E293B;  /* Charcoal slate */
     
-    /* Greens Scale */
-    --green-900: #0f1c11; /* Deep Forest (Authority) */
-    --green-800: #1a2e1d;
-    --green-700: #283618; /* Black Forest */
-    --green-600: #606c38; /* Olive Leaf */
-    --green-500: #8da47e;
-    --green-400: #b7e4c7; /* Soft Mint */
-    --green-300: #d8f3dc;
-    --green-active: #00cc7a; /* Vibrant Mint (Action/IA) */
+    --app-accent: #526C78; /* Blueish-gray secondary */
+    --app-card: #FFFFFF;
+    --app-border: rgba(82, 108, 120, 0.15); /* Elegant border */
     
-    --app-accent: var(--green-600);
-    --app-card: rgba(255, 255, 255, 0.6);
-    --app-border: rgba(15, 28, 17, 0.08); /* Ultra-thin appearance */
-    
-    --app-green: var(--green-600);
-    --app-dark-green: var(--green-900);
-    --app-gold: #bc6c25; /* Copperwood accent */
-    --app-light-gold: #fefae0;
-    --app-brown: #bc6c25;
-    --app-cream: #fefae0;
+    --app-green: #10B981; /* Emerald green (success) */
+    --app-dark-green: #0F172A; /* Dark slate */
+    --app-gold: #F59E0B;
+    --app-light-gold: #FEF3C7;
+    --app-brown: #475569;
+    --app-cream: #F1F5F9;
 
-    --glass-bg: rgba(255, 255, 255, 0.4);
-    --glass-border: rgba(15, 28, 17, 0.05);
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(82, 108, 120, 0.12);
   }
 
   .dark {
-    --app-bg: #0a0f0b;
-    --app-fg: #fefae0;
-    --app-accent: var(--green-400);
-    --app-card: rgba(15, 28, 17, 0.6);
-    --app-border: rgba(255, 255, 255, 0.06);
+    --app-bg: #0F172A; /* Deep dark slate representing slate-900 */
+    --app-fg: #F1F5F9;
+    --app-accent: #94A3B8;
+    --app-card: #1E293B;
+    --app-border: rgba(255, 255, 255, 0.08);
     
-    --app-green: var(--green-400);
-    --app-dark-green: var(--green-active);
-    --app-gold: #dda15e;
-    --app-light-gold: #bc6c25;
-    --app-brown: #bc6c25;
-    --app-cream: #0f1c11;
+    --app-green: #34D399;
+    --app-dark-green: #10B981;
+    --app-gold: #FBBF24;
+    --app-light-gold: #334155;
+    --app-brown: #94A3B8;
+    --app-cream: #1E293B;
 
-    --glass-bg: rgba(15, 28, 17, 0.65);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(30, 41, 59, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.06);
   }
 
   body {
     background-color: var(--app-bg);
     color: var(--app-fg);
     background-image: 
-      radial-gradient(at 0% 0%, rgba(0, 204, 122, 0.03) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(96, 108, 56, 0.03) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgba(108, 160, 187, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(82, 108, 120, 0.03) 0px, transparent 50%);
     background-attachment: fixed;
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Elegantly adjust all Lucide icons to use thin, crisp strokes (1.5px or 2px) */
+  svg.lucide, .lucide {
+    stroke-width: 1.5px !important;
   }
 }
 
@@ -86,13 +81,13 @@
   backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid var(--glass-border);
   box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.02),
-    0 2px 4px -1px rgba(0, 0, 0, 0.01),
-    inset 0 0 12px 0 rgba(255, 255, 255, 0.2);
+    0 4px 6px -1px rgba(0, 0, 0, 0.01),
+    0 2px 4px -1px rgba(0, 0, 0, 0.005),
+    inset 0 0 12px 0 rgba(255, 255, 255, 0.4);
 }
 
 @utility inner-glow {
-  box-shadow: inset 0 0 20px 0 rgba(0, 204, 122, 0.05);
+  box-shadow: inset 0 0 20px 0 rgba(82, 108, 120, 0.03);
 }
 
 @keyframes pulse-ring {

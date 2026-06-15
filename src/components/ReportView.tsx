@@ -468,47 +468,47 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
         </div>
         {/* Intelligence Grid Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="glass p-5 rounded-3xl border-transparent hover:border-app-accent/20 transition-all group">
+          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 cursor-pointer transition-all duration-300 group">
             <div className="flex items-center justify-between mb-2">
-              <User size={16} className="text-app-fg/30" />
-              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full">Active</span>
+              <User size={16} className="text-[#526C78]/60 dark:text-slate-400" />
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">Active</span>
             </div>
-            <p className="text-2xl font-display font-black text-app-fg">{data.transcript.reduce((acc, t) => acc.add(t.speaker), new Set()).size}</p>
-            <p className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.2em] mt-1">Intervenientes</p>
+            <p className="text-2xl font-sans font-bold text-slate-800 dark:text-white">{data.transcript.reduce((acc, t) => acc.add(t.speaker), new Set()).size}</p>
+            <p className="text-[10px] font-mono text-[#526C78] dark:text-slate-400 uppercase tracking-[0.2em] mt-1">Intervenientes</p>
           </div>
-          <div className="glass p-5 rounded-3xl border-transparent hover:border-app-accent/20 transition-all overflow-hidden relative">
+          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 cursor-pointer transition-all duration-300 overflow-hidden relative group">
             <div className="flex items-center justify-between mb-2">
-              <MessageSquare size={16} className="text-app-fg/30" />
+              <MessageSquare size={16} className="text-[#526C78]/60 dark:text-slate-400" />
               <div className="flex gap-[2px] items-end h-3">
                 {[4, 7, 5, 9, 3, 6, 8].map((h, i) => (
-                  <div key={i} className="w-1 bg-app-accent/30 rounded-full" style={{ height: `${h * 10}%` }} />
+                  <div key={i} className="w-1 bg-[#526C78]/30 rounded-full" style={{ height: `${h * 10}%` }} />
                 ))}
               </div>
             </div>
-            <p className="text-2xl font-display font-black text-app-fg">{data.transcript.length}</p>
-            <p className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.2em] mt-1">Total Interações</p>
+            <p className="text-2xl font-sans font-bold text-slate-800 dark:text-white">{data.transcript.length}</p>
+            <p className="text-[10px] font-mono text-[#526C78] dark:text-slate-400 uppercase tracking-[0.2em] mt-1">Total Interações</p>
           </div>
-          <div className="glass p-5 rounded-3xl border-transparent hover:border-app-accent/20 transition-all">
+          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 cursor-pointer transition-all duration-300 group">
             <div className="flex items-center justify-between mb-2">
-              <Gavel size={16} className="text-app-fg/30" />
-              <span className="text-[10px] font-black text-app-accent uppercase tracking-widest">Enforced</span>
+              <Gavel size={16} className="text-[#526C78]/60 dark:text-slate-400" />
+              <span className="text-[10px] font-bold text-[#526C78] dark:text-slate-300 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Enforced</span>
             </div>
-            <p className="text-2xl font-display font-black text-app-fg">{data.keyDecisions.length}</p>
-            <p className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.2em] mt-1">Decisões Críticas</p>
+            <p className="text-2xl font-sans font-bold text-slate-800 dark:text-white">{data.keyDecisions.length}</p>
+            <p className="text-[10px] font-mono text-[#526C78] dark:text-slate-400 uppercase tracking-[0.2em] mt-1">Decisões Críticas</p>
           </div>
-          <div className="glass p-5 rounded-3xl border-transparent hover:border-app-accent/20 transition-all">
+          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 cursor-pointer transition-all duration-300 group">
             <div className="flex items-center justify-between mb-2">
-              <CheckCircle2 size={16} className="text-app-fg/30" />
-              <div className="flex -space-x-2 group-hover:-space-x-1 transition-all">
+              <CheckCircle2 size={16} className="text-[#526C78]/60 dark:text-slate-400" />
+              <div className="flex -space-x-1.5 transition-all">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="w-5 h-5 rounded-full glass border-app-accent/20 flex items-center justify-center text-[8px] font-black">
+                  <div key={i} className="w-5 h-5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200/50 dark:border-white/5 flex items-center justify-center text-[8px] font-black">
                     {i}
                   </div>
                 ))}
               </div>
             </div>
-            <p className="text-2xl font-display font-black text-app-fg">{data.nextActions.length}</p>
-            <p className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.2em] mt-1">Ações Pendentes</p>
+            <p className="text-2xl font-sans font-bold text-slate-800 dark:text-white">{data.nextActions.length}</p>
+            <p className="text-[10px] font-mono text-[#526C78] dark:text-slate-400 uppercase tracking-[0.2em] mt-1">Ações Pendentes</p>
           </div>
         </div>
       </div>
@@ -585,7 +585,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
                   key={i}
-                  className="glass p-6 rounded-[2rem] border-emerald-500/10 hover:border-emerald-500/30 transition-all group flex flex-col justify-between min-h-[140px]"
+                  className="bg-white dark:bg-[#1E293B] p-6 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 transition-all duration-300 group flex flex-col justify-between min-h-[140px] shadow-sm"
                 >
                   <textarea
                     value={decision}
@@ -667,7 +667,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="glass p-6 rounded-[2rem] border-transparent hover:border-app-accent/10 transition-all group relative"
+                  className="bg-white dark:bg-[#1E293B] p-6 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md transition-all duration-300 group relative shadow-sm"
                 >
                   <div className="absolute top-6 left-6 w-2 h-2 rounded-full bg-app-accent/40 group-hover:bg-app-accent transition-colors" />
                   <textarea
@@ -677,7 +677,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                       newHighlights[i] = e.target.value;
                       updateData({ ...data, highlights: newHighlights });
                     }}
-                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs font-bold text-app-fg leading-relaxed pl-6 resize-none"
+                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs font-bold text-app-fg leading-relaxed pl-6 resize-none animate-none"
                     rows={2}
                   />
                   <button 
@@ -711,7 +711,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="glass p-5 rounded-2xl flex items-start gap-4 hover:shadow-lg transition-all group"
+                  className="bg-white dark:bg-[#1E293B] p-5 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 transition-all duration-300 flex items-start gap-4 group shadow-sm"
                 >
                   <div className="w-5 h-5 rounded flex items-center justify-center border border-app-accent/30 text-app-accent mt-0.5 shrink-0">
                     <span className="text-[9px] font-black">{i + 1}</span>

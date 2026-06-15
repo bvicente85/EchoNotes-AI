@@ -532,26 +532,28 @@ export default function App() {
   return (
     <div className={`min-h-screen bg-app-bg text-app-fg transition-colors duration-300 font-sans ${theme === 'dark' ? 'dark' : ''}`}>
       <div className="flex flex-col lg:flex-row min-h-screen">
-        {/* Sidebar - Desktop Enterprise Authority */}
-        <aside className="w-full lg:w-72 lg:h-screen lg:fixed lg:left-0 lg:top-0 bg-app-dark-green text-app-light-gold border-r border-white/5 z-50 flex flex-col shadow-2xl">
-          <div className="h-20 px-8 flex items-center gap-4 border-b border-white/5">
-            <div className="w-10 h-10 bg-app-accent rounded-xl flex items-center justify-center text-app-dark-green shadow-lg transition-transform group-hover:scale-105">
-              <Mic size={20} className="stroke-[2.5px]" />
+        {/* Sidebar - Intelligent Quick Query Sidebar */}
+        <aside className="w-full lg:w-72 lg:h-screen lg:fixed lg:left-0 lg:top-0 bg-slate-50/85 dark:bg-[#1E293B]/85 text-slate-800 dark:text-slate-200 border-r border-slate-200/75 dark:border-white/5 z-50 flex flex-col shadow-sm backdrop-blur-md">
+          <div className="h-20 px-8 flex items-center gap-4 border-b border-slate-200/75 dark:border-white/5">
+            <div className="w-10 h-10 bg-[#526C78]/10 dark:bg-white/5 rounded-xl flex items-center justify-center text-[#526C78] dark:text-slate-300 border border-[#526C78]/15 transition-transform hover:scale-105">
+              <Mic size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-display font-black tracking-tighter leading-none text-white">EchoNote</h1>
-              <span className="text-[9px] font-mono text-app-accent uppercase tracking-[0.3em] font-black opacity-70">Intelligence</span>
+              <h1 className="text-xl font-sans font-semibold tracking-tight leading-none text-slate-800 dark:text-white">EchoNote</h1>
+              <span className="text-[9px] font-mono text-[#526C78] dark:text-slate-400 uppercase tracking-[0.25em] font-bold opacity-80">Intelligence</span>
             </div>
           </div>
 
           <div className="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 px-3 mb-4">Navigation</p>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#526C78]/60 dark:text-slate-400/60 px-3 mb-4">Navegação</p>
               <button 
                 onClick={handleGoHome}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
-                  !report ? "bg-white/10 text-white shadow-inner" : "text-white/50 hover:text-white hover:bg-white/5"
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all active:scale-98",
+                  !report 
+                    ? "bg-[#526C78]/10 dark:bg-[#526C78]/20 text-slate-800 dark:text-white border border-[#526C78]/15" 
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5"
                 )}
               >
                 <LayoutGrid size={18} />
@@ -559,50 +561,50 @@ export default function App() {
               </button>
               <button 
                 onClick={() => setShowHistory(true)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-white/50 hover:text-white hover:bg-white/5 transition-all"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 transition-all active:scale-98"
               >
                 <History size={18} />
-                Recent Sessions
+                Sessões Recentes
               </button>
             </div>
 
             <div className="space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 px-3 mb-4">Pinned Meetings</p>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#526C78]/60 dark:text-slate-400/60 px-3 mb-4">Sessões Fixadas</p>
               {history.slice(0, 3).map(item => (
                 <div 
                   key={item.id} 
                   onClick={() => handleSelectHistory(item)}
-                  className="px-4 py-3 rounded-xl glass border-white/5 hover:bg-white/10 cursor-pointer transition-all group"
+                  className="px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-sm cursor-pointer rounded-xl transition-all active:scale-98 group"
                 >
-                  <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-app-accent transition-colors">{item.title}</p>
-                  <p className="text-[9px] font-mono text-white/30 mt-1">{new Date(item.date).toLocaleDateString()}</p>
+                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-[#526C78] dark:group-hover:text-white transition-colors">{item.title}</p>
+                  <p className="text-[9px] font-mono text-[#526C78]/80 dark:text-slate-400/80 mt-1">{new Date(item.date).toLocaleDateString()}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="p-6 border-t border-white/5 space-y-4">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl glass border-white/10">
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center overflow-hidden">
+          <div className="p-6 border-t border-slate-200/75 dark:border-white/5 space-y-4 bg-slate-50/50 dark:bg-slate-900/10">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/75 dark:border-white/5">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
                 {user.user_metadata?.avatar_url ? (
                   <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" />
                 ) : (
-                  <UserIcon size={16} className="text-white/40" />
+                  <UserIcon size={16} className="text-slate-400 dark:text-slate-300" />
                 )}
               </div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-[10px] font-black text-white truncate">{displayName || user.email}</p>
+                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 truncate">{displayName || user.email}</p>
                 <button 
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="text-[9px] font-bold text-app-accent hover:underline flex items-center gap-1"
+                  className="text-[9px] font-bold text-[#526C78] dark:text-slate-300 hover:underline flex items-center gap-1"
                 >
-                  Account Manage <ChevronDown size={8} />
+                  Gerir Conta <ChevronDown size={8} />
                 </button>
               </div>
               <button 
                 onClick={() => setShowSettings(true)}
-                className="p-2 text-white/20 hover:text-white transition-colors"
-                title="Settings"
+                className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-white transition-colors"
+                title="Configurações"
               >
                 <Settings size={14} />
               </button>
@@ -902,7 +904,7 @@ export default function App() {
           onUpdateTitle={handleUpdateTitle}
         />
       ) : (
-        <main className="max-w-5xl mx-auto px-4 md:px-6 py-4 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
+        <main className="max-w-5xl mx-auto px-8 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
           <AnimatePresence mode="wait">
             {!isProcessing ? (
               <motion.div 
