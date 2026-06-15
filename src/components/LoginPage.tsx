@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Loader2, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { getSupabase } from '../supabase';
 import { cn } from '../lib/utils';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -11,6 +12,8 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  const { language, setLanguage, t } = useLanguage();
 
   const handleGoogleLogin = async () => {
     setError(null);
@@ -25,7 +28,7 @@ export function LoginPage() {
       });
       if (error) throw error;
     } catch (err: any) {
-      setError(err.message || 'An error occurred during Google authentication');
+      setError(err.message || t('googleError'));
     } finally {
       setLoading(false);
     }
@@ -57,17 +60,43 @@ export function LoginPage() {
           }
         });
         if (error) throw error;
-        setMessage('Account created successfully! Please check your email.');
+        setMessage(t('creatingAccountSuccess'));
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during authentication');
+      setError(err.message || t('loginError'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-app-bg flex items-center justify-center p-6 font-sans transition-colors duration-700">
+    <div className="min-h-screen bg-app-bg flex items-center justify-center p-6 font-sans transition-colors duration-700 relative">
+      {/* Floating Language Switcher */}
+      <div className="absolute top-6 right-6 flex gap-1.5 z-50">
+        <button
+          onClick={() => setLanguage('portuguese')}
+          className={cn(
+            "px-3 py-1.5 rounded-xl text-xs font-black tracking-wider transition-all border",
+            language === 'portuguese'
+              ? "bg-[#526C78] text-white border-transparent shadow-sm"
+              : "glass text-app-fg/50 hover:text-app-fg border-slate-200/50 dark:border-white/5"
+          )}
+        >
+          PT
+        </button>
+        <button
+          onClick={() => setLanguage('english')}
+          className={cn(
+            "px-3 py-1.5 rounded-xl text-xs font-black tracking-wider transition-all border",
+            language === 'english'
+              ? "bg-[#526C78] text-white border-transparent shadow-sm"
+              : "glass text-app-fg/50 hover:text-app-fg border-slate-200/50 dark:border-white/5"
+          )}
+        >
+          EN
+        </button>
+      </div>
+
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -80,16 +109,16 @@ export function LoginPage() {
                 <Sparkles className="text-app-cream" size={24} />
               </div>
               <h1 className="text-3xl font-display font-bold tracking-tight text-slate-800 dark:text-white">
-                {isLogin ? 'Welcome Back' : 'Create Account'}
+                {isLogin ? t('welcomeBack') : t('createAccount')}
               </h1>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">
-                {isLogin ? 'Sign in to access your meeting notes' : 'Start capturing your meetings with AI'}
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 text-center">
+                {isLogin ? t('signInToAccess') : t('startCapturing')}
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Email Address</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">{t('emailAddress')}</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-app-brown/40" size={18} />
                   <input 
@@ -104,7 +133,7 @@ export function LoginPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-app-brown/40 ml-1">Password</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-app-brown/40 ml-1">{t('password')}</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-app-brown/30" size={18} />
                   <input 
@@ -152,7 +181,7 @@ export function LoginPage() {
                   <Loader2 className="animate-spin" size={20} />
                 ) : (
                   <>
-                    {isLogin ? 'Sign In' : 'Create Account'}
+                    {isLogin ? t('signIn') : t('createAccount')}
                     <ArrowRight size={18} />
                   </>
                 )}
@@ -163,7 +192,7 @@ export function LoginPage() {
                   <div className="w-full border-t border-app-border"></div>
                 </div>
                 <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
-                  <span className="bg-app-card px-4 text-app-brown/40">Or continue with</span>
+                  <span className="bg-app-card px-4 text-app-brown/40">{t('orContinueWith')}</span>
                 </div>
               </div>
 
@@ -185,13 +214,14 @@ export function LoginPage() {
 
             <div className="mt-8 text-center">
               <button 
+                type="button"
                 onClick={() => setIsLogin(!isLogin)}
                 className="text-sm text-app-brown/60 hover:text-app-fg transition-colors"
               >
                 {isLogin ? (
-                  <>Don't have an account? <span className="font-bold text-app-dark-green">Create one</span></>
+                  <>{t('dontHaveAccount')} <span className="font-bold text-app-dark-green">{t('createOne')}</span></>
                 ) : (
-                  <>Already have an account? <span className="font-bold text-app-dark-green">Sign in</span></>
+                  <>{t('alreadyHaveAccount')} <span className="font-bold text-app-dark-green">{t('signIn')}</span></>
                 )}
               </button>
             </div>
@@ -199,7 +229,7 @@ export function LoginPage() {
         </div>
         
         <p className="text-center mt-8 text-app-brown/20 text-[10px] uppercase tracking-[0.2em]">
-          Precision Audio Capture & AI Analysis
+          {t('precisionAudio')}
         </p>
       </motion.div>
     </div>

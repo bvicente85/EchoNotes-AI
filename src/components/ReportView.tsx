@@ -6,6 +6,7 @@ import { jsPDF } from 'jspdf';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ReportViewProps {
   report: MeetingReport;
@@ -16,6 +17,7 @@ interface ReportViewProps {
 }
 
 export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTitle, onReset, onUpdate, onUpdateTitle }) => {
+  const { language, t } = useLanguage();
   const { 
     state: data, 
     update: updateData, 
@@ -380,20 +382,20 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-5xl mx-auto p-4 md:p-8 space-y-10 pb-32"
+      className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 pb-32 font-sans text-slate-800 dark:text-slate-200"
     >
-      {/* Header Section: Title & Metadata */}
-      <div className="space-y-8">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-          <div className="space-y-4 max-w-3xl">
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-app-accent/10 text-app-accent text-[10px] font-black uppercase tracking-[0.2em] rounded-full ring-1 ring-app-accent/20">
-                Session Analysis
+      {/* Header Section: Minimalist & Clean Title & Metadata */}
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/50 dark:border-white/5 pb-6">
+          <div className="space-y-2 max-w-3xl">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase tracking-[0.15em] rounded-md border border-slate-200/50 dark:border-white/5">
+                {language === 'portuguese' ? 'Análise de Sessão' : 'Session Analysis'}
               </span>
-              <span className="text-[10px] font-mono text-app-fg/40 uppercase tracking-[0.2em]">
-                {new Date(data.meetingDate).toLocaleDateString()}
+              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">
+                {new Date(data.meetingDate).toLocaleDateString(language === 'portuguese' ? "pt" : "en") + " • " + new Date(data.meetingDate).toLocaleTimeString(language === 'portuguese' ? "pt" : "en", {hour: '2-digit', minute:'2-digit'})}
               </span>
             </div>
             {isEditingTitle ? (
@@ -405,188 +407,167 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') setIsEditingTitle(false);
                   if (e.key === 'Escape') {
-                    updateData({ ...data, title: initialTitle || 'Meeting Intelligence Report' });
+                    updateData({ ...data, title: initialTitle || (language === 'portuguese' ? 'Relatório de Inteligência' : 'Intelligence Report') });
                     setIsEditingTitle(false);
                   }
                 }}
-                className="text-4xl md:text-5xl font-display font-black text-app-fg bg-transparent border-b-2 border-app-accent focus:outline-none w-full py-2 tracking-tight"
+                className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white bg-transparent border-b-2 border-slate-400 dark:border-slate-505 focus:outline-none w-full py-1 tracking-tight"
               />
             ) : (
               <h1 
                 onClick={() => setIsEditingTitle(true)}
-                className="text-4xl md:text-5xl font-display font-black text-app-fg cursor-pointer hover:text-app-accent transition-colors leading-[1.1] tracking-tight break-words"
+                className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white cursor-pointer hover:text-slate-600 dark:hover:text-amber-500 transition-colors leading-tight tracking-tight break-words"
               >
                 {data.title}
               </h1>
             )}
           </div>
           
-          <div className="flex gap-3 shrink-0">
-            <button 
-              onClick={downloadPDF}
-              className="px-6 py-3 bg-app-dark-green text-app-light-gold rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 active:scale-95 transition-all"
-            >
-              Export PDF
-            </button>
+          <div className="flex items-center gap-3 shrink-0">
             <button 
               onClick={onReset}
-              className="p-3 glass rounded-2xl text-rose-500 hover:bg-rose-500/10 transition-colors"
-              title="Discard Report"
+              className="p-3 border border-slate-200/80 dark:border-white/5 hover:bg-rose-500/10 hover:text-rose-600 text-slate-400 dark:text-slate-400 rounded-xl transition-colors bg-white dark:bg-slate-900"
+              title={language === 'portuguese' ? "Descartar Relatório" : "Discard Report"}
             >
-              <Trash2 size={20} />
+              <Trash2 size={18} />
             </button>
           </div>
         </div>
 
         {/* Global Metadata Inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 glass rounded-[2.5rem] shadow-sm inner-glow">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.3em] flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-app-accent" />
-              Identidade do Cliente
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-sm">
+          <div className="space-y-1">
+            <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-550" />
+              {t('clientNameLabel')}
             </label>
             <input
               type="text"
               value={data.clientName}
               onChange={(e) => updateData({ ...data, clientName: e.target.value })}
-              placeholder="Enterprise Global Ltda."
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-lg font-black text-app-fg placeholder:text-app-fg/10 tracking-tight"
+              placeholder={t('clientNamePlaceholder')}
+              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-700 tracking-tight"
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-app-fg/40 uppercase tracking-[0.3em] flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-app-accent" />
-              Cronologia da Sessão
+          <div className="space-y-1">
+            <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-550" />
+              {language === 'portuguese' ? 'Cronologia da Sessão' : 'Session Timeline'}
             </label>
             <input
               type="datetime-local"
               value={data.meetingDate}
               onChange={(e) => updateData({ ...data, meetingDate: e.target.value })}
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-lg font-black text-app-fg [color-scheme:light] dark:[color-scheme:dark] tracking-tight"
+              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-semibold text-slate-800 dark:text-slate-100 [color-scheme:light] dark:[color-scheme:dark] tracking-tight"
             />
           </div>
         </div>
-        {/* Intelligence Grid Quick Stats */}
+
+        {/* Custom, Clean Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 cursor-pointer transition-all duration-300 group">
-            <div className="flex items-center justify-between mb-2">
-              <User size={16} className="text-[#526C78]/60 dark:text-slate-400" />
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">Active</span>
+          <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{language === 'portuguese' ? 'Intervenientes' : 'Speakers'}</p>
+              <User size={14} className="text-slate-400 dark:text-slate-550" />
             </div>
-            <p className="text-2xl font-sans font-bold text-slate-800 dark:text-white">{data.transcript.reduce((acc, t) => acc.add(t.speaker), new Set()).size}</p>
-            <p className="text-[10px] font-mono text-[#526C78] dark:text-slate-400 uppercase tracking-[0.2em] mt-1">Intervenientes</p>
+            <p className="text-xl font-bold text-slate-800 dark:text-white">
+              {data.transcript.reduce((acc, t) => acc.add(t.speaker), new Set()).size}
+            </p>
           </div>
-          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 cursor-pointer transition-all duration-300 overflow-hidden relative group">
-            <div className="flex items-center justify-between mb-2">
-              <MessageSquare size={16} className="text-[#526C78]/60 dark:text-slate-400" />
-              <div className="flex gap-[2px] items-end h-3">
-                {[4, 7, 5, 9, 3, 6, 8].map((h, i) => (
-                  <div key={i} className="w-1 bg-[#526C78]/30 rounded-full" style={{ height: `${h * 10}%` }} />
-                ))}
-              </div>
+          <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{language === 'portuguese' ? 'Interações' : 'Interactions'}</p>
+              <MessageSquare size={14} className="text-slate-400 dark:text-slate-550" />
             </div>
-            <p className="text-2xl font-sans font-bold text-slate-800 dark:text-white">{data.transcript.length}</p>
-            <p className="text-[10px] font-mono text-[#526C78] dark:text-slate-400 uppercase tracking-[0.2em] mt-1">Total Interações</p>
+            <p className="text-xl font-bold text-slate-800 dark:text-white">
+              {data.transcript.length}
+            </p>
           </div>
-          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 cursor-pointer transition-all duration-300 group">
-            <div className="flex items-center justify-between mb-2">
-              <Gavel size={16} className="text-[#526C78]/60 dark:text-slate-400" />
-              <span className="text-[10px] font-bold text-[#526C78] dark:text-slate-300 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Enforced</span>
+          <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{language === 'portuguese' ? 'Decisões' : 'Decisions'}</p>
+              <Gavel size={14} className="text-slate-400 dark:text-slate-550" />
             </div>
-            <p className="text-2xl font-sans font-bold text-slate-800 dark:text-white">{data.keyDecisions.length}</p>
-            <p className="text-[10px] font-mono text-[#526C78] dark:text-slate-400 uppercase tracking-[0.2em] mt-1">Decisões Críticas</p>
+            <p className="text-xl font-bold text-slate-800 dark:text-white">
+              {data.keyDecisions.length}
+            </p>
           </div>
-          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 cursor-pointer transition-all duration-300 group">
-            <div className="flex items-center justify-between mb-2">
-              <CheckCircle2 size={16} className="text-[#526C78]/60 dark:text-slate-400" />
-              <div className="flex -space-x-1.5 transition-all">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="w-5 h-5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200/50 dark:border-white/5 flex items-center justify-center text-[8px] font-black">
-                    {i}
-                  </div>
-                ))}
-              </div>
+          <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{language === 'portuguese' ? 'Ações Pendentes' : 'Pending Actions'}</p>
+              <CheckCircle2 size={14} className="text-slate-400 dark:text-slate-550" />
             </div>
-            <p className="text-2xl font-sans font-bold text-slate-800 dark:text-white">{data.nextActions.length}</p>
-            <p className="text-[10px] font-mono text-[#526C78] dark:text-slate-400 uppercase tracking-[0.2em] mt-1">Ações Pendentes</p>
+            <p className="text-xl font-bold text-slate-800 dark:text-white">
+              {data.nextActions.length}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Main Intelligence Grid */}
+      {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Deep Analysis Column */}
+        {/* Core Content: Summary & Decisions */}
         <div className="lg:col-span-8 space-y-8">
+          
+          {/* Executive Insight Box */}
           <section className="space-y-4">
-            <div className="flex items-center justify-between px-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-app-dark-green text-app-accent flex items-center justify-center shadow-lg">
-                  <FileText size={24} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-display font-black text-app-fg tracking-tight leading-none">Executive Insight</h2>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-fg/40 mt-1">Drafted by Gemini Assistant</p>
-                </div>
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-amber-500 w-4 h-4 shrink-0" />
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('executiveSummary')}</h2>
               </div>
               <button 
                 onClick={() => setIsEditingSummary(!isEditingSummary)}
-                className="text-[10px] font-black uppercase tracking-widest text-app-accent hover:bg-app-accent/10 border border-app-accent/20 px-5 py-2.5 rounded-2xl transition-all glass shadow-sm"
+                className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-slate-900 border border-slate-200 dark:border-white/5 px-3 py-1.5 rounded-lg transition-all bg-white dark:bg-slate-900 shadow-sm"
               >
-                {isEditingSummary ? 'Finalize Edit' : 'Modify Core Analysis'}
+                {isEditingSummary ? t('save') : t('editSummaryWord')}
               </button>
             </div>
             
-            <div className="glass rounded-[3rem] p-10 shadow-2xl relative inner-glow">
-              <div className="absolute top-8 right-8 text-app-accent opacity-10">
-                <Sparkles size={120} />
-              </div>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm">
               {isEditingSummary ? (
                 <textarea
                   autoFocus
                   value={data.summary}
                   onChange={(e) => updateData({ ...data, summary: e.target.value })}
                   onBlur={() => setIsEditingSummary(false)}
-                  className="w-full bg-transparent border-none focus:ring-0 p-0 text-lg leading-relaxed text-app-fg min-h-[350px] resize-none font-mono"
-                  placeholder="Enter strategic analysis..."
+                  className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm leading-relaxed text-slate-800 dark:text-slate-200 min-h-[300px] resize-none font-mono"
+                  placeholder={language === 'portuguese' ? "Introduza a análise estratégica..." : "Enter strategic analysis details..."}
                 />
               ) : (
-                <div 
-                  onClick={() => setIsEditingSummary(true)}
-                  className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-display prose-headings:font-black prose-headings:tracking-tight prose-a:text-app-accent prose-strong:text-app-fg text-app-fg/80 cursor-text leading-[1.8]"
-                >
+                <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-bold text-slate-700 dark:text-slate-350">
                   <ReactMarkdown>{data.summary}</ReactMarkdown>
                 </div>
               )}
             </div>
           </section>
 
-          {/* Key Decisions - Sophisticated Layout */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-4 px-4">
-              <div className="w-12 h-12 rounded-2xl glass text-emerald-500 flex items-center justify-center shadow-lg border-emerald-500/20">
-                <Gavel size={24} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-display font-black text-app-fg tracking-tight leading-none">Key Decisions</h2>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-fg/40 mt-1">Binding Outcomes & Directives</p>
+          {/* Key Decisions Checklist */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Gavel className="text-slate-500 dark:text-slate-400 w-4 h-4 shrink-0" />
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('keyDecisions')}</h2>
               </div>
               <button 
                 onClick={() => updateData({ ...data, keyDecisions: [...data.keyDecisions, ''] })}
-                className="ml-auto w-10 h-10 glass rounded-full flex items-center justify-center text-app-accent hover:rotate-90 transition-transform"
+                className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors"
+                title={language === 'portuguese' ? "Adicionar Decisão" : "Add Decision"}
               >
-                <Plus size={20} />
+                <Plus size={16} />
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
               {data.keyDecisions.map((decision, i) => (
                 <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
+                  transition={{ delay: i * 0.05 }}
                   key={i}
-                  className="bg-white dark:bg-[#1E293B] p-6 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 transition-all duration-300 group flex flex-col justify-between min-h-[140px] shadow-sm"
+                  className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex items-start gap-4 transition-all hover:border-slate-300 dark:hover:border-white/10"
                 >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 mt-2 shrink-0 shadow-[0_0_6px_rgba(16,185,129,0.4)]" />
                   <textarea
                     value={decision}
                     onChange={(e) => {
@@ -594,82 +575,119 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                       newDecisions[i] = e.target.value;
                       updateData({ ...data, keyDecisions: newDecisions });
                     }}
-                    placeholder="Describe the decision reached..."
-                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-bold text-app-fg/90 resize-none leading-snug"
-                    rows={3}
+                    placeholder={language === 'portuguese' ? "Introduza os detalhes da decisão..." : "Enter decision details..."}
+                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed"
+                    rows={1}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = `${target.scrollHeight}px`;
+                    }}
                   />
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-2">
-                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                       <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500">Ratified</span>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        const newDecisions = data.keyDecisions.filter((_, idx) => idx !== i);
-                        updateData({ ...data, keyDecisions: newDecisions });
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-2 text-app-fg/20 hover:text-rose-500 transition-all scale-75 group-hover:scale-100"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => {
+                      const newDecisions = data.keyDecisions.filter((_, idx) => idx !== i);
+                      updateData({ ...data, keyDecisions: newDecisions });
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 mt-0.5"
+                    title={t('delete')}
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </motion.div>
               ))}
               {data.keyDecisions.length === 0 && (
-                <div className="md:col-span-2 py-12 glass rounded-[2.5rem] flex flex-col items-center justify-center text-center opacity-30 border-dashed border-2">
-                  <Gavel size={32} className="mb-4" />
-                  <p className="text-sm font-black uppercase tracking-widest">Nenhuma decisão registada</p>
+                <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
+                  <Gavel size={24} className="mb-2 text-slate-400" />
+                  <p className="text-xs font-bold uppercase tracking-wider">{language === 'portuguese' ? 'Nenhuma decisão registada' : 'No decisions recorded'}</p>
                 </div>
               )}
             </div>
           </section>
         </div>
 
-        {/* Sidebar Data-Rich Cards */}
-        <aside className="lg:col-span-4 space-y-8 h-fit lg:sticky lg:top-8">
-          {/* Action Bar - Floating Export */}
-          <div className="glass p-4 rounded-3xl shadow-xl space-y-3">
-             <div className="flex items-center justify-between mb-2 px-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-app-fg/40">Data Management</span>
-                <div className="flex gap-1">
-                   <button onClick={undo} disabled={!canUndo} className="p-1.5 glass rounded-lg disabled:opacity-20"><Undo size={14} /></button>
-                   <button onClick={redo} disabled={!canRedo} className="p-1.5 glass rounded-lg disabled:opacity-20"><Redo size={14} /></button>
-                </div>
-             </div>
-             <button 
-              onClick={() => copyToClipboard('markdown')}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 glass rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-app-accent hover:bg-app-accent hover:text-white transition-all shadow-sm"
-             >
-               <Hash size={16} /> Copy Markdown
-             </button>
-             <button 
-              onClick={downloadPDF}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-app-dark-green text-app-light-gold rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-             >
-               <Download size={16} /> Generate Report
-             </button>
-          </div>
+        {/* Sidebar Space: Highlights, Actions & Exports */}
+        <aside className="lg:col-span-4 space-y-6 h-fit lg:sticky lg:top-8">
+          
+          {/* Action Panel - Exports & Backups */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{language === 'portuguese' ? 'Gestão de Exportações' : 'Export Management'}</span>
+              <div className="flex gap-1.5">
+                <button 
+                  onClick={undo} 
+                  disabled={!canUndo} 
+                  className="p-1.5 border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-800 rounded-lg disabled:opacity-20 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                  title="Desfazer (Ctrl+Z)"
+                >
+                  <Undo size={14} />
+                </button>
+                <button 
+                  onClick={redo} 
+                  disabled={!canRedo} 
+                  className="p-1.5 border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-800 rounded-lg disabled:opacity-20 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                  title="Refazer (Ctrl+Y)"
+                >
+                  <Redo size={14} />
+                </button>
+              </div>
+            </div>
 
-          <section className="space-y-6">
-            <div className="flex items-center justify-between px-3">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-app-fg/40">Strategic Highlights</h3>
+            <button 
+              onClick={downloadPDF}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-bold tracking-wide shadow-sm transition-all"
+            >
+              <Download size={15} /> {language === 'portuguese' ? 'Exportar PDF Oficial' : 'Export Official PDF'}
+            </button>
+
+            <button 
+              onClick={() => copyToClipboard('markdown')}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold transition-all"
+            >
+              <Hash size={15} /> {language === 'portuguese' ? 'Copiar Markdown' : 'Copy Markdown'}
+            </button>
+
+            {/* Micro-Dropdown or Secondary Actions list */}
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/50 dark:border-white/5">
               <button 
-                onClick={() => updateData({ ...data, highlights: [...data.highlights, ''] })}
-                className="w-8 h-8 glass rounded-full flex items-center justify-center text-app-accent hover:bg-app-accent/10 transition-colors"
+                onClick={downloadMarkdown}
+                className="px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center rounded-lg transition-colors"
+                title={language === 'portuguese' ? "Descarregar ficheiro .md" : "Download .md file"}
               >
-                <Plus size={16} />
+                File (.md)
+              </button>
+              <button 
+                onClick={downloadJSON}
+                className="px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center rounded-lg transition-colors"
+                title={language === 'portuguese' ? "Descarregar ficheiro .json" : "Download .json file"}
+              >
+                File (.json)
               </button>
             </div>
-            <div className="space-y-4">
+          </div>
+
+          {/* Highlights Section */}
+          <section className="space-y-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('keyHighlights')}</h3>
+              <button 
+                onClick={() => updateData({ ...data, highlights: [...data.highlights, ''] })}
+                className="w-7 h-7 border border-slate-200 dark:border-white/5 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+            
+            <div className="space-y-3 pt-1">
               {data.highlights.map((item, i) => (
                 <motion.div 
                   key={i}
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={{ opacity: 0, x: 5 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-white dark:bg-[#1E293B] p-6 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md transition-all duration-300 group relative shadow-sm"
+                  transition={{ delay: i * 0.05 }}
+                  className="group relative bg-slate-50/50 dark:bg-slate-800/20 border border-slate-100 dark:border-white/5 px-4 py-3 rounded-xl flex items-start gap-2.5 transition-all"
                 >
-                  <div className="absolute top-6 left-6 w-2 h-2 rounded-full bg-app-accent/40 group-hover:bg-app-accent transition-colors" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 mt-2 shrink-0" />
                   <textarea
                     value={item}
                     onChange={(e) => {
@@ -677,45 +695,52 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                       newHighlights[i] = e.target.value;
                       updateData({ ...data, highlights: newHighlights });
                     }}
-                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs font-bold text-app-fg leading-relaxed pl-6 resize-none animate-none"
-                    rows={2}
+                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs font-semibold text-slate-700 dark:text-slate-200 leading-relaxed resize-none"
+                    rows={1}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = `${target.scrollHeight}px`;
+                    }}
                   />
                   <button 
                     onClick={() => {
                       const newHighlights = data.highlights.filter((_, idx) => idx !== i);
                       updateData({ ...data, highlights: newHighlights });
                     }}
-                    className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 p-2 text-rose-500 scale-75 transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={13} />
                   </button>
                 </motion.div>
               ))}
             </div>
           </section>
 
-          <section className="space-y-6 pt-4">
-            <div className="flex items-center justify-between px-3">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-app-fg/40">Immediate Next Actions</h3>
+          {/* Immediate Next Actions Checklist */}
+          <section className="space-y-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('nextActions')}</h3>
               <button 
                 onClick={() => updateData({ ...data, nextActions: [...data.nextActions, ''] })}
-                className="w-8 h-8 glass rounded-full flex items-center justify-center text-app-accent hover:bg-app-accent/10 transition-colors"
+                className="w-7 h-7 border border-slate-200 dark:border-white/5 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
-                <Plus size={16} />
+                <Plus size={14} />
               </button>
             </div>
-            <div className="space-y-3">
+            
+            <div className="space-y-3 pt-1">
               {data.nextActions.map((action, i) => (
                 <motion.div 
                   key={i}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-white dark:bg-[#1E293B] p-5 rounded-xl border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-md active:scale-98 transition-all duration-300 flex items-start gap-4 group shadow-sm"
+                  transition={{ delay: i * 0.05 }}
+                  className="group bg-slate-50/50 dark:bg-slate-800/20 border border-slate-100 dark:border-white/5 p-3 rounded-xl flex items-start gap-3 transition-all"
                 >
-                  <div className="w-5 h-5 rounded flex items-center justify-center border border-app-accent/30 text-app-accent mt-0.5 shrink-0">
-                    <span className="text-[9px] font-black">{i + 1}</span>
-                  </div>
+                  <span className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-white/5 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
                   <textarea
                     value={action}
                     onChange={(e) => {
@@ -723,17 +748,22 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                       newActions[i] = e.target.value;
                       updateData({ ...data, nextActions: newActions });
                     }}
-                    className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-xs font-bold text-app-fg/80 leading-snug resize-none"
-                    rows={2}
+                    className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-xs font-semibold text-slate-700 dark:text-slate-200 leading-normal resize-none"
+                    rows={1}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = `${target.scrollHeight}px`;
+                    }}
                   />
                   <button 
                     onClick={() => {
                       const newActions = data.nextActions.filter((_, idx) => idx !== i);
                       updateData({ ...data, nextActions: newActions });
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-app-fg/20 hover:text-rose-500 transition-all shrink-0"
+                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={13} />
                   </button>
                 </motion.div>
               ))}
@@ -742,94 +772,97 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
         </aside>
       </div>
 
-      {/* Transcript Section */}
-      <section className="space-y-8 mt-12 bg-app-dark-green rounded-[3rem] p-10 md:p-16 shadow-2xl relative overflow-hidden text-app-light-gold">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-app-accent/5 blur-[120px] rounded-full -mr-48 -mt-48" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-app-accent/5 blur-[80px] rounded-full -ml-32 -mb-32" />
-        
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10 border-b border-white/10 pb-8 mb-12">
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl glass text-app-accent flex items-center justify-center shadow-lg border-white/5">
-                <MessageSquare size={24} />
-              </div>
-              <div>
-                <h2 className="text-3xl font-display font-black text-white tracking-tight leading-none">Intelligence Logs</h2>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-2">Diarized Transcript & Voice Analysis</p>
-              </div>
+      {/* Transcript Log Section (Fully integrated into Light/Dark flow) */}
+      <section className="space-y-6 mt-8 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/50 dark:border-white/5 pb-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="text-slate-400 dark:text-slate-550 w-4 h-4 shrink-0" />
+              <h2 className="text-lg font-bold text-slate-950 dark:text-white tracking-tight">{t('fullTranscript')}</h2>
             </div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{language === 'portuguese' ? 'Diarização automática de intervenientes e fluxo de voz' : 'Speaker diarization and voice flow logs'}</p>
           </div>
           
-          <div className="flex items-center gap-3">
-             <div className="glass px-5 py-3 rounded-2xl flex items-center gap-3 border-white/5">
-                <input 
-                  type="checkbox" 
-                  id="includeTranscriptBottom"
-                  checked={includeTranscript}
-                  onChange={(e) => setIncludeTranscript(e.target.checked)}
-                  className="w-4 h-4 rounded border-white/10 text-app-accent focus:ring-app-accent bg-transparent"
-                />
-                <label htmlFor="includeTranscriptBottom" className="text-[10px] font-black text-white/80 cursor-pointer uppercase tracking-widest">Expose in Export</label>
-             </div>
-             <button 
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-950 rounded-xl border border-slate-200/60 dark:border-white/5">
+              <input 
+                type="checkbox" 
+                id="includeTranscriptBottom"
+                checked={includeTranscript}
+                onChange={(e) => setIncludeTranscript(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:ring-slate-500 bg-transparent cursor-pointer"
+              />
+              <label htmlFor="includeTranscriptBottom" className="text-[10px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer uppercase tracking-wider">{language === 'portuguese' ? 'Incluir na Exportação' : 'Include in Export'}</label>
+            </div>
+            <button 
               onClick={downloadOnlyTranscript}
-              className="px-6 py-3.5 glass hover:bg-white/5 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all border-white/10"
-             >
-               Export RAW (.txt)
-             </button>
+              className="px-4 py-2 border border-slate-200/80 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 bg-white dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all"
+            >
+              {language === 'portuguese' ? 'Exportar Transcrição (.txt)' : 'Export Transcript (.txt)'}
+            </button>
           </div>
         </div>
 
-        <div className="space-y-4 relative z-10 max-h-[800px] overflow-y-auto custom-scrollbar-white pr-4">
+        {/* Scrollable Container with minimal, smooth lines */}
+        <div className="space-y-1 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar-white">
           {data.transcript.map((entry, i) => {
-             const colorIndex = entry.speaker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 2;
-             return (
+            const colorIndex = entry.speaker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 2;
+            return (
               <motion.div 
                 key={i} 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="group flex gap-6 p-6 rounded-2xl hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
+                transition={{ delay: Math.min(i * 0.02, 0.4) }}
+                className="group flex gap-4 p-4 rounded-xl hover:bg-slate-100/40 dark:hover:bg-slate-850/40 transition-all"
               >
-                <div className="flex flex-col items-center gap-2 shrink-0 pt-1">
-                   <div className={cn(
-                     "w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-inner",
-                     colorIndex === 0 ? "bg-app-accent text-app-dark-green" : "bg-white/10 text-white"
-                   )}>
-                      {entry.speaker.charAt(0).toUpperCase()}
-                   </div>
-                   <div className="w-px flex-1 bg-white/5" />
+                {/* Speaker Initial Block */}
+                <div className="flex flex-col items-center gap-1 shrink-0">
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 shadow-sm",
+                    colorIndex === 0 
+                      ? "bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200" 
+                      : "bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
+                  )}>
+                    {entry.speaker.charAt(0).toUpperCase()}
+                  </div>
                 </div>
 
-                <div className="flex-1 space-y-2">
-                   <div className="flex items-center gap-3">
-                      {editingSpeakerIndex === i ? (
-                        <input
-                          autoFocus
-                          value={editingSpeakerValue}
-                          onChange={(e) => setEditingSpeakerValue(e.target.value)}
-                          onBlur={() => handleSpeakerSave(i)}
-                          className="bg-transparent border-b border-app-accent text-[10px] font-black text-white uppercase tracking-widest focus:outline-none"
-                        />
-                      ) : (
-                        <span 
-                          onClick={() => handleSpeakerClick(i, entry.speaker)}
-                          className="text-[10px] font-black text-app-accent uppercase tracking-[0.3em] cursor-pointer hover:underline"
-                        >
-                          {entry.speaker}
-                        </span>
-                      )}
-                      <span className="text-[9px] font-mono text-white/20 uppercase tracking-widest">
-                        [{entry.timestamp}]
+                {/* Speaker Content Info */}
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    {editingSpeakerIndex === i ? (
+                      <input
+                        autoFocus
+                        value={editingSpeakerValue}
+                        onChange={(e) => setEditingSpeakerValue(e.target.value)}
+                        onBlur={() => handleSpeakerSave(i)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSpeakerSave(i);
+                          if (e.key === 'Escape') setEditingSpeakerIndex(null);
+                        }}
+                        className="bg-transparent border-b border-slate-400 dark:border-slate-600 text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-wider focus:outline-none py-0 px-1"
+                      />
+                    ) : (
+                      <span 
+                        onClick={() => handleSpeakerClick(i, entry.speaker)}
+                        className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-900 dark:hover:text-amber-500 transition-colors"
+                        title={language === 'portuguese' ? "Clique para renomear este orador globalmente" : "Click to rename this speaker globally"}
+                      >
+                        {entry.speaker}
                       </span>
-                   </div>
-                   <textarea
+                    )}
+                    <span className="text-[9px] font-mono text-slate-400 dark:text-slate-600 uppercase tracking-wider">
+                      [{entry.timestamp}]
+                    </span>
+                  </div>
+                  <textarea
                     value={entry.text}
                     onChange={(e) => {
                       const newTranscript = [...data.transcript];
                       newTranscript[i] = { ...entry, text: e.target.value };
                       updateData({ ...data, transcript: newTranscript });
                     }}
-                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-white/70 leading-relaxed font-normal resize-none min-h-[20px]"
+                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal resize-none"
                     rows={1}
                     onInput={(e) => {
                       const target = e.target as HTMLTextAreaElement;
@@ -839,7 +872,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                   />
                 </div>
               </motion.div>
-             );
+            );
           })}
         </div>
       </section>

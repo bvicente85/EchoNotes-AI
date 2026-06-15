@@ -3,6 +3,7 @@ import { Upload, FileAudio, X, CheckCircle2, Loader2, Volume2, Sparkles } from '
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { getBase64 } from '../services/audioProcessor';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AudioFileUploadProps {
   onFileSelect: (base64: string, mimeType: string, options: { optimizeLowVolume: boolean }) => void;
@@ -10,6 +11,7 @@ interface AudioFileUploadProps {
 }
 
 export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadProps) {
+  const { t } = useLanguage();
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [optimizeLowVolume, setOptimizeLowVolume] = useState(true);
@@ -95,15 +97,15 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
               <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-105 transition-transform border border-slate-200/50 dark:border-white/5">
                 <Upload className="text-slate-400 dark:text-slate-300" size={24} />
               </div>
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">Carregar Gravação</h3>
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('uploadFile')}</h3>
               <p className="text-slate-400 dark:text-slate-400 text-xs mb-8 max-w-xs mx-auto leading-relaxed">
-                Arraste e solte o ficheiro de áudio aqui, ou clique para procurar.
+                {t('dragDropOrClick')}
               </p>
               <button
                 onClick={onButtonClick}
                 className="bg-[#1E293B] hover:bg-[#334155] dark:bg-slate-100 dark:hover:bg-white text-white dark:text-[#1E293B] px-6 py-2.5 rounded-lg text-xs font-semibold shadow-sm transition-all active:scale-98"
               >
-                Procurar Ficheiros
+                {t('browseFilesButton')}
               </button>
             </motion.div>
           ) : (
@@ -148,12 +150,12 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
                     <Volume2 size={16} className={cn(optimizeLowVolume ? "text-[#526C78] dark:text-slate-300" : "text-slate-400")} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold">Otimização de Voz</p>
+                    <p className="text-xs font-semibold">{t('optimizeVolumeTitle')}</p>
                     <p className={cn(
                       "text-[10px] leading-tight mt-0.5",
                       optimizeLowVolume ? "text-slate-500 dark:text-slate-450" : "text-slate-400"
                     )}>
-                      Melhora vozes baixas ou distantes automaticamente.
+                      {t('optimizeVolumeDesc')}
                     </p>
                   </div>
                   <div className={cn(
@@ -173,12 +175,12 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
                     {isProcessing ? (
                       <>
                         <Loader2 className="animate-spin" size={16} />
-                        Análise Gemini em curso...
+                        {t('geminiAnalysisRunning')}
                       </>
                     ) : (
                       <>
                         <Sparkles size={16} />
-                        Transcrever com Gemini
+                        {t('transcribeWithGemini')}
                       </>
                     )}
                   </button>
@@ -192,9 +194,9 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
       <div className="mt-6 flex items-center justify-between text-[10px] text-slate-400 font-mono uppercase tracking-wider px-2">
         <div className="flex items-center gap-1.5">
           <CheckCircle2 size={12} className="text-emerald-500" />
-          Suporta WAV, MP3, AAC, WEBM, OGG
+          {t('supportedFormatsText')}
         </div>
-        <div>Máximo 20MB</div>
+        <div>{t('maxSizeText')}</div>
       </div>
     </div>
   );

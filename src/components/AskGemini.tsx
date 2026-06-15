@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MeetingReport, askGemini } from '../services/gemini';
 import { HistoryItem } from '../services/storage';
 import { cn } from '../lib/utils';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Message {
   role: 'user' | 'model';
@@ -16,6 +17,7 @@ interface AskGeminiProps {
 }
 
 export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] }) => {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -70,7 +72,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
       setMessages(prev => [...prev, { role: 'model', text: response }]);
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: "Desculpe, ocorreu um erro ao processar a sua pergunta. Por favor, tente novamente." }]);
+      setMessages(prev => [...prev, { role: 'model', text: t('askGeminiError') }]);
     } finally {
       setIsLoading(false);
     }
@@ -107,8 +109,8 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                   <Sparkles size={16} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-widest leading-none">Ask Gemini</h3>
-                  <p className="text-[10px] text-white/60 font-medium uppercase tracking-widest mt-1">AI Assistant</p>
+                  <h3 className="text-sm font-black uppercase tracking-widest leading-none">{t('askGeminiHeader')}</h3>
+                  <p className="text-[10px] text-white/60 font-medium uppercase tracking-widest mt-1">{t('askGeminiDesc')}</p>
                 </div>
               </div>
               <button 
@@ -130,8 +132,8 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                     <MessageSquare size={24} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-app-fg">Ask about your meetings</p>
-                    <p className="text-xs text-app-fg/40 mt-1">"What did we decide about EcoInsight?" or "Compare this to my previous meeting."</p>
+                    <p className="text-sm font-bold text-app-fg">{t('askGeminiGreeting')}</p>
+                    <p className="text-xs text-app-fg/40 mt-1">{t('askGeminiGreetingDesc')}</p>
                   </div>
                 </div>
               )}
@@ -169,7 +171,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                     <Loader2 size={14} className="animate-spin" />
                   </div>
                   <div className="p-3 glass text-app-fg/60 rounded-2xl rounded-tl-none text-sm italic">
-                    Gemini is thinking...
+                    {t('geminiThinking')}
                   </div>
                 </div>
               )}
@@ -183,7 +185,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Type your question..."
+                  placeholder={t('askGeminiPlaceholder')}
                   className="w-full pl-4 pr-12 py-3 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg"
                 />
                 <button

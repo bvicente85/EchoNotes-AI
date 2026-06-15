@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, User, Mic, Monitor, Moon, Sun, Sparkles, Info, Save, Check, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
-
 import { getSupabase } from '../supabase';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface SettingsViewProps {
   onClose: () => void;
@@ -30,6 +30,7 @@ export function SettingsView({
   initialLanguage,
   initialSummaryDetail
 }: SettingsViewProps) {
+  const { setLanguage: setGlobalLanguage, t } = useLanguage();
   const [displayName, setDisplayName] = useState(initialDisplayName || localStorage.getItem('echonotes_display_name') || '');
   const [defaultMode, setDefaultMode] = useState(initialMode || localStorage.getItem('echonotes_default_mode') || 'mic');
   const [theme, setTheme] = useState(initialTheme || localStorage.getItem('echonotes_theme') || 'light');
@@ -65,6 +66,9 @@ export function SettingsView({
       console.error("Error saving settings to Supabase:", err);
     }
 
+    // Call the context to update language database-wide & browser-wide
+    await setGlobalLanguage(language);
+
     if (onSettingsUpdate) {
       onSettingsUpdate(displayName, theme, defaultMode, language, summaryDetail);
     }
@@ -96,7 +100,7 @@ export function SettingsView({
         {/* Header */}
         <div className="p-8 border-b border-app-border flex justify-between items-center glass">
           <div>
-            <h2 className="text-3xl font-display font-black tracking-tight text-app-fg">Settings</h2>
+            <h2 className="text-3xl font-display font-black tracking-tight text-app-fg">{t('settings')}</h2>
             <p className="text-app-fg/40 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Personalize EchoNotes</p>
           </div>
           <button 
@@ -113,17 +117,17 @@ export function SettingsView({
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-app-accent">
               <User size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Profile</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{t('profile')}</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-app-fg/40">Email Address</label>
+                <label className="text-xs font-bold text-app-fg/40">{t('emailAddress')}</label>
                 <div className="px-5 py-4 glass rounded-2xl text-sm text-app-fg/30 cursor-not-allowed">
                   {userEmail}
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-app-fg/40">Display Name</label>
+                <label className="text-xs font-bold text-app-fg/40">{t('yourName')}</label>
                 <input 
                   type="text"
                   value={displayName}
@@ -139,10 +143,10 @@ export function SettingsView({
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-app-accent">
               <Mic size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Recording</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{t('recording')}</span>
             </div>
             <div className="space-y-2">
-               <label className="text-xs font-bold text-app-fg/45">Default Recording Mode</label>
+               <label className="text-xs font-bold text-app-fg/45">{t('defaultRecordingMode')}</label>
               <div className="flex glass p-1.5 rounded-2xl w-fit">
                 <button 
                   onClick={() => setDefaultMode('mic')}
@@ -151,7 +155,7 @@ export function SettingsView({
                     defaultMode === 'mic' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
-                  <Mic size={14} /> In-Person
+                  <Mic size={14} /> {t('inPerson')}
                 </button>
                 <button 
                   onClick={() => setDefaultMode('system')}
@@ -160,7 +164,7 @@ export function SettingsView({
                     defaultMode === 'system' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
-                  <Monitor size={14} /> Virtual Meeting
+                  <Monitor size={14} /> {t('virtualMeeting')}
                 </button>
               </div>
             </div>
@@ -170,10 +174,10 @@ export function SettingsView({
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-app-accent">
               <Sun size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Appearance</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{t('appearance')}</span>
             </div>
             <div className="space-y-2">
-               <label className="text-xs font-bold text-app-fg/45">Theme</label>
+               <label className="text-xs font-bold text-app-fg/45">{t('theme')}</label>
               <div className="flex glass p-1.5 rounded-2xl w-fit">
                 <button 
                   onClick={() => setTheme('light')}
@@ -182,7 +186,7 @@ export function SettingsView({
                     theme === 'light' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
-                  <Sun size={14} /> Light
+                  <Sun size={14} /> {t('light')}
                 </button>
                 <button 
                   onClick={() => setTheme('dark')}
@@ -191,7 +195,7 @@ export function SettingsView({
                     theme === 'dark' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
-                  <Moon size={14} /> Dark
+                  <Moon size={14} /> {t('dark')}
                 </button>
               </div>
             </div>
@@ -201,11 +205,11 @@ export function SettingsView({
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-app-accent">
               <Sparkles size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">AI Preferences</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{t('aiPreferences')}</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-app-fg/40">Output Language</label>
+                <label className="text-xs font-bold text-app-fg/40">{t('outputLanguage')}</label>
                 <select 
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
@@ -219,7 +223,7 @@ export function SettingsView({
                 </select>
               </div>
               <div className="space-y-2">
-                 <label className="text-xs font-bold text-app-fg/45">Summary Detail Level</label>
+                 <label className="text-xs font-bold text-app-fg/45">{t('summaryDetailLevel')}</label>
                 <div className="flex glass p-1.5 rounded-2xl w-fit">
                   <button 
                     onClick={() => setSummaryDetail('concise')}
@@ -228,7 +232,7 @@ export function SettingsView({
                       summaryDetail === 'concise' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                     )}
                   >
-                    Concise
+                    {t('concise')}
                   </button>
                   <button 
                     onClick={() => setSummaryDetail('detailed')}
@@ -237,7 +241,7 @@ export function SettingsView({
                       summaryDetail === 'detailed' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                     )}
                   >
-                    Detailed
+                    {t('detailed')}
                   </button>
                 </div>
               </div>
@@ -259,7 +263,7 @@ export function SettingsView({
               onClick={onSignOut}
               className="flex items-center gap-2 px-5 py-2.5 text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all text-xs font-black uppercase tracking-widest glass"
             >
-              <LogOut size={16} /> Sign Out
+              <LogOut size={16} /> {t('signOut')}
             </button>
           </section>
         </div>
@@ -270,7 +274,7 @@ export function SettingsView({
             onClick={onClose}
             className="text-xs font-black uppercase tracking-[0.2em] text-app-fg/40 hover:text-app-fg transition-colors"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button 
             onClick={handleSave}
@@ -282,7 +286,7 @@ export function SettingsView({
             )}
           >
             {isSaved ? <Check size={18} /> : <Save size={18} />}
-            {isSaved ? 'Saved' : 'Save Changes'}
+            {isSaved ? t('saved') : t('saveChanges')}
           </button>
         </div>
       </motion.div>

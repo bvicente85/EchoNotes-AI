@@ -531,123 +531,135 @@ export default function App() {
 
   return (
     <div className={`min-h-screen bg-app-bg text-app-fg transition-colors duration-300 font-sans ${theme === 'dark' ? 'dark' : ''}`}>
-      <div className="flex flex-col lg:flex-row min-h-screen">
-        {/* Sidebar - Intelligent Quick Query Sidebar */}
-        <aside className="w-full lg:w-72 lg:h-screen lg:fixed lg:left-0 lg:top-0 bg-slate-50/85 dark:bg-[#1E293B]/85 text-slate-800 dark:text-slate-200 border-r border-slate-200/75 dark:border-white/5 z-50 flex flex-col shadow-sm backdrop-blur-md">
-          <div className="h-20 px-8 flex items-center gap-4 border-b border-slate-200/75 dark:border-white/5">
-            <div className="w-10 h-10 bg-[#526C78]/10 dark:bg-white/5 rounded-xl flex items-center justify-center text-[#526C78] dark:text-slate-300 border border-[#526C78]/15 transition-transform hover:scale-105">
-              <Mic size={20} />
+      <div className="flex flex-col min-h-screen">
+        {/* Zen Header */}
+        <header className="h-24 max-w-5xl mx-auto px-6 md:px-8 w-full flex items-center justify-between sticky top-0 z-40 backdrop-blur-md bg-transparent border-none">
+          {/* Logo */}
+          <div className="flex items-center gap-3 cursor-pointer" onClick={handleGoHome}>
+            <div className="w-9 h-9 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-350 border border-slate-205/20 shadow-xs transition-transform hover:scale-105">
+              <Mic size={18} />
             </div>
             <div>
-              <h1 className="text-xl font-sans font-semibold tracking-tight leading-none text-slate-800 dark:text-white">EchoNote</h1>
-              <span className="text-[9px] font-mono text-[#526C78] dark:text-slate-400 uppercase tracking-[0.25em] font-bold opacity-80">Intelligence</span>
+              <h1 className="text-lg font-sans font-semibold tracking-tight leading-none text-slate-800 dark:text-white">EchoNote</h1>
+              <span className="text-[8px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">INTELLIGENCE</span>
             </div>
           </div>
 
-          <div className="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
-            <div className="space-y-2">
-              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#526C78]/60 dark:text-slate-400/60 px-3 mb-4">Navegação</p>
+          {/* Minimal Navigation Pills */}
+          <div className="hidden sm:flex items-center gap-1.5 bg-slate-100/60 dark:bg-slate-800/40 p-1 rounded-xl border border-slate-200/40 dark:border-white/5">
+            <button 
+              onClick={handleGoHome}
+              className={cn(
+                "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-98",
+                !report 
+                  ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs border border-slate-200/50 dark:border-white/5" 
+                  : "text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-white"
+              )}
+            >
+              <LayoutGrid size={14} />
+              Dashboard
+            </button>
+            <button 
+              onClick={() => setShowHistory(true)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all active:scale-98"
+            >
+              <History size={14} />
+              Sessões
+            </button>
+          </div>
+
+          {/* Action Controls */}
+          <div className="flex items-center gap-2">
+            {/* Theme switcher */}
+            <button 
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              className="p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/40 dark:hover:border-white/5 transition-all"
+              title="Mudar Tema"
+            >
+              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
+
+            {/* Admin panel if admin */}
+            {isAdmin && (
               <button 
-                onClick={handleGoHome}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all active:scale-98",
-                  !report 
-                    ? "bg-[#526C78]/10 dark:bg-[#526C78]/20 text-slate-800 dark:text-white border border-[#526C78]/15" 
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5"
-                )}
+                onClick={() => setShowAdminDashboard(true)}
+                className="p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/40 dark:hover:border-white/5 transition-all"
+                title="Dashboard de Administrador"
               >
                 <LayoutGrid size={18} />
-                Dashboard
               </button>
-              <button 
-                onClick={() => setShowHistory(true)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 transition-all active:scale-98"
-              >
-                <History size={18} />
-                Sessões Recentes
-              </button>
-            </div>
+            )}
 
-            <div className="space-y-4">
-              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#526C78]/60 dark:text-slate-400/60 px-3 mb-4">Sessões Fixadas</p>
-              {history.slice(0, 3).map(item => (
-                <div 
-                  key={item.id} 
-                  onClick={() => handleSelectHistory(item)}
-                  className="px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/75 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-sm cursor-pointer rounded-xl transition-all active:scale-98 group"
-                >
-                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-[#526C78] dark:group-hover:text-white transition-colors">{item.title}</p>
-                  <p className="text-[9px] font-mono text-[#526C78]/80 dark:text-slate-400/80 mt-1">{new Date(item.date).toLocaleDateString()}</p>
+            {/* Settings gear */}
+            <button 
+              onClick={() => setShowSettings(true)}
+              className="p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/40 dark:hover:border-white/5 transition-all"
+              title={language === 'portuguese' ? 'Configurações' : 'Settings'}
+            >
+              <Settings size={18} />
+            </button>
+
+            {/* User Account / Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200/40 dark:border-white/5 transition-all shrink-0 cursor-pointer"
+              >
+                <div className="w-6 h-6 rounded-lg bg-slate-200/80 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0 border border-slate-300 dark:border-slate-600/50">
+                  {user.user_metadata?.avatar_url ? (
+                    <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" />
+                  ) : (
+                    <UserIcon size={12} className="text-slate-500 dark:text-slate-300" />
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-6 border-t border-slate-200/75 dark:border-white/5 space-y-4 bg-slate-50/50 dark:bg-slate-900/10">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/75 dark:border-white/5">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
-                {user.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" />
-                ) : (
-                  <UserIcon size={16} className="text-slate-400 dark:text-slate-300" />
-                )}
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 truncate">{displayName || user.email}</p>
-                <button 
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="text-[9px] font-bold text-[#526C78] dark:text-slate-300 hover:underline flex items-center gap-1"
-                >
-                  Gerir Conta <ChevronDown size={8} />
-                </button>
-              </div>
-              <button 
-                onClick={() => setShowSettings(true)}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-white transition-colors"
-                title="Configurações"
-              >
-                <Settings size={14} />
+                <ChevronDown size={11} className={cn("text-slate-400 transition-transform", showUserMenu ? "rotate-180" : "")} />
               </button>
+
+              <AnimatePresence>
+                {showUserMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+                    <motion.div 
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/5 rounded-2xl shadow-xl p-4 z-50 space-y-3"
+                    >
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                          {language === 'portuguese' ? 'Utilizador' : 'Current User'}
+                        </p>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{displayName || user.email}</p>
+                      </div>
+                      <hr className="border-slate-100 dark:border-white/5" />
+                      <button 
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          setShowSettings(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white text-left transition-colors"
+                      >
+                        <Settings size={14} />
+                        {language === 'portuguese' ? 'Configurações' : 'Settings'}
+                      </button>
+                      <button 
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 text-left transition-colors"
+                      >
+                        <LogOut size={14} />
+                        {language === 'portuguese' ? 'Terminar Sessão' : 'Sign Out'}
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
           </div>
-        </aside>
+        </header>
 
         {/* Main Content Area */}
-        <div className="flex-1 lg:ml-72 flex flex-col min-h-screen">
-          <header className="h-20 px-8 flex items-center justify-between glass lg:bg-transparent lg:backdrop-blur-none lg:border-none sticky top-0 z-40">
-            <div className="lg:hidden flex items-center gap-3">
-              <div className="w-8 h-8 bg-app-dark-green rounded-lg flex items-center justify-center text-app-accent">
-                <Mic size={16} />
-              </div>
-              <h1 className="text-lg font-display font-black text-app-fg">EchoNote</h1>
-            </div>
-
-            <div className="flex-1 flex justify-center">
-              {report && (
-                <div className="hidden lg:flex items-center gap-2 px-6 py-2 glass rounded-full shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-app-fg/40">Active intelligence Report</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                className="p-2.5 glass rounded-xl text-app-fg/40 hover:text-app-fg shadow-sm transition-all"
-              >
-                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-              </button>
-              {isAdmin && (
-                <button 
-                  onClick={() => setShowAdminDashboard(true)}
-                  className="p-2.5 glass rounded-xl text-app-fg/40 hover:text-app-fg shadow-sm transition-all"
-                >
-                  <LayoutGrid size={20} />
-                </button>
-              )}
-            </div>
-          </header>
+        <div className="flex-1 flex flex-col min-h-screen">
 
       <AnimatePresence>
         {showHistory && (
