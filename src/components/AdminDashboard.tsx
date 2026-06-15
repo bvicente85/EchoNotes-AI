@@ -81,18 +81,18 @@ export function AdminDashboard({ onClose, onSelectMeeting }: AdminDashboardProps
               </div>
               <h2 className="text-2xl font-bold tracking-tight text-app-fg">Admin Dashboard</h2>
             </div>
-            <p className="text-sm text-black/60 font-medium">Monitoring all user meetings and reports</p>
+            <p className="text-sm text-app-fg/60 font-medium">Monitoring all user meetings and reports</p>
           </div>
           
           <div className="flex items-center gap-3">
             <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-black/30" size={16} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
               <input 
                 type="text"
                 placeholder="Search meetings or users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-app-bg border border-app-border rounded-2xl text-sm focus:ring-4 focus:ring-app-green/5 focus:border-app-green transition-all outline-none text-black placeholder:text-black/20"
+                className="w-full pl-10 pr-4 py-2.5 bg-app-bg border border-app-border rounded-2xl text-sm focus:ring-4 focus:ring-app-green/5 focus:border-app-green transition-all outline-none text-app-fg placeholder:text-app-fg/30"
               />
             </div>
             <div className="flex items-center bg-app-bg p-1 rounded-xl border border-app-border">
@@ -148,17 +148,17 @@ export function AdminDashboard({ onClose, onSelectMeeting }: AdminDashboardProps
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">
+                      <span className="text-[10px] font-bold text-app-fg/40 uppercase tracking-widest">
                         {new Date(meeting.date).toLocaleDateString()} • {new Date(meeting.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <span className="text-[10px] font-bold text-app-green uppercase tracking-widest bg-app-green/10 px-2 py-0.5 rounded-full">
                         {meeting.userName} ({meeting.userEmail})
                       </span>
                     </div>
-                    <h4 className="font-bold text-black truncate group-hover:text-app-green transition-colors">{meeting.title}</h4>
-                    <p className="text-xs text-black/70 line-clamp-2 mt-1 leading-relaxed">{meeting.report.summary}</p>
+                    <h4 className="font-bold text-app-fg truncate group-hover:text-app-green transition-colors">{meeting.title}</h4>
+                    <p className="text-xs text-app-fg/70 line-clamp-2 mt-1 leading-relaxed">{meeting.report.summary}</p>
                   </div>
-                  <ChevronRight className="text-black/20 group-hover:text-app-green group-hover:translate-x-1 transition-all" size={20} />
+                  <ChevronRight className="text-app-fg/20 group-hover:text-app-green group-hover:translate-x-1 transition-all" size={20} />
                 </motion.div>
               ))}
             </div>
@@ -176,22 +176,22 @@ export function AdminDashboard({ onClose, onSelectMeeting }: AdminDashboardProps
                     <div className="w-10 h-10 bg-app-bg rounded-xl flex items-center justify-center group-hover:bg-app-green/10 transition-colors border border-app-border">
                       <FileText className="text-app-brown/20 group-hover:text-app-green" size={18} />
                     </div>
-                    <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">
+                    <span className="text-[10px] font-bold text-app-fg/40 uppercase tracking-widest">
                       {new Date(meeting.date).toLocaleDateString()}
                     </span>
                   </div>
-                  <h4 className="font-bold text-black mb-2 group-hover:text-app-green transition-colors line-clamp-2">{meeting.title}</h4>
-                  <p className="text-xs text-black/80 line-clamp-4 mb-6 flex-1 leading-relaxed">{meeting.report.summary}</p>
+                  <h4 className="font-bold text-app-fg mb-2 group-hover:text-app-green transition-colors line-clamp-2">{meeting.title}</h4>
+                  <p className="text-xs text-app-fg/80 line-clamp-4 mb-6 flex-1 leading-relaxed">{meeting.report.summary}</p>
                   <div className="pt-4 border-t border-app-border flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 bg-app-bg rounded-full flex items-center justify-center border border-app-border">
-                        <User size={10} className="text-black/40" />
+                        <User size={10} className="text-app-fg/40" />
                       </div>
-                      <span className="text-[10px] font-bold text-black/30 uppercase tracking-widest">
+                      <span className="text-[10px] font-bold text-app-fg/40 uppercase tracking-widest">
                         {meeting.userName}
                       </span>
                     </div>
-                    <ChevronRight className="text-black/20 group-hover:text-app-green transition-all" size={16} />
+                    <ChevronRight className="text-app-fg/20 group-hover:text-app-green transition-all" size={16} />
                   </div>
                 </motion.div>
               ))}
@@ -204,13 +204,13 @@ export function AdminDashboard({ onClose, onSelectMeeting }: AdminDashboardProps
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-app-green rounded-full animate-pulse" />
-              <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Live Monitoring Active</span>
+              <span className="text-[10px] font-bold text-app-fg/40 uppercase tracking-widest">Live Monitoring Active</span>
             </div>
-            <div className="text-[10px] font-bold text-black/40 uppercase tracking-widest">
-              Total Meetings: <span className="text-black">{meetings.length}</span>
+            <div className="text-[10px] font-bold text-app-fg/40 uppercase tracking-widest">
+              Total Meetings: <span className="text-app-fg font-black">{meetings.length}</span>
             </div>
           </div>
-          <p className="text-[10px] font-bold text-black/20 uppercase tracking-widest">Admin Access Only • Confidential Data</p>
+          <p className="text-[10px] font-bold text-app-fg/20 uppercase tracking-widest">Admin Access Only • Confidential Data</p>
         </div>
       </motion.div>
     </motion.div>

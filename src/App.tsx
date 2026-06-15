@@ -655,64 +655,64 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-end"
+            className="fixed inset-0 z-[60] bg-slate-950/20 dark:bg-slate-950/40 backdrop-blur-xs flex items-center justify-end"
             onClick={() => setShowHistory(false)}
           >
             <motion.div 
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="w-full max-w-md h-full glass shadow-2xl flex flex-col"
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="w-full max-w-md h-full bg-slate-50 dark:bg-slate-900 border-l border-slate-200/80 dark:border-white/5 shadow-2xl flex flex-col"
               onClick={e => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-app-border glass">
+              <div className="p-6 border-b border-slate-200/85 dark:border-white/5 bg-white dark:bg-slate-800">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-display font-black tracking-tight text-app-fg">History</h2>
+                  <h2 className="text-xl font-semibold tracking-tight text-slate-800 dark:text-white">Todas as Sessões</h2>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setIsClearingAll(true)}
-                      className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
-                      title="Clear all history"
+                      className="p-2 text-[#526C78] dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+                      title="Limpar histórico"
                     >
-                      <Trash2 size={20} />
+                      <Trash2 size={18} />
                     </button>
                     <button 
                       onClick={() => setShowHistory(false)}
-                      className="p-2 text-app-fg/20 hover:text-app-fg hover:bg-app-accent/10 rounded-xl transition-all"
+                      className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-705 rounded-lg transition-all"
                     >
-                      <X size={20} />
+                      <X size={18} />
                     </button>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-app-fg/20 group-focus-within:text-app-accent transition-colors" size={18} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#526C78] transition-colors" size={16} />
                     <input 
                       type="text"
-                      placeholder="Search meetings..."
+                      placeholder="Procurar sessões ou notas..."
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full glass rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200/75 dark:border-white/5 rounded-xl pl-11 pr-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#526C78]/10 focus:border-[#526C78] transition-all text-slate-800 dark:text-white"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between px-1">
                     <button 
                       onClick={() => {
                         setSortField(sortField === 'date' ? 'title' : 'date');
                       }}
-                      className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-app-fg/40 hover:text-app-fg transition-colors"
+                      className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#526C78] transition-colors"
                     >
-                      <ArrowUpDown size={12} />
-                      Sorted by {sortField}
+                      <ArrowUpDown size={11} />
+                      Ordenado por: {sortField === 'date' ? 'Data' : 'Título'}
                     </button>
                     <button 
                       onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                      className="text-[10px] font-bold uppercase tracking-widest text-app-fg/40 hover:text-app-fg transition-colors"
+                      className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#526C78] transition-colors"
                     >
-                      {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
+                      {sortOrder === 'desc' ? 'Mais Recentes' : 'Mais Antigas'}
                     </button>
                   </div>
                 </div>
@@ -721,17 +721,17 @@ export default function App() {
               <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {history.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                    <div className="w-16 h-16 bg-app-cream rounded-3xl flex items-center justify-center text-black/10 mb-4">
-                      <History size={32} />
+                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-200/40 dark:border-white/5">
+                      <History size={24} />
                     </div>
-                    <h3 className="text-lg font-bold text-black mb-1">No meetings yet</h3>
-                    <p className="text-sm text-black/40">Start your first recording to see history.</p>
+                    <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200 mb-1">Sem sessões ainda</h3>
+                    <p className="text-xs text-slate-400">Grave ou carregue uma reunião para começar.</p>
                   </div>
                 ) : (() => {
                   if (sortedHistory.length === 0) {
                     return (
                       <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                        <p className="text-sm text-black/40">No matches for your search.</p>
+                        <p className="text-xs text-slate-400">Nenhum resultado corresponde à procura.</p>
                       </div>
                     );
                   }
@@ -739,18 +739,18 @@ export default function App() {
                     <div 
                       key={item.id}
                       onClick={() => handleSelectHistory(item)}
-                      className="group flex items-center justify-between p-4 rounded-xl hover:bg-app-cream border border-transparent hover:border-app-border cursor-pointer transition-all"
+                      className="group flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-xs cursor-pointer rounded-xl transition-all"
                     >
-                      <div className="flex flex-col flex-1 mr-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-mono text-black/40 uppercase tracking-widest">
+                      <div className="flex flex-col flex-1 mr-4 overflow-hidden">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span className="text-[9px] font-mono text-slate-400 dark:text-slate-455 uppercase tracking-wider">
                             {item.report.meetingDate 
                               ? new Date(item.report.meetingDate).toLocaleDateString() + ' • ' + new Date(item.report.meetingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                               : new Date(item.date).toLocaleDateString() + ' • ' + new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                             }
                           </span>
                           {item.report.clientName && (
-                            <span className="text-[10px] font-bold text-app-green uppercase tracking-widest bg-app-green/10 px-1.5 py-0.5 rounded">
+                            <span className="text-[8px] font-bold text-[#526C78] dark:text-slate-300 uppercase tracking-wider bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
                               {item.report.clientName}
                             </span>
                           )}
@@ -762,7 +762,7 @@ export default function App() {
                               value={editingTitle}
                               onChange={e => setEditingTitle(e.target.value)}
                               onBlur={(e) => handleSaveEdit(item.id, e)}
-                              className="flex-1 bg-app-card border border-app-green rounded px-2 py-1 text-sm font-medium focus:outline-none ring-2 ring-app-green/5 text-black"
+                              className="flex-1 bg-slate-50 dark:bg-slate-900 border border-[#526C78] rounded px-2.5 py-1 text-xs font-medium focus:outline-none ring-2 ring-[#526C78]/10 text-slate-800 dark:text-white"
                               onKeyDown={e => {
                                 if (e.key === 'Enter') handleSaveEdit(item.id, e);
                                 if (e.key === 'Escape') setEditingId(null);
@@ -771,36 +771,38 @@ export default function App() {
                             <button 
                               onMouseDown={e => e.preventDefault()}
                               onClick={e => handleSaveEdit(item.id, e)}
-                              className="text-xs font-bold text-app-green hover:opacity-80"
+                              className="text-xs font-bold text-slate-800 dark:text-white hover:opacity-85"
                             >
-                              Save
+                              Guardar
                             </button>
                           </div>
                         ) : (
                           <span 
                             onClick={(e) => handleStartEdit(item, e)}
-                            className="text-black font-bold text-sm line-clamp-2 hover:text-app-green transition-colors cursor-text leading-tight"
-                            title="Click to edit title"
+                            className="text-slate-800 dark:text-zinc-200 font-semibold text-sm line-clamp-1 hover:text-[#526C78] dark:hover:text-white transition-colors cursor-text leading-tight"
+                            title="Clique para editar o título"
                           >
                             {item.title}
                           </span>
                         )}
-                        <p className="text-[11px] text-black/70 line-clamp-2 mt-1.5 font-normal leading-relaxed">
+                        <p className="text-[11px] text-slate-450 dark:text-slate-400 line-clamp-1 mt-1 font-normal leading-relaxed">
                           {item.report.summary}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <button 
                           onClick={(e) => handleStartEdit(item, e)}
-                          className="opacity-0 group-hover:opacity-100 p-2 text-black/20 hover:text-app-fg transition-all"
+                          className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all rounded"
+                          title="Renomear"
                         >
-                          <Settings size={16} />
+                          <Settings size={14} />
                         </button>
                         <button 
                           onClick={(e) => handleDeleteHistory(item.id, e)}
-                          className="opacity-0 group-hover:opacity-100 p-2 text-black/20 hover:text-rose-500 transition-all"
+                          className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-500 transition-all rounded"
+                          title="Eliminar"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </div>
@@ -915,12 +917,12 @@ export default function App() {
                 className="w-full flex flex-col items-center gap-6 md:gap-8"
               >
                 <div className="text-center space-y-3 max-w-2xl">
-                  <h2 className="text-4xl md:text-5xl font-display font-bold leading-tight tracking-tighter text-app-fg">
-                    Capture every word, <br />
-                    <span className="text-app-accent">understand every voice.</span>
+                  <h2 className="text-3xl md:text-4xl font-sans font-bold leading-tight tracking-tight text-slate-800 dark:text-white">
+                    Registe as suas reuniões, <br />
+                    <span className="text-[#526C78] dark:text-slate-350">extraia a inteligência essencial.</span>
                   </h2>
-                  <p className="text-app-fg/80 text-sm md:text-base font-normal px-4">
-                    EchoNotes uses advanced AI to transcribe, identify speakers, and summarize your business meetings in real-time.
+                  <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-normal px-4 max-w-lg mx-auto">
+                    Transforme as suas gravações de voz em resumos executivos detalhados, decisões bem definidas e passos seguintes claros usando inteligência artificial avançada.
                   </p>
                 </div>
 
@@ -945,36 +947,42 @@ export default function App() {
                 )}
 
                 {!isRecording && (
-                  <div className="flex glass p-1.5 rounded-2xl mb-4">
+                  <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200/50 dark:border-white/5 mb-4">
                     <button 
                       onClick={() => setRecordingMode('mic')}
                       className={cn(
-                        "px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
-                        recordingMode === 'mic' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
+                        "px-5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 active:scale-98",
+                        recordingMode === 'mic' 
+                          ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm border border-slate-200/40 dark:border-white/10" 
+                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                       )}
                     >
                       <Mic size={14} />
-                      In-Person
+                      Presencial
                     </button>
                     <button 
                       onClick={() => setRecordingMode('system')}
                       className={cn(
-                        "px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
-                        recordingMode === 'system' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
+                        "px-5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 active:scale-98",
+                        recordingMode === 'system' 
+                          ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm border border-slate-200/40 dark:border-white/10" 
+                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                       )}
                     >
                       <Headphones size={14} />
-                      Virtual Meeting
+                      Encontro Virtual
                     </button>
                     <button 
                       onClick={() => setRecordingMode('upload')}
                       className={cn(
-                        "px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
-                        recordingMode === 'upload' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
+                        "px-5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 active:scale-98",
+                        recordingMode === 'upload' 
+                          ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm border border-slate-200/40 dark:border-white/10" 
+                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                       )}
                     >
                       <Upload size={14} />
-                      Upload File
+                      Carregar Ficheiro
                     </button>
                   </div>
                 )}
@@ -1047,10 +1055,10 @@ export default function App() {
                       <button
                         onClick={isRecording ? stopRecording : startRecording}
                         className={cn(
-                          "relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all duration-700 group",
+                          "relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all duration-300 group active:scale-98",
                           isRecording 
-                            ? "bg-rose-600 text-white shadow-[0_0_50px_-12px_rgba(225,29,72,0.5)] ring-4 ring-rose-500/10 overflow-hidden" 
-                            : "bg-gradient-to-br from-app-dark-green via-green-800 to-app-dark-green text-white shadow-2xl hover:scale-105 active:scale-95 border border-white/10"
+                            ? "bg-rose-500 text-white shadow-lg overflow-hidden border border-rose-400" 
+                            : "bg-[#1E293B] hover:bg-[#334155] dark:bg-white dark:hover:bg-slate-100 text-white dark:text-[#1E293B] shadow-md border border-slate-200/20 dark:border-white/5"
                         )}
                       >
                         {/* Premium Button Glass/Bevel Effect */}
@@ -1066,18 +1074,18 @@ export default function App() {
                               transition={{ duration: 2, repeat: Infinity }}
                               className="absolute inset-0 bg-white/10 rounded-full"
                             />
-                            <Square fill="currentColor" size={36} className="relative z-10" />
-                            <span className="mt-4 font-mono text-[10px] tracking-[0.3em] uppercase font-black relative z-10">Stop Meeting</span>
+                            <Square fill="currentColor" size={32} className="relative z-10" />
+                            <span className="mt-4 font-mono text-[9px] tracking-[0.2em] uppercase font-bold relative z-10">Parar Sessão</span>
                           </>
                         ) : (
                           <>
-                            <Mic size={36} className="relative z-10" />
-                            <span className="mt-4 font-mono text-[10px] tracking-[0.3em] uppercase font-black relative z-10">Start Meeting</span>
-                            <div className="absolute bottom-10 w-12 h-1 bg-app-accent/20 rounded-full overflow-hidden">
+                            <Mic size={32} className="relative z-10" />
+                            <span className="mt-4 font-mono text-[9px] tracking-[0.2em] uppercase font-bold relative z-10">Iniciar Sessão</span>
+                            <div className="absolute bottom-10 w-12 h-0.5 bg-slate-300/30 rounded-full overflow-hidden">
                               <motion.div 
                                 animate={{ x: ['-100%', '100%'] }}
                                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                                className="w-full h-full bg-app-accent"
+                                className="w-full h-full bg-current opacity-60"
                               />
                             </div>
                           </>

@@ -101,14 +101,14 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
             className="fixed bottom-6 right-6 w-[calc(100vw-48px)] sm:w-[400px] h-[600px] max-h-[calc(100vh-48px)] glass rounded-3xl shadow-2xl flex flex-col overflow-hidden z-50 transition-colors"
           >
             {/* Header */}
-            <div className="p-4 bg-app-accent text-app-light-gold flex items-center justify-between shadow-md">
+            <div className="p-4 bg-slate-800 dark:bg-slate-900 text-white flex items-center justify-between shadow-sm border-b border-white/[0.04]">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-black/10 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
                   <Sparkles size={16} />
                 </div>
                 <div>
                   <h3 className="text-sm font-black uppercase tracking-widest leading-none">Ask Gemini</h3>
-                  <p className="text-[10px] text-app-light-gold/60 font-bold uppercase tracking-widest mt-1">AI Assistant</p>
+                  <p className="text-[10px] text-white/60 font-medium uppercase tracking-widest mt-1">AI Assistant</p>
                 </div>
               </div>
               <button 
@@ -155,7 +155,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                   <div className={cn(
                     "p-3 rounded-2xl text-sm leading-relaxed shadow-sm",
                     msg.role === 'user' 
-                      ? "bg-app-accent text-app-light-gold rounded-tr-none" 
+                      ? "bg-[#526C78] dark:bg-[#526C78]/20 dark:border dark:border-[#526C78]/30 text-white rounded-tr-none font-medium" 
                       : "glass text-app-fg rounded-tl-none"
                   )}>
                     {msg.text}
@@ -189,7 +189,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                 <button
                   onClick={handleSend}
                   disabled={!query.trim() || isLoading}
-                  className="absolute right-2 p-2 bg-app-accent text-app-light-gold rounded-xl hover:opacity-90 disabled:opacity-50 transition-all"
+                  className="absolute right-2 p-2 bg-[#526C78] dark:bg-[#6CA0BB] text-white dark:text-[#0F172A] rounded-xl hover:opacity-90 disabled:opacity-50 transition-all"
                 >
                   <Send size={16} />
                 </button>

@@ -79,17 +79,17 @@ export function LoginPage() {
               <div className="w-12 h-12 bg-app-dark-green rounded-2xl flex items-center justify-center mb-4 shadow-lg">
                 <Sparkles className="text-app-cream" size={24} />
               </div>
-              <h1 className="text-3xl font-display font-bold tracking-tight text-black">
+              <h1 className="text-3xl font-display font-bold tracking-tight text-slate-800 dark:text-white">
                 {isLogin ? 'Welcome Back' : 'Create Account'}
               </h1>
-              <p className="text-black/70 text-sm mt-2">
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">
                 {isLogin ? 'Sign in to access your meeting notes' : 'Start capturing your meetings with AI'}
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-black/60 ml-1">Email Address</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-app-brown/40" size={18} />
                   <input 
@@ -97,7 +97,7 @@ export function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-app-bg border border-app-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-app-green/10 focus:border-app-green transition-all text-black placeholder:text-app-brown/30"
+                    className="w-full bg-app-bg border border-app-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-app-green/10 focus:border-app-green transition-all text-slate-800 dark:text-white placeholder:text-app-brown/30"
                     placeholder="name@company.com"
                   />
                 </div>

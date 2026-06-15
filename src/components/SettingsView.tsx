@@ -142,13 +142,13 @@ export function SettingsView({
               <span className="text-[10px] font-black uppercase tracking-widest">Recording</span>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-app-fg/40">Default Recording Mode</label>
+               <label className="text-xs font-bold text-app-fg/45">Default Recording Mode</label>
               <div className="flex glass p-1.5 rounded-2xl w-fit">
                 <button 
                   onClick={() => setDefaultMode('mic')}
                   className={cn(
                     "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                    defaultMode === 'mic' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
+                    defaultMode === 'mic' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
                   <Mic size={14} /> In-Person
@@ -157,7 +157,7 @@ export function SettingsView({
                   onClick={() => setDefaultMode('system')}
                   className={cn(
                     "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                    defaultMode === 'system' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
+                    defaultMode === 'system' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
                   <Monitor size={14} /> Virtual Meeting
@@ -173,13 +173,13 @@ export function SettingsView({
               <span className="text-[10px] font-black uppercase tracking-widest">Appearance</span>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-app-fg/40">Theme</label>
+               <label className="text-xs font-bold text-app-fg/45">Theme</label>
               <div className="flex glass p-1.5 rounded-2xl w-fit">
                 <button 
                   onClick={() => setTheme('light')}
                   className={cn(
                     "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                    theme === 'light' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
+                    theme === 'light' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
                   <Sun size={14} /> Light
@@ -188,7 +188,7 @@ export function SettingsView({
                   onClick={() => setTheme('dark')}
                   className={cn(
                     "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                    theme === 'dark' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
+                    theme === 'dark' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
                   <Moon size={14} /> Dark
@@ -219,13 +219,13 @@ export function SettingsView({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-app-fg/40">Summary Detail Level</label>
+                 <label className="text-xs font-bold text-app-fg/45">Summary Detail Level</label>
                 <div className="flex glass p-1.5 rounded-2xl w-fit">
                   <button 
                     onClick={() => setSummaryDetail('concise')}
                     className={cn(
                       "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                      summaryDetail === 'concise' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
+                      summaryDetail === 'concise' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                     )}
                   >
                     Concise
@@ -234,7 +234,7 @@ export function SettingsView({
                     onClick={() => setSummaryDetail('detailed')}
                     className={cn(
                       "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                      summaryDetail === 'detailed' ? "bg-app-accent text-app-light-gold shadow-lg" : "text-app-fg/40 hover:text-app-fg"
+                      summaryDetail === 'detailed' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
                     )}
                   >
                     Detailed
@@ -247,8 +247,8 @@ export function SettingsView({
           {/* About Section */}
           <section className="pt-8 border-t border-app-border flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-app-accent text-app-light-gold rounded-2xl flex items-center justify-center shadow-lg shadow-app-accent/20">
-                <Sparkles size={24} />
+              <div className="w-12 h-12 bg-slate-100 dark:bg-white/5 text-[#526C78] dark:text-[#6CA0BB] rounded-2xl flex items-center justify-center border border-slate-200/50 dark:border-white/5 shadow-sm shrink-0">
+                <Sparkles size={22} />
               </div>
               <div>
                 <p className="text-sm font-black text-app-fg uppercase tracking-tight">EchoNotes v1.2.0</p>
@@ -275,10 +275,10 @@ export function SettingsView({
           <button 
             onClick={handleSave}
             className={cn(
-              "flex items-center gap-3 px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all shadow-2xl",
+              "flex items-center gap-3 px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all shadow-md",
               isSaved 
                 ? "bg-emerald-500 text-white shadow-emerald-500/20" 
-                : "bg-app-accent text-app-light-gold shadow-app-accent/30 hover:scale-105 active:scale-95"
+                : "bg-[#526C78] hover:bg-[#435761] dark:bg-[#6CA0BB] dark:hover:bg-[#5b8fa8] text-white dark:text-slate-950 font-bold hover:scale-[1.02] active:scale-98"
             )}
           >
             {isSaved ? <Check size={18} /> : <Save size={18} />}

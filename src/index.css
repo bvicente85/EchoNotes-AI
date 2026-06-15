@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 @plugin "@tailwindcss/typography";
 
 @theme {
@@ -45,14 +46,14 @@
   .dark {
     --app-bg: #0F172A; /* Deep dark slate representing slate-900 */
     --app-fg: #F1F5F9;
-    --app-accent: #94A3B8;
+    --app-accent: #6CA0BB;
     --app-card: #1E293B;
     --app-border: rgba(255, 255, 255, 0.08);
     
     --app-green: #34D399;
-    --app-dark-green: #10B981;
+    --app-dark-green: #0B0F19; /* Rich elegant midnight dark background for blocks */
     --app-gold: #FBBF24;
-    --app-light-gold: #334155;
+    --app-light-gold: #F8FAFC; /* Crisp contrast lettering (replaces low contrast dark gray in dark mode) */
     --app-brown: #94A3B8;
     --app-cream: #1E293B;
 
