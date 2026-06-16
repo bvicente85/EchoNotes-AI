@@ -12,6 +12,7 @@ import { SettingsView } from './components/SettingsView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { saveToHistory, getHistory, deleteFromHistory, updateHistoryItem, clearHistory, HistoryItem, migrateFromLocalStorage } from './services/storage';
 import { cn } from './lib/utils';
+import { useLanguage } from './contexts/LanguageContext';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -43,7 +44,7 @@ export default function App() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isClearingAll, setIsClearingAll] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [language, setLanguage] = useState(localStorage.getItem('echonotes_language') || 'portuguese');
+  const { language, setLanguage, t } = useLanguage();
   const [summaryDetail, setSummaryDetail] = useState(localStorage.getItem('echonotes_summary_detail') || 'detailed');
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -115,9 +116,8 @@ export default function App() {
           if (profile.recording_mode) {
              setRecordingMode(profile.recording_mode as 'mic' | 'system');
           }
-          if (profile.language) {
+          if (profile.language && profile.language !== language) {
             setLanguage(profile.language);
-            localStorage.setItem('echonotes_language', profile.language);
           }
           if (profile.summary_detail) {
             setSummaryDetail(profile.summary_detail);
@@ -557,14 +557,14 @@ export default function App() {
               )}
             >
               <LayoutGrid size={14} />
-              Dashboard
+              {t('dashboard')}
             </button>
             <button 
               onClick={() => setShowHistory(true)}
               className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all active:scale-98"
             >
               <History size={14} />
-              Sessões
+              {language === 'portuguese' ? 'Sessões' : 'Sessions'}
             </button>
           </div>
 
@@ -574,7 +574,7 @@ export default function App() {
             <button 
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
               className="p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/40 dark:hover:border-white/5 transition-all"
-              title="Mudar Tema"
+              title={language === 'portuguese' ? 'Mudar Tema' : 'Change Theme'}
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
@@ -584,7 +584,7 @@ export default function App() {
               <button 
                 onClick={() => setShowAdminDashboard(true)}
                 className="p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/40 dark:hover:border-white/5 transition-all"
-                title="Dashboard de Administrador"
+                title={language === 'portuguese' ? 'Dashboard de Administrador' : 'Admin Dashboard'}
               >
                 <LayoutGrid size={18} />
               </button>
@@ -594,7 +594,7 @@ export default function App() {
             <button 
               onClick={() => setShowSettings(true)}
               className="p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/40 dark:hover:border-white/5 transition-all"
-              title={language === 'portuguese' ? 'Configurações' : 'Settings'}
+              title={t('settings')}
             >
               <Settings size={18} />
             </button>
@@ -628,7 +628,7 @@ export default function App() {
                     >
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                          {language === 'portuguese' ? 'Utilizador' : 'Current User'}
+                          {t('profile')}
                         </p>
                         <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{displayName || user.email}</p>
                       </div>
@@ -641,14 +641,14 @@ export default function App() {
                         className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white text-left transition-colors"
                       >
                         <Settings size={14} />
-                        {language === 'portuguese' ? 'Configurações' : 'Settings'}
+                        {t('settings')}
                       </button>
                       <button 
                         onClick={handleSignOut}
                         className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 text-left transition-colors"
                       >
                         <LogOut size={14} />
-                        {language === 'portuguese' ? 'Terminar Sessão' : 'Sign Out'}
+                        {t('signOut')}
                       </button>
                     </motion.div>
                   </>
@@ -680,12 +680,12 @@ export default function App() {
             >
               <div className="p-6 border-b border-slate-200/85 dark:border-white/5 bg-white dark:bg-slate-800">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold tracking-tight text-slate-800 dark:text-white">Todas as Sessões</h2>
+                  <h2 className="text-xl font-semibold tracking-tight text-slate-800 dark:text-white">{t('allSessions')}</h2>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setIsClearingAll(true)}
                       className="p-2 text-[#526C78] dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
-                      title="Limpar histórico"
+                      title={language === 'portuguese' ? "Limpar histórico" : "Clear history"}
                     >
                       <Trash2 size={18} />
                     </button>
@@ -703,7 +703,7 @@ export default function App() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#526C78] transition-colors" size={16} />
                     <input 
                       type="text"
-                      placeholder="Procurar sessões ou notas..."
+                      placeholder={t('searchPlaceholder')}
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200/75 dark:border-white/5 rounded-xl pl-11 pr-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#526C78]/10 focus:border-[#526C78] transition-all text-slate-800 dark:text-white"
@@ -718,13 +718,13 @@ export default function App() {
                       className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#526C78] transition-colors"
                     >
                       <ArrowUpDown size={11} />
-                      Ordenado por: {sortField === 'date' ? 'Data' : 'Título'}
+                      {t('sortBy')}: {sortField === 'date' ? t('date') : t('title')}
                     </button>
                     <button 
                       onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
                       className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#526C78] transition-colors"
                     >
-                      {sortOrder === 'desc' ? 'Mais Recentes' : 'Mais Antigas'}
+                      {sortOrder === 'desc' ? t('mostRecent') : t('leastRecent')}
                     </button>
                   </div>
                 </div>
@@ -736,14 +736,14 @@ export default function App() {
                     <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-200/40 dark:border-white/5">
                       <History size={24} />
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200 mb-1">Sem sessões ainda</h3>
-                    <p className="text-xs text-slate-400">Grave ou carregue uma reunião para começar.</p>
+                    <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200 mb-1">{t('noSessionsYet')}</h3>
+                    <p className="text-xs text-slate-400">{t('startRecordingToBegin')}</p>
                   </div>
                 ) : (() => {
                   if (sortedHistory.length === 0) {
                     return (
                       <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                        <p className="text-xs text-slate-400">Nenhum resultado corresponde à procura.</p>
+                        <p className="text-xs text-slate-400">{t('noSessionsMatch')}</p>
                       </div>
                     );
                   }
@@ -785,14 +785,14 @@ export default function App() {
                               onClick={e => handleSaveEdit(item.id, e)}
                               className="text-xs font-bold text-slate-800 dark:text-white hover:opacity-85"
                             >
-                              Guardar
+                              {t('save')}
                             </button>
                           </div>
                         ) : (
                           <span 
                             onClick={(e) => handleStartEdit(item, e)}
                             className="text-slate-800 dark:text-zinc-200 font-semibold text-sm line-clamp-1 hover:text-[#526C78] dark:hover:text-white transition-colors cursor-text leading-tight"
-                            title="Clique para editar o título"
+                            title={language === 'portuguese' ? "Clique para editar o título" : "Click to edit title"}
                           >
                             {item.title}
                           </span>
@@ -805,14 +805,14 @@ export default function App() {
                         <button 
                           onClick={(e) => handleStartEdit(item, e)}
                           className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all rounded"
-                          title="Renomear"
+                          title={t('rename')}
                         >
                           <Settings size={14} />
                         </button>
                         <button 
                           onClick={(e) => handleDeleteHistory(item.id, e)}
                           className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-500 transition-all rounded"
-                          title="Eliminar"
+                          title={t('delete')}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -880,12 +880,12 @@ export default function App() {
                 <Trash2 size={24} />
               </div>
               <h3 className="text-lg font-bold mb-2 text-app-fg">
-                {isClearingAll ? 'Clear All History?' : 'Delete Meeting?'}
+                {isClearingAll ? t('confirmDeleteAllTitle') : t('confirmDeleteTitle')}
               </h3>
               <p className="text-zinc-500 text-sm mb-6">
                 {isClearingAll 
-                  ? 'This will permanently remove all your recorded meetings. This action cannot be undone.'
-                  : 'Are you sure you want to delete this meeting report? This action cannot be undone.'}
+                  ? t('confirmDeleteAllDesc')
+                  : t('confirmDeleteDesc')}
               </p>
               <div className="flex gap-3">
                 <button 
@@ -895,13 +895,13 @@ export default function App() {
                   }}
                   className="flex-1 px-4 py-2 bg-app-bg hover:bg-app-card text-app-fg border border-app-border rounded-xl font-bold transition-colors"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button 
                   onClick={isClearingAll ? confirmClearAll : confirmDelete}
                   className="flex-1 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold transition-colors"
                 >
-                  Delete
+                  {t('delete')}
                 </button>
               </div>
             </motion.div>
@@ -930,11 +930,11 @@ export default function App() {
               >
                 <div className="text-center space-y-3 max-w-2xl">
                   <h2 className="text-3xl md:text-4xl font-sans font-bold leading-tight tracking-tight text-slate-800 dark:text-white">
-                    Registe as suas reuniões, <br />
-                    <span className="text-[#526C78] dark:text-slate-350">extraia a inteligência essencial.</span>
+                    {t('recordMeetingsTitle')} <br />
+                    <span className="text-[#526C78] dark:text-slate-350">{t('extractIntelligence')}</span>
                   </h2>
                   <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-normal px-4 max-w-lg mx-auto">
-                    Transforme as suas gravações de voz em resumos executivos detalhados, decisões bem definidas e passos seguintes claros usando inteligência artificial avançada.
+                    {t('dashboardDesc')}
                   </p>
                 </div>
 
@@ -970,7 +970,7 @@ export default function App() {
                       )}
                     >
                       <Mic size={14} />
-                      Presencial
+                      {t('inPerson')}
                     </button>
                     <button 
                       onClick={() => setRecordingMode('system')}
@@ -982,7 +982,7 @@ export default function App() {
                       )}
                     >
                       <Headphones size={14} />
-                      Encontro Virtual
+                      {t('virtualMeeting')}
                     </button>
                     <button 
                       onClick={() => setRecordingMode('upload')}
@@ -994,7 +994,7 @@ export default function App() {
                       )}
                     >
                       <Upload size={14} />
-                      Carregar Ficheiro
+                      {t('uploadFile')}
                     </button>
                   </div>
                 )}
@@ -1087,12 +1087,12 @@ export default function App() {
                               className="absolute inset-0 bg-white/10 rounded-full"
                             />
                             <Square fill="currentColor" size={32} className="relative z-10" />
-                            <span className="mt-4 font-mono text-[9px] tracking-[0.2em] uppercase font-bold relative z-10">Parar Sessão</span>
+                            <span className="mt-4 font-mono text-[9px] tracking-[0.2em] uppercase font-bold relative z-10">{t('stopSession')}</span>
                           </>
                         ) : (
                           <>
                             <Mic size={32} className="relative z-10" />
-                            <span className="mt-4 font-mono text-[9px] tracking-[0.2em] uppercase font-bold relative z-10">Iniciar Sessão</span>
+                            <span className="mt-4 font-mono text-[9px] tracking-[0.2em] uppercase font-bold relative z-10">{t('startSession')}</span>
                             <div className="absolute bottom-10 w-12 h-0.5 bg-slate-300/30 rounded-full overflow-hidden">
                               <motion.div 
                                 animate={{ x: ['-100%', '100%'] }}
@@ -1154,11 +1154,11 @@ export default function App() {
                   <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-app-dark-green" size={24} />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-3xl font-display font-bold text-app-fg">Synthesizing Intelligence...</h3>
+                  <h3 className="text-3xl font-display font-bold text-app-fg">{t('synthesizingIntelligence')}</h3>
                   <p className="text-app-brown/60 max-w-md mx-auto">
-                    Our AI is currently separating speakers, analyzing key themes, and drafting your business report. 
+                    {t('processingDesc')}
                     <br />
-                    <span className="text-xs font-mono mt-2 block">Processing time: {formatDuration(processingTime)}</span>
+                    <span className="text-xs font-mono mt-2 block">{t('processingTime')}: {formatDuration(processingTime)}</span>
                   </p>
                 </div>
                 <div className="w-64 h-1 bg-app-brown/5 rounded-full overflow-hidden">
