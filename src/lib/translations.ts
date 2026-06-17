@@ -129,6 +129,40 @@ export interface TranslationKeys {
   transcribeWithGemini: string;
   supportedFormatsText: string;
   maxSizeText: string;
+
+  // New keys for ReportView and settings/nav
+  sessionAnalysis: string;
+  intelligenceReport: string;
+  discardReport: string;
+  sessionTimeline: string;
+  speakers: string;
+  interactions: string;
+  decisions: string;
+  pendingActions: string;
+  enterStrategicAnalysis: string;
+  addDecision: string;
+  enterDecisionDetails: string;
+  noDecisionsRecorded: string;
+  exportManagement: string;
+  exportOfficialPdf: string;
+  copyMarkdown: string;
+  downloadMdFile: string;
+  downloadJsonFile: string;
+  speakerDiarizationDesc: string;
+  includeInExport: string;
+  exportTranscriptTxt: string;
+  clickToRenameSpeaker: string;
+  sessionsNav: string;
+  changeTheme: string;
+  adminDashboardNav: string;
+  clearHistory: string;
+  clickToEditTitle: string;
+  expectedSpeakersLabel: string;
+  expectedSpeakersPlaceholder: string;
+  recoveryTitle: string;
+  recoveryDesc: string;
+  recoverButton: string;
+  discardRecovery: string;
 }
 
 export const translations: Record<'portuguese' | 'english' | string, TranslationKeys> = {
@@ -254,7 +288,40 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     geminiAnalysisRunning: "Análise Gemini em curso...",
     transcribeWithGemini: "Transcrever com Gemini",
     supportedFormatsText: "Suporta WAV, MP3, AAC, WEBM, OGG",
-    maxSizeText: "Máximo 20MB"
+    maxSizeText: "Máximo 20MB",
+
+    sessionAnalysis: "Análise de Sessão",
+    intelligenceReport: "Relatório de Inteligência",
+    discardReport: "Descartar Relatório",
+    sessionTimeline: "Cronologia da Sessão",
+    speakers: "Intervenientes",
+    interactions: "Interações",
+    decisions: "Decisões",
+    pendingActions: "Ações Pendentes",
+    enterStrategicAnalysis: "Introduza a análise estratégica...",
+    addDecision: "Adicionar Decisão",
+    enterDecisionDetails: "Introduza os detalhes da decisão...",
+    noDecisionsRecorded: "Nenhuma decisão registada",
+    exportManagement: "Gestão de Exportações",
+    exportOfficialPdf: "Exportar PDF Oficial",
+    copyMarkdown: "Copiar Markdown",
+    downloadMdFile: "Descarregar ficheiro .md",
+    downloadJsonFile: "Descarregar ficheiro .json",
+    speakerDiarizationDesc: "Diarização automática de intervenientes e fluxo de voz",
+    includeInExport: "Incluir na Exportação",
+    exportTranscriptTxt: "Exportar Transcrição (.txt)",
+    clickToRenameSpeaker: "Clique para renomear este orador globalmente",
+    sessionsNav: "Sessões",
+    changeTheme: "Mudar Tema",
+    adminDashboardNav: "Dashboard de Administrador",
+    clearHistory: "Limpar histórico",
+    clickToEditTitle: "Clique para editar o título",
+    expectedSpeakersLabel: "Participantes Esperados (opcional)",
+    expectedSpeakersPlaceholder: "Ex: Bruno Filipe, Ana Santos (separados por vírgula)",
+    recoveryTitle: "Sessão Interrompida Detetada",
+    recoveryDesc: "Detetámos uma gravação que foi interrompida devido a um fecho inesperado ou falha de energia. Deseja recuperar esta gravação e gerar o relatório/análise?",
+    recoverButton: "Recuperar e Analisar",
+    discardRecovery: "Descartar"
   },
   english: {
     welcomeBack: "Welcome Back",
@@ -378,6 +445,39 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     geminiAnalysisRunning: "Gemini analysis in progress...",
     transcribeWithGemini: "Transcribe with Gemini",
     supportedFormatsText: "Supports WAV, MP3, AAC, WEBM, OGG",
-    maxSizeText: "Maximum 20MB"
+    maxSizeText: "Maximum 20MB",
+
+    sessionAnalysis: "Session Analysis",
+    intelligenceReport: "Intelligence Report",
+    discardReport: "Discard Report",
+    sessionTimeline: "Session Timeline",
+    speakers: "Speakers",
+    interactions: "Interactions",
+    decisions: "Decisions",
+    pendingActions: "Pending Actions",
+    enterStrategicAnalysis: "Enter strategic analysis details...",
+    addDecision: "Add Decision",
+    enterDecisionDetails: "Enter decision details...",
+    noDecisionsRecorded: "No decisions recorded",
+    exportManagement: "Export Management",
+    exportOfficialPdf: "Export Official PDF",
+    copyMarkdown: "Copy Markdown",
+    downloadMdFile: "Download .md file",
+    downloadJsonFile: "Download .json file",
+    speakerDiarizationDesc: "Speaker diarization and voice flow logs",
+    includeInExport: "Include in Export",
+    exportTranscriptTxt: "Export Transcript (.txt)",
+    clickToRenameSpeaker: "Click to rename this speaker globally",
+    sessionsNav: "Sessions",
+    changeTheme: "Change Theme",
+    adminDashboardNav: "Admin Dashboard",
+    clearHistory: "Clear history",
+    clickToEditTitle: "Click to edit title",
+    expectedSpeakersLabel: "Expected Participants (optional)",
+    expectedSpeakersPlaceholder: "e.g., Bruno Filipe, Ana Santos (comma-separated)",
+    recoveryTitle: "Interrupted Session Detected",
+    recoveryDesc: "We detected an interrupted recording from a previous unexpected session closure. Would you like to recover this recording and generate the report/analysis?",
+    recoverButton: "Recover and Analyze",
+    discardRecovery: "Discard"
   }
 };

@@ -392,7 +392,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
           <div className="space-y-2 max-w-3xl">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase tracking-[0.15em] rounded-md border border-slate-200/50 dark:border-white/5">
-                {language === 'portuguese' ? 'Análise de Sessão' : 'Session Analysis'}
+                {t('sessionAnalysis')}
               </span>
               <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">
                 {new Date(data.meetingDate).toLocaleDateString(language === 'portuguese' ? "pt" : "en") + " • " + new Date(data.meetingDate).toLocaleTimeString(language === 'portuguese' ? "pt" : "en", {hour: '2-digit', minute:'2-digit'})}
@@ -407,7 +407,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') setIsEditingTitle(false);
                   if (e.key === 'Escape') {
-                    updateData({ ...data, title: initialTitle || (language === 'portuguese' ? 'Relatório de Inteligência' : 'Intelligence Report') });
+                    updateData({ ...data, title: initialTitle || t('intelligenceReport') });
                     setIsEditingTitle(false);
                   }
                 }}
@@ -427,7 +427,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
             <button 
               onClick={onReset}
               className="p-3 border border-slate-200/80 dark:border-white/5 hover:bg-rose-500/10 hover:text-rose-600 text-slate-400 dark:text-slate-400 rounded-xl transition-colors bg-white dark:bg-slate-900"
-              title={language === 'portuguese' ? "Descartar Relatório" : "Discard Report"}
+              title={t('discardReport')}
             >
               <Trash2 size={18} />
             </button>
@@ -452,7 +452,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
           <div className="space-y-1">
             <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-550" />
-              {language === 'portuguese' ? 'Cronologia da Sessão' : 'Session Timeline'}
+              {t('sessionTimeline')}
             </label>
             <input
               type="datetime-local"
@@ -467,7 +467,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{language === 'portuguese' ? 'Intervenientes' : 'Speakers'}</p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('speakers')}</p>
               <User size={14} className="text-slate-400 dark:text-slate-550" />
             </div>
             <p className="text-xl font-bold text-slate-800 dark:text-white">
@@ -476,7 +476,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
           </div>
           <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{language === 'portuguese' ? 'Interações' : 'Interactions'}</p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('interactions')}</p>
               <MessageSquare size={14} className="text-slate-400 dark:text-slate-550" />
             </div>
             <p className="text-xl font-bold text-slate-800 dark:text-white">
@@ -485,7 +485,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
           </div>
           <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{language === 'portuguese' ? 'Decisões' : 'Decisions'}</p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('decisions')}</p>
               <Gavel size={14} className="text-slate-400 dark:text-slate-550" />
             </div>
             <p className="text-xl font-bold text-slate-800 dark:text-white">
@@ -494,7 +494,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
           </div>
           <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{language === 'portuguese' ? 'Ações Pendentes' : 'Pending Actions'}</p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('pendingActions')}</p>
               <CheckCircle2 size={14} className="text-slate-400 dark:text-slate-550" />
             </div>
             <p className="text-xl font-bold text-slate-800 dark:text-white">
@@ -532,7 +532,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                   onChange={(e) => updateData({ ...data, summary: e.target.value })}
                   onBlur={() => setIsEditingSummary(false)}
                   className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm leading-relaxed text-slate-800 dark:text-slate-200 min-h-[300px] resize-none font-mono"
-                  placeholder={language === 'portuguese' ? "Introduza a análise estratégica..." : "Enter strategic analysis details..."}
+                  placeholder={t('enterStrategicAnalysis')}
                 />
               ) : (
                 <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-bold text-slate-700 dark:text-slate-350">
@@ -552,7 +552,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
               <button 
                 onClick={() => updateData({ ...data, keyDecisions: [...data.keyDecisions, ''] })}
                 className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors"
-                title={language === 'portuguese' ? "Adicionar Decisão" : "Add Decision"}
+                title={t('addDecision')}
               >
                 <Plus size={16} />
               </button>
@@ -575,7 +575,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                       newDecisions[i] = e.target.value;
                       updateData({ ...data, keyDecisions: newDecisions });
                     }}
-                    placeholder={language === 'portuguese' ? "Introduza os detalhes da decisão..." : "Enter decision details..."}
+                    placeholder={t('enterDecisionDetails')}
                     className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed"
                     rows={1}
                     onInput={(e) => {
@@ -599,7 +599,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
               {data.keyDecisions.length === 0 && (
                 <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
                   <Gavel size={24} className="mb-2 text-slate-400" />
-                  <p className="text-xs font-bold uppercase tracking-wider">{language === 'portuguese' ? 'Nenhuma decisão registada' : 'No decisions recorded'}</p>
+                  <p className="text-xs font-bold uppercase tracking-wider">{t('noDecisionsRecorded')}</p>
                 </div>
               )}
             </div>
@@ -612,7 +612,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
           {/* Action Panel - Exports & Backups */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{language === 'portuguese' ? 'Gestão de Exportações' : 'Export Management'}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('exportManagement')}</span>
               <div className="flex gap-1.5">
                 <button 
                   onClick={undo} 
@@ -637,14 +637,14 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
               onClick={downloadPDF}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-bold tracking-wide shadow-sm transition-all"
             >
-              <Download size={15} /> {language === 'portuguese' ? 'Exportar PDF Oficial' : 'Export Official PDF'}
+              <Download size={15} /> {t('exportOfficialPdf')}
             </button>
 
             <button 
               onClick={() => copyToClipboard('markdown')}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold transition-all"
             >
-              <Hash size={15} /> {language === 'portuguese' ? 'Copiar Markdown' : 'Copy Markdown'}
+              <Hash size={15} /> {t('copyMarkdown')}
             </button>
 
             {/* Micro-Dropdown or Secondary Actions list */}
@@ -652,14 +652,14 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
               <button 
                 onClick={downloadMarkdown}
                 className="px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center rounded-lg transition-colors"
-                title={language === 'portuguese' ? "Descarregar ficheiro .md" : "Download .md file"}
+                title={t('downloadMdFile')}
               >
                 File (.md)
               </button>
               <button 
                 onClick={downloadJSON}
                 className="px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center rounded-lg transition-colors"
-                title={language === 'portuguese' ? "Descarregar ficheiro .json" : "Download .json file"}
+                title={t('downloadJsonFile')}
               >
                 File (.json)
               </button>
@@ -780,7 +780,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
               <MessageSquare className="text-slate-400 dark:text-slate-550 w-4 h-4 shrink-0" />
               <h2 className="text-lg font-bold text-slate-950 dark:text-white tracking-tight">{t('fullTranscript')}</h2>
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{language === 'portuguese' ? 'Diarização automática de intervenientes e fluxo de voz' : 'Speaker diarization and voice flow logs'}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('speakerDiarizationDesc')}</p>
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
@@ -792,13 +792,13 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                 onChange={(e) => setIncludeTranscript(e.target.checked)}
                 className="w-4 h-4 rounded border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:ring-slate-500 bg-transparent cursor-pointer"
               />
-              <label htmlFor="includeTranscriptBottom" className="text-[10px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer uppercase tracking-wider">{language === 'portuguese' ? 'Incluir na Exportação' : 'Include in Export'}</label>
+              <label htmlFor="includeTranscriptBottom" className="text-[10px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer uppercase tracking-wider">{t('includeInExport')}</label>
             </div>
             <button 
               onClick={downloadOnlyTranscript}
               className="px-4 py-2 border border-slate-200/80 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 bg-white dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all"
             >
-              {language === 'portuguese' ? 'Exportar Transcrição (.txt)' : 'Export Transcript (.txt)'}
+              {t('exportTranscriptTxt')}
             </button>
           </div>
         </div>
@@ -846,7 +846,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                       <span 
                         onClick={() => handleSpeakerClick(i, entry.speaker)}
                         className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-900 dark:hover:text-amber-500 transition-colors"
-                        title={language === 'portuguese' ? "Clique para renomear este orador globalmente" : "Click to rename this speaker globally"}
+                        title={t('clickToRenameSpeaker')}
                       >
                         {entry.speaker}
                       </span>

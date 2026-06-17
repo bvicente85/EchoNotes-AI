@@ -25,7 +25,8 @@ export async function generateMeetingReport(
   mimeType: string, 
   detailLevel: string = 'detailed', 
   language: string = 'english',
-  optimizeLowVolume: boolean = false
+  optimizeLowVolume: boolean = false,
+  expectedSpeakers?: string[]
 ): Promise<MeetingReport> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "") {
@@ -40,10 +41,16 @@ export async function generateMeetingReport(
     ? "Provide a very concise executive summary (max 3 sentences)." 
     : "Provide a detailed executive summary covering all key aspects.";
 
+  const speakersInstruction = expectedSpeakers && expectedSpeakers.length > 0
+    ? `The expected speaking participants in this session are: ${expectedSpeakers.join(', ')}.
+       Map these voice signatures carefully and attribute them to these specified names logical to the speech content (e.g. if someone identifies themselves or by contextual flow, map the voices to their corresponding name from the expected participants list). Try to tag dialogue to these names respectively, otherwise fallback to Speaker A / Speaker B only if there's absolutely no matching speaker.`
+    : "Determine speaker names sequentially (e.g. Speaker A, Speaker B).";
+
   const prompt = `
     You are an expert business analyst and scribe. Analyze the following meeting audio.
     
     ${lowVolumeInstruction}
+    ${speakersInstruction}
     
     Goals: Capture essence, outcomes, and specific commitments.
     

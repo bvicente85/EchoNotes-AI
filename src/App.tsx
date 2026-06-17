@@ -13,6 +13,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { saveToHistory, getHistory, deleteFromHistory, updateHistoryItem, clearHistory, HistoryItem, migrateFromLocalStorage } from './services/storage';
 import { cn } from './lib/utils';
 import { useLanguage } from './contexts/LanguageContext';
+import { getBackup, clearBackup, saveChunk, saveMetadata, BackupMetadata } from './services/dbBackup';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -46,6 +47,8 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const { language, setLanguage, t } = useLanguage();
   const [summaryDetail, setSummaryDetail] = useState(localStorage.getItem('echonotes_summary_detail') || 'detailed');
+  const [expectedSpeakers, setExpectedSpeakers] = useState('');
+  const [activeBackup, setActiveBackup] = useState<{ chunks: Blob[]; metadata: BackupMetadata } | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -158,6 +161,84 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
+    if (user) {
+      const checkBackups = async () => {
+        try {
+          const backup = await getBackup();
+          if (backup && backup.chunks.length > 0) {
+            setActiveBackup(backup);
+          }
+        } catch (err) {
+          console.error("Error reading IndexedDB backup:", err);
+        }
+      };
+      checkBackups();
+    }
+  }, [user]);
+
+  const handleRecoverBackup = async () => {
+    if (!activeBackup || !user) return;
+    
+    const backup = activeBackup;
+    setActiveBackup(null);
+    setError(null);
+    setIsProcessing(true);
+    
+    try {
+      // Reconstruct the Blob from chunks saved in IndexedDB
+      const audioBlob = new Blob(backup.chunks, { type: backup.metadata.mimeType });
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
+        const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+        
+        try {
+          const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
+          const result = await generateMeetingReport(
+            base64Audio, 
+            audioBlob.type, 
+            detailLevel, 
+            languageSetting, 
+            false, 
+            speakersArray
+          );
+          
+          const newItem = await saveToHistory(result, user.id);
+          if (newItem) {
+            setCurrentHistoryId(newItem.id);
+            const updatedHistory = await getHistory(user.id);
+            setHistory(updatedHistory);
+          }
+          setReport(result);
+          await clearBackup();
+        } catch (err) {
+          console.error("Recover processing failed:", err);
+          if (err instanceof MeetingAnalysisError) {
+            setError(err.message);
+          } else {
+            setError("Não foi possível processar a gravação recuperada.");
+          }
+          setLastFailedAudio({ base64: base64Audio, mimeType: audioBlob.type });
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+    } catch (err) {
+      console.error("Failed to read reconstructed blob:", err);
+      setError("Erro ao ler dados da gravação recuperada.");
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDiscardBackup = async () => {
+    await clearBackup();
+    setActiveBackup(null);
+  };
+
+  useEffect(() => {
     if (isRecording) {
       timerRef.current = window.setInterval(() => {
         setDuration(prev => prev + 1);
@@ -194,7 +275,8 @@ export default function App() {
     try {
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
-      const result = await generateMeetingReport(lastFailedAudio.base64, lastFailedAudio.mimeType, detailLevel, languageSetting);
+      const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
+      const result = await generateMeetingReport(lastFailedAudio.base64, lastFailedAudio.mimeType, detailLevel, languageSetting, false, speakersArray);
       
       setLastFailedAudio(null);
       const newItem = await saveToHistory(result, user.id);
@@ -225,13 +307,15 @@ export default function App() {
     try {
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+      const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       
       const result = await generateMeetingReport(
         base64, 
         mimeType, 
         detailLevel, 
         languageSetting, 
-        options.optimizeLowVolume
+        options.optimizeLowVolume,
+        speakersArray
       );
       
       const newItem = await saveToHistory(result, user.id);
@@ -304,6 +388,10 @@ export default function App() {
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
+      // Clear any raw backups and store metadata right before starting
+      await clearBackup();
+      await saveMetadata({ mimeType: mimeType || 'audio/webm', timestamp: Date.now() });
+
       const audioContext = new AudioContext();
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
@@ -343,9 +431,11 @@ export default function App() {
 
       updateVisualization();
 
-      mediaRecorder.ondataavailable = (event) => {
+      mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          // Save chunk dynamically into IndexedDB to guard against browser crashes
+          await saveChunk(event.data);
         }
       };
 
@@ -369,13 +459,17 @@ export default function App() {
             const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
             
             try {
-              const res = await generateMeetingReport(base64Audio, audioBlob.type, detailLevel, languageSetting);
+              // Extract expected speakers array
+              const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
+              const res = await generateMeetingReport(base64Audio, audioBlob.type, detailLevel, languageSetting, false, speakersArray);
               const newItem = await saveToHistory(res, user!.id);
               if (newItem) {
                 setCurrentHistoryId(newItem.id);
                 setHistory(prev => [newItem, ...prev]);
               }
               setReport(res);
+              // Clear backup since processing succeeded and was saved to history
+              await clearBackup();
             } catch (err) {
               console.error("Processing failed:", err);
               if (err instanceof MeetingAnalysisError) {
@@ -394,7 +488,8 @@ export default function App() {
         }
       };
 
-      mediaRecorder.start();
+      // Emit slices every 10 seconds to back up chunks sequentially
+      mediaRecorder.start(10000);
       setIsRecording(true);
     } catch (err) {
       console.error("Start recording failed:", err);
@@ -564,7 +659,7 @@ export default function App() {
               className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all active:scale-98"
             >
               <History size={14} />
-              {language === 'portuguese' ? 'Sessões' : 'Sessions'}
+              {t('sessionsNav')}
             </button>
           </div>
 
@@ -574,7 +669,7 @@ export default function App() {
             <button 
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
               className="p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/40 dark:hover:border-white/5 transition-all"
-              title={language === 'portuguese' ? 'Mudar Tema' : 'Change Theme'}
+              title={t('changeTheme')}
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
@@ -584,7 +679,7 @@ export default function App() {
               <button 
                 onClick={() => setShowAdminDashboard(true)}
                 className="p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/40 dark:hover:border-white/5 transition-all"
-                title={language === 'portuguese' ? 'Dashboard de Administrador' : 'Admin Dashboard'}
+                title={t('adminDashboardNav')}
               >
                 <LayoutGrid size={18} />
               </button>
@@ -685,7 +780,7 @@ export default function App() {
                     <button 
                       onClick={() => setIsClearingAll(true)}
                       className="p-2 text-[#526C78] dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
-                      title={language === 'portuguese' ? "Limpar histórico" : "Clear history"}
+                      title={t('clearHistory')}
                     >
                       <Trash2 size={18} />
                     </button>
@@ -792,7 +887,7 @@ export default function App() {
                           <span 
                             onClick={(e) => handleStartEdit(item, e)}
                             className="text-slate-800 dark:text-zinc-200 font-semibold text-sm line-clamp-1 hover:text-[#526C78] dark:hover:text-white transition-colors cursor-text leading-tight"
-                            title={language === 'portuguese' ? "Clique para editar o título" : "Click to edit title"}
+                            title={t('clickToEditTitle')}
                           >
                             {item.title}
                           </span>
@@ -909,6 +1004,50 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Recovery Backup Modal */}
+      <AnimatePresence>
+        {activeBackup && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-app-card w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center border border-app-border"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles size={24} />
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-app-fg">
+                {t('recoveryTitle')}
+              </h3>
+              <p className="text-zinc-500 text-xs md:text-sm mb-6 leading-relaxed text-left">
+                {t('recoveryDesc')}
+              </p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={handleDiscardBackup}
+                  className="flex-1 px-4 py-2 bg-app-bg hover:bg-app-card text-rose-500 border border-app-border rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
+                >
+                  {t('discardRecovery')}
+                </button>
+                <button 
+                  onClick={handleRecoverBackup}
+                  className="flex-1 px-4 py-2 bg-[#526C78] hover:bg-[#3d515a] dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
+                >
+                  {t('recoverButton')}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {report ? (
         <ReportView 
           report={report} 
@@ -937,6 +1076,25 @@ export default function App() {
                     {t('dashboardDesc')}
                   </p>
                 </div>
+
+                {!isRecording && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-xs space-y-2 text-left"
+                  >
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block">
+                      {t('expectedSpeakersLabel')}
+                    </label>
+                    <input
+                      type="text"
+                      value={expectedSpeakers}
+                      onChange={(e) => setExpectedSpeakers(e.target.value)}
+                      placeholder={t('expectedSpeakersPlaceholder')}
+                      className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400/50"
+                    />
+                  </motion.div>
+                )}
 
                 {error && (
                   <motion.div 
