@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, CheckCircle2, ListFilter, MessageSquare, Download, FileJson, Plus, Trash2, Copy, Check, Undo, Redo, Gavel, Hash, User, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { FileText, CheckCircle2, ListFilter, MessageSquare, Download, FileJson, Plus, Trash2, Copy, Check, Undo, Redo, Gavel, Hash, User, Sparkles, Play, Pause, Volume2, VolumeX, Clock, FastForward, RotateCcw } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MeetingReport } from '../services/gemini';
 import { jsPDF } from 'jspdf';
@@ -7,16 +7,18 @@ import { useUndoRedo } from '../hooks/useUndoRedo';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getAudio } from '../services/audioStorage';
 
 interface ReportViewProps {
   report: MeetingReport;
   title?: string;
+  meetingId?: string;
   onReset: () => void;
   onUpdate?: (updatedReport: MeetingReport) => void;
   onUpdateTitle?: (newTitle: string) => void;
 }
 
-export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTitle, onReset, onUpdate, onUpdateTitle }) => {
+export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTitle, meetingId, onReset, onUpdate, onUpdateTitle }) => {
   const { language, t } = useLanguage();
   const { 
     state: data, 
@@ -44,6 +46,157 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
   const [copied, setCopied] = useState(false);
   const [copiedTranscript, setCopiedTranscript] = useState(false);
   const [includeTranscript, setIncludeTranscript] = useState(true);
+
+  // Audio Player State
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    let url: string | null = null;
+    
+    const loadAudioBlob = async () => {
+      if (!meetingId) return;
+      setAudioLoading(true);
+      try {
+        const blob = await getAudio(meetingId);
+        if (blob && active) {
+          url = URL.createObjectURL(blob);
+          setAudioUrl(url);
+          // Reset other states
+          setIsPlaying(false);
+          setCurrentTime(0);
+        } else if (active) {
+          setAudioUrl(null);
+        }
+      } catch (err) {
+        console.error("Error loading local audio blob:", err);
+      } finally {
+        if (active) setAudioLoading(false);
+      }
+    };
+    
+    loadAudioBlob();
+    
+    return () => {
+      active = false;
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [meetingId]);
+
+  const togglePlay = () => {
+    if (!audioPlayerRef.current || !audioUrl) return;
+    if (isPlaying) {
+      audioPlayerRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioPlayerRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => console.error("Play failed:", err));
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioPlayerRef.current) {
+      setCurrentTime(audioPlayerRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioPlayerRef.current) {
+      setDuration(audioPlayerRef.current.duration);
+    }
+  };
+
+  const handleAudioEnded = () => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+  };
+
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (audioPlayerRef.current && audioUrl) {
+      const newTime = parseFloat(e.target.value);
+      audioPlayerRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.volume = newVolume;
+      audioPlayerRef.current.muted = newVolume === 0;
+      setIsMuted(newVolume === 0);
+    }
+  };
+
+  const toggleMute = () => {
+    if (audioPlayerRef.current) {
+      const nextMute = !isMuted;
+      setIsMuted(nextMute);
+      audioPlayerRef.current.muted = nextMute;
+      if (!nextMute && volume === 0) {
+        setVolume(0.5);
+        audioPlayerRef.current.volume = 0.5;
+      }
+    }
+  };
+
+  const handlePlaybackRateChange = (rate: number) => {
+    setPlaybackRate(rate);
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.playbackRate = rate;
+    }
+  };
+
+  const skipTime = (seconds: number) => {
+    if (audioPlayerRef.current && audioUrl) {
+      let targetTime = audioPlayerRef.current.currentTime + seconds;
+      if (targetTime < 0) targetTime = 0;
+      if (targetTime > duration) targetTime = duration;
+      audioPlayerRef.current.currentTime = targetTime;
+      setCurrentTime(targetTime);
+    }
+  };
+
+  const parseTimestampToSeconds = (timestamp: string): number => {
+    const parts = timestamp.split(':').map(Number);
+    if (parts.length === 2) {
+      const [mins, secs] = parts;
+      return (mins || 0) * 60 + (secs || 0);
+    } else if (parts.length === 3) {
+      const [hrs, mins, secs] = parts;
+      return (hrs || 0) * 3600 + (mins || 0) * 60 + (secs || 0);
+    }
+    return 0;
+  };
+
+  const handleJumpToTimestamp = (timestampStr: string) => {
+    if (!audioPlayerRef.current || !audioUrl) return;
+    const seconds = parseTimestampToSeconds(timestampStr);
+    audioPlayerRef.current.currentTime = seconds;
+    setCurrentTime(seconds);
+    audioPlayerRef.current.play().then(() => {
+      setIsPlaying(true);
+    }).catch(err => console.error("Could not play on jump:", err));
+  };
+
+  const formatAudioTime = (secs: number) => {
+    if (isNaN(secs)) return "00:00";
+    const mins = Math.floor(secs / 60);
+    const remainingSecs = Math.floor(secs % 60);
+    return `${mins.toString().padStart(2, '0')}:${remainingSecs.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     reset({
@@ -463,6 +616,132 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
           </div>
         </div>
 
+        {/* Audio Player Card */}
+        {meetingId && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#1eac82]" />
+                <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  {t('audioPlayerTitle')}
+                </h3>
+              </div>
+              {audioUrl && (
+                <div className="flex gap-1.5">
+                  {[1, 1.25, 1.5, 2].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => handlePlaybackRateChange(rate)}
+                      className={cn(
+                        "px-2 py-1 text-[9px] font-mono font-bold rounded-md border transition-all cursor-pointer",
+                        playbackRate === rate
+                          ? "bg-[#1eac82] border-[#1eac82] text-white"
+                          : "bg-slate-50 dark:bg-slate-950 border-slate-200/80 dark:border-white/5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-850"
+                      )}
+                    >
+                      {rate}x
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {audioLoading ? (
+              <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+                <div className="w-4 h-4 border-2 border-[#1eac82] border-t-transparent rounded-full animate-spin" />
+                <span>{t('audioPlayerLoading')}</span>
+              </div>
+            ) : audioUrl ? (
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                {/* Controls Left Block */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => skipTime(-10)}
+                    className="p-2 border border-slate-200/80 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-500 dark:text-slate-400 rounded-lg transition-colors cursor-pointer"
+                    title="-10s"
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                  
+                  <button
+                    onClick={togglePlay}
+                    className="p-3 bg-[#1eac82] hover:bg-[#178b68] text-white rounded-full transition-colors flex items-center justify-center shadow-sm cursor-pointer"
+                  >
+                    {isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+                  </button>
+
+                  <button
+                    onClick={() => skipTime(10)}
+                    className="p-2 border border-slate-200/80 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-500 dark:text-slate-400 rounded-lg transition-colors cursor-pointer"
+                    title="+10s"
+                  >
+                    <FastForward size={14} />
+                  </button>
+                </div>
+
+                {/* Slider / Timeline Center Block */}
+                <div className="flex-1 w-full flex items-center gap-3">
+                  <span className="text-[10px] font-mono text-slate-400 min-w-[32px] text-right">
+                    {formatAudioTime(currentTime)}
+                  </span>
+                  
+                  <div className="flex-1 relative group py-2">
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration || 100}
+                      value={currentTime}
+                      onChange={handleSeekChange}
+                      className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#1eac82] focus:outline-none"
+                    />
+                    <div 
+                      className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-[#1eac82] rounded-lg pointer-events-none"
+                      style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
+                    />
+                  </div>
+
+                  <span className="text-[10px] font-mono text-slate-400 min-w-[32px]">
+                    {formatAudioTime(duration)}
+                  </span>
+                </div>
+
+                {/* Volume & Details Right Block */}
+                <div className="flex items-center gap-2 w-full md:w-auto self-stretch md:self-auto justify-between md:justify-start">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={toggleMute}
+                      className="p-2 hover:bg-slate-105 text-slate-500 dark:text-slate-400 cursor-pointer"
+                    >
+                      {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                    </button>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={isMuted ? 0 : volume}
+                      onChange={handleVolumeChange}
+                      className="w-16 h-1 bg-slate-150 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#1eac82]"
+                    />
+                  </div>
+                </div>
+
+                <audio
+                  ref={audioPlayerRef}
+                  src={audioUrl}
+                  onTimeUpdate={handleTimeUpdate}
+                  onLoadedMetadata={handleLoadedMetadata}
+                  onEnded={handleAudioEnded}
+                />
+              </div>
+            ) : (
+              <div className="text-[10px] text-slate-400 italic">
+                {t('audioPlayerNotFound')}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Custom, Clean Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
@@ -851,9 +1130,20 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                         {entry.speaker}
                       </span>
                     )}
-                    <span className="text-[9px] font-mono text-slate-400 dark:text-slate-600 uppercase tracking-wider">
-                      [{entry.timestamp}]
-                    </span>
+                    {audioUrl ? (
+                      <button 
+                        onClick={() => handleJumpToTimestamp(entry.timestamp)}
+                        className="text-[9px] font-mono font-semibold text-[#1eac82] hover:underline uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 bg-[#1eac82]/10 px-1.5 py-0.5 rounded-sm hover:scale-105"
+                        title={language === 'portuguese' ? "Clique para ouvir este trecho do áudio" : "Click to play this section of the audio"}
+                      >
+                        <Play size={8} className="fill-current" />
+                        [{entry.timestamp}]
+                      </button>
+                    ) : (
+                      <span className="text-[9px] font-mono text-slate-400 dark:text-slate-600 uppercase tracking-wider">
+                        [{entry.timestamp}]
+                      </span>
+                    )}
                   </div>
                   <textarea
                     value={entry.text}

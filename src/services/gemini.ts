@@ -69,14 +69,16 @@ export async function generateMeetingReport(
     - The transcript remains in the original language spoken.
   `;
 
+  let modelName = "gemini-3.5-flash";
   try {
     let retries = 0;
     const maxRetries = 3;
     
     while (true) {
       try {
+        console.log(`Starting meeting analysis using model: ${modelName}...`);
         const result = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: modelName,
           contents: [
             {
               parts: [
@@ -130,8 +132,15 @@ export async function generateMeetingReport(
           }
         }
 
-        const parsed = JSON.parse(textToParse);
-        return parsed as MeetingReport;
+        const parsed = JSON.parse(textToParse) as MeetingReport;
+        try {
+          console.log("Automatically running post-process step to clean spelling errors and typos...");
+          const corrected = await postProcessReport(parsed, language);
+          return corrected;
+        } catch (postErr) {
+          console.error("Auto post-processing encountered an error, returning original parsed report.", postErr);
+          return parsed;
+        }
 
       } catch (err: any) {
         const isQuotaOrServerFail = 
@@ -141,8 +150,19 @@ export async function generateMeetingReport(
           err?.status === 429 ||
           err?.message?.includes('exhausted') ||
           err?.message?.includes('rate limit') ||
-          err?.message?.includes('overloaded');
+          err?.message?.includes('overloaded') ||
+          err?.message?.includes('UNAVAILABLE') ||
+          err?.message?.includes('high demand') ||
+          err?.message?.toLowerCase().includes('demand');
         
+        // If it's a quota/rate limit/demand error and we haven't tried gemini-2.5-flash yet, fallback immediately
+        if (isQuotaOrServerFail && modelName === "gemini-3.5-flash") {
+          console.warn(`Model ${modelName} rate-limited or unavailable (Overloaded/High demand). Automatically falling back to highly available gemini-2.5-flash...`);
+          modelName = "gemini-2.5-flash";
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
+
         // Retry on syntax errors (parse errors) or explicit parse/empty MeetingAnalysisError or standard network dropped (unspecified status)
         const isParseOrEmptyError = 
           (err instanceof MeetingAnalysisError && (err.type === 'EMPTY_RESPONSE' || err.type === 'PARSE_ERROR')) || 
@@ -153,7 +173,7 @@ export async function generateMeetingReport(
         if ((isQuotaOrServerFail || isParseOrEmptyError || isNetworkError || !err?.status) && retries < maxRetries) {
           retries++;
           const backoffTime = 2000 * Math.pow(2, retries - 1);
-          console.warn(`Retry attempt ${retries}/${maxRetries} after ${backoffTime}ms due to: ${err?.message || err}...`);
+          console.warn(`Retry attempt ${retries}/${maxRetries} after ${backoffTime}ms with model ${modelName} due to: ${err?.message || err}...`);
           await new Promise(resolve => setTimeout(resolve, backoffTime));
           continue;
         }
@@ -163,13 +183,22 @@ export async function generateMeetingReport(
         }
         
         if (err instanceof MeetingAnalysisError) throw err;
-        throw new MeetingAnalysisError('API_ERROR', `Serviço de IA Indisponível: ${err?.message || err}`);
+        
+        // Return a human-friendly Portuguese message if the model fails out completely
+        const friendlyMsg = language === 'portuguese'
+          ? `O serviço de IA está com elevada procura de momento ou atingiu o limite gratuito de pedidos. Por favor, aguarde alguns instantes e clique em "Tentar Novamente" ou configure a faturação na consola para obter limites superiores.`
+          : `AI service is currently experiencing extremely high demand or has reached its free tier rate limit. Please wait a brief moment and click "Try Again", or configure billing to increase your rate limits.`;
+          
+        throw new MeetingAnalysisError('API_ERROR', friendlyMsg);
       }
     }
   } catch (error) {
     if (error instanceof MeetingAnalysisError) throw error;
     console.error("Gemini API Error:", error);
-    throw new MeetingAnalysisError('API_ERROR', `Erro do Serviço de IA: ${error instanceof Error ? error.message : 'Desconhecido'}`);
+    const friendlyMsg = language === 'portuguese'
+      ? `Erro do Serviço de IA: O modelo está temporariamente indisponível. Por favor tente de novo. (Modelo: ${modelName})`
+      : `AI Service Error: The model is temporarily unavailable. Please try again. (Model: ${modelName})`;
+    throw new MeetingAnalysisError('API_ERROR', friendlyMsg);
   }
 }
 
@@ -224,28 +253,159 @@ ${report.transcript.map(t => `[${t.timestamp}] ${t.speaker}: ${t.text}`).join('\
     - PORTUGUESE (PT-PT): Use European Portuguese grammar/vocab. Focus on UTF-8 correct accents (ã, á, é, ç, etc.).
   `;
 
-  try {
-    const chat = ai.chats.create({
-      model: "gemini-3.5-flash",
-      config: {
-        systemInstruction,
-      },
-      history: chatHistory.length > 0 ? chatHistory : [
-        {
-          role: 'user',
-          parts: [{ text: `System Context Injection:\n${context}` }]
+  let modelName = "gemini-3.5-flash";
+  let attempts = 0;
+  while (attempts < 2) {
+    try {
+      console.log(`Sending question to Gemini using model: ${modelName}...`);
+      const chat = ai.chats.create({
+        model: modelName,
+        config: {
+          systemInstruction,
         },
-        {
-          role: 'model',
-          parts: [{ text: "Context synchronized. I am ready to analyze your specific meetings or your entire history. How can I assist you?" }]
-        }
-      ]
-    });
+        history: chatHistory.length > 0 ? chatHistory : [
+          {
+            role: 'user',
+            parts: [{ text: `System Context Injection:\n${context}` }]
+          },
+          {
+            role: 'model',
+            parts: [{ text: "Context synchronized. I am ready to analyze your specific meetings or your entire history. How can I assist you?" }]
+          }
+        ]
+      });
 
-    const result = await chat.sendMessage({ message: query });
-    return result.text || "Desculpe, não consegui obter uma resposta.";
-  } catch (error) {
-    console.error("Ask Gemini Error:", error);
-    throw new Error("AI interaction failed.");
+      const result = await chat.sendMessage({ message: query });
+      return result.text || "Desculpe, não consegui obter uma resposta.";
+    } catch (error: any) {
+      console.error(`Ask Gemini Error with ${modelName}:`, error);
+      const isQuotaOrServerFail = 
+        error?.message?.includes('503') || 
+        error?.status === 503 || 
+        error?.message?.includes('429') || 
+        error?.status === 429 ||
+        error?.message?.includes('exhausted') ||
+        error?.message?.includes('rate limit') ||
+        error?.message?.includes('overloaded') ||
+        error?.message?.includes('UNAVAILABLE') ||
+        error?.message?.includes('high demand') ||
+        error?.message?.toLowerCase().includes('demand');
+
+      if (isQuotaOrServerFail && modelName === "gemini-3.5-flash" && attempts === 0) {
+        console.warn("Falling back to gemini-2.5-flash for chat conversation due to quota/rate limits...");
+        modelName = "gemini-2.5-flash";
+        attempts++;
+        continue;
+      }
+      throw new Error("AI interaction failed.");
+    }
   }
+  throw new Error("AI interaction failed.");
+}
+
+/**
+ * Automatically cleans spelling, grammar, and pronunciation/transcription mistakes in a generated report.
+ */
+export async function postProcessReport(report: MeetingReport, language: string): Promise<MeetingReport> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey === "") {
+    return report;
+  }
+
+  const prompt = `
+    You are an expert copyeditor specializing in cleansing raw speech-to-text transcriptions and executive summaries.
+    Review the provided meeting report JSON and correct common spelling errors, grammatical mistakes, awkward typos, or phonetic transcription hiccups.
+
+    CRITICAL INSTRUCTIONS:
+    1. Do NOT change speaker names, timestamps, or core meeting stats.
+    2. Do NOT invent new discussions, delete statements, or hallucinate. Keep the facts identical to the original report.
+    3. Ensure the grammatical tone is highly professional and correct for the target language: "${language}".
+    4. IF THE LANGUAGE IS PORTUGUESE (PT-PT): Use European Portuguese spelling rules (utilize words like "planeamento", "equipa" and correct UTF-8 accents).
+    5. Clean syntax errors in the transcript but maintain the unique conversational voice of each participant.
+    6. Return the updated content matching the exact JSON schema provided.
+
+    ORIGINAL REPORT JSON:
+    ${JSON.stringify(report)}
+  `;
+
+  let modelName = "gemini-3.5-flash";
+  let attempts = 0;
+  while (attempts < 2) {
+    try {
+      console.log(`Running post-process report correction using model: ${modelName}...`);
+      const result = await ai.models.generateContent({
+        model: modelName,
+        contents: [
+          {
+            parts: [{ text: prompt }]
+          }
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              summary: { type: Type.STRING },
+              highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
+              keyDecisions: { type: Type.ARRAY, items: { type: Type.STRING } },
+              nextActions: { type: Type.ARRAY, items: { type: Type.STRING } },
+              transcript: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    speaker: { type: Type.STRING },
+                    text: { type: Type.STRING },
+                    timestamp: { type: Type.STRING },
+                  },
+                  required: ["speaker", "text", "timestamp"],
+                },
+              },
+              clientName: { type: Type.STRING },
+              meetingDate: { type: Type.STRING },
+            },
+            required: ["summary", "highlights", "keyDecisions", "nextActions", "transcript"],
+          },
+        }
+      });
+
+      if (!result || !result.text) {
+        return report;
+      }
+
+      let textToParse = result.text.trim();
+      if (textToParse.startsWith("```")) {
+        const match = textToParse.match(/^```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (match) {
+          textToParse = match[1].trim();
+        }
+      }
+
+      const corrected = JSON.parse(textToParse);
+      return { ...report, ...corrected } as MeetingReport;
+    } catch (err: any) {
+      const isQuotaOrServerFail = 
+        err?.message?.includes('503') || 
+        err?.status === 503 || 
+        err?.message?.includes('429') || 
+        err?.status === 429 ||
+        err?.message?.includes('exhausted') ||
+        err?.message?.includes('rate limit') ||
+        err?.message?.includes('overloaded') ||
+        err?.message?.includes('UNAVAILABLE') ||
+        err?.message?.includes('high demand') ||
+        err?.message?.toLowerCase().includes('demand');
+
+      if (isQuotaOrServerFail && modelName === "gemini-3.5-flash" && attempts === 0) {
+        console.warn("Falling back to gemini-2.5-flash for post-processing task...");
+        modelName = "gemini-2.5-flash";
+        attempts++;
+        continue;
+      }
+
+      console.error(`Failed to post-process meeting report with model ${modelName}:`, err);
+      return report;
+    }
+  }
+  return report;
 }

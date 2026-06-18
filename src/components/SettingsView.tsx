@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Mic, Monitor, Moon, Sun, Sparkles, Info, Save, Check, LogOut } from 'lucide-react';
+import { X, User, Mic, Monitor, Moon, Sun, Sparkles, Info, Save, Check, LogOut, HardDrive, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { getSupabase } from '../supabase';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getAudioStorageSize, clearAllAudios } from '../services/audioStorage';
 
 interface SettingsViewProps {
   onClose: () => void;
@@ -37,6 +38,48 @@ export function SettingsView({
   const [language, setLanguage] = useState(initialLanguage || localStorage.getItem('echonotes_language') || 'english');
   const [summaryDetail, setSummaryDetail] = useState(initialSummaryDetail || localStorage.getItem('echonotes_summary_detail') || 'detailed');
   const [isSaved, setIsSaved] = useState(false);
+
+  // Raw local storage tracking state for audio records
+  const [storageBytes, setStorageBytes] = useState<number | null>(null);
+  const [isClearingStorage, setIsClearingStorage] = useState(false);
+  const [storageClearedSuccess, setStorageClearedSuccess] = useState(false);
+
+  const loadStorageSize = async () => {
+    try {
+      const size = await getAudioStorageSize();
+      setStorageBytes(size);
+    } catch (err) {
+      console.error("Failed to load local audio storage size:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadStorageSize();
+  }, []);
+
+  const formatBytes = (bytes: number, decimals = 1) => {
+    if (bytes === 0) return '0.0 MB'; // Make it clean and default
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    // If it's bytes or KB, format as MB anyway so it's intuitive, or let sizes do the job
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  };
+
+  const handleClearLocalAudios = async () => {
+    setIsClearingStorage(true);
+    try {
+      await clearAllAudios();
+      await loadStorageSize();
+      setStorageClearedSuccess(true);
+      setTimeout(() => setStorageClearedSuccess(false), 3000);
+    } catch (err) {
+      console.error("Error clearing local audios:", err);
+    } finally {
+      setIsClearingStorage(false);
+    }
+  };
 
   const handleSave = async () => {
     // Save to localStorage (legacy/fallback)
@@ -245,6 +288,54 @@ export function SettingsView({
                   </button>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Manage Storage section */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 text-app-accent">
+              <HardDrive size={16} />
+              <span className="text-[10px] font-black uppercase tracking-widest">{t('manageStorage')}</span>
+            </div>
+            <div className="p-6 bg-slate-500/5 dark:bg-slate-400/5 border border-slate-500/10 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-app-fg/70">
+                  {t('manageStorageDesc')}
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-app-fg/40">
+                    {t('storageUsed')}:
+                  </span>
+                  <span className="text-xs font-mono font-bold text-[#1eac82]">
+                    {storageBytes !== null ? formatBytes(storageBytes) : '...'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearLocalAudios}
+                disabled={isClearingStorage || storageBytes === 0}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all glass shrink-0 cursor-pointer",
+                  storageBytes === 0
+                    ? "opacity-50 cursor-not-allowed text-app-fg/30"
+                    : storageClearedSuccess
+                    ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
+                    : "text-rose-500 hover:bg-rose-500/10 border-rose-500/10"
+                )}
+              >
+                {storageClearedSuccess ? (
+                  <>
+                    <Check size={14} />
+                    {t('clearStorageDone')}
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    {t('clearStorage')}
+                  </>
+                )}
+              </button>
             </div>
           </section>
 

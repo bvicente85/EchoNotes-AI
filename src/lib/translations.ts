@@ -64,6 +64,11 @@ export interface TranslationKeys {
   signOut: string;
   saveChanges: string;
   saved: string;
+  manageStorage: string;
+  manageStorageDesc: string;
+  storageUsed: string;
+  clearStorage: string;
+  clearStorageDone: string;
 
   // main dash
   recordMeetingsTitle: string;
@@ -169,6 +174,12 @@ export interface TranslationKeys {
   audioQualityStatus: string;
   sessionProgress: string;
   sessionDurationHint: string;
+  audioPlayerTitle: string;
+  audioPlayerPlay: string;
+  audioPlayerPause: string;
+  audioPlaybackSpeed: string;
+  audioPlayerLoading: string;
+  audioPlayerNotFound: string;
 }
 
 export const translations: Record<'portuguese' | 'english' | string, TranslationKeys> = {
@@ -234,6 +245,11 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     signOut: "Sair",
     saveChanges: "Guardar Alterações",
     saved: "Guardado",
+    manageStorage: "Gerir Armazenamento",
+    manageStorageDesc: "Visualize e liberte o espaço ocupado localmente pelas gravações de áudio.",
+    storageUsed: "Espaço Utilizado",
+    clearStorage: "Limpar Gravações Locais",
+    clearStorageDone: "Armazenamento limpo com sucesso!",
 
     recordMeetingsTitle: "Registe as suas reuniões,",
     extractIntelligence: "extraia a inteligência essencial.",
@@ -333,7 +349,13 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     audioQualityOptimal: "Qualidade do áudio ideal",
     audioQualityStatus: "Monitor do Microfone",
     sessionProgress: "Progresso da Reunião",
-    sessionDurationHint: "Escala sugerida: 60 min"
+    sessionDurationHint: "Escala sugerida: 60 min",
+    audioPlayerTitle: "Gravação Local da Reunião",
+    audioPlayerPlay: "Reproduzir",
+    audioPlayerPause: "Pausar",
+    audioPlaybackSpeed: "Velocidade de Reprodução",
+    audioPlayerLoading: "A carregar áudio...",
+    audioPlayerNotFound: "Nenhum áudio local armazenado para esta sessão"
   },
   english: {
     welcomeBack: "Welcome Back",
@@ -397,6 +419,11 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     signOut: "Sign Out",
     saveChanges: "Save Changes",
     saved: "Saved",
+    manageStorage: "Manage Storage",
+    manageStorageDesc: "View and free up space occupied locally by meeting audio recordings.",
+    storageUsed: "Space Used",
+    clearStorage: "Clear Local Recordings",
+    clearStorageDone: "Storage cleared successfully!",
 
     recordMeetingsTitle: "Record your meetings,",
     extractIntelligence: "extract the essential intelligence.",
@@ -496,6 +523,12 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     audioQualityOptimal: "Optimal audio level",
     audioQualityStatus: "Microphone Quality",
     sessionProgress: "Session Progress",
-    sessionDurationHint: "Suggested scale: 60 min"
+    sessionDurationHint: "Suggested scale: 60 min",
+    audioPlayerTitle: "Local Session Recording",
+    audioPlayerPlay: "Play",
+    audioPlayerPause: "Pause",
+    audioPlaybackSpeed: "Playback Speed",
+    audioPlayerLoading: "Loading audio...",
+    audioPlayerNotFound: "No local audio stored for this session"
   }
 };

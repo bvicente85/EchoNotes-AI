@@ -14,6 +14,17 @@ import { saveToHistory, getHistory, deleteFromHistory, updateHistoryItem, clearH
 import { cn } from './lib/utils';
 import { useLanguage } from './contexts/LanguageContext';
 import { getBackup, clearBackup, saveChunk, saveMetadata, BackupMetadata } from './services/dbBackup';
+import { saveAudio, deleteAudio, clearAllAudios, cleanExpiredAudios } from './services/audioStorage';
+
+const base64ToBlob = (base64: string, mimeType: string): Blob => {
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
+};
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -62,6 +73,9 @@ export default function App() {
 
   useEffect(() => {
     const supabase = getSupabase();
+    
+    // Automatically clean up local audios older than 30 days
+    cleanExpiredAudios(30).catch(console.error);
     
     // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -212,6 +226,7 @@ export default function App() {
           const newItem = await saveToHistory(result, user.id);
           if (newItem) {
             setCurrentHistoryId(newItem.id);
+            await saveAudio(newItem.id, audioBlob);
             const updatedHistory = await getHistory(user.id);
             setHistory(updatedHistory);
           }
@@ -281,10 +296,12 @@ export default function App() {
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       const result = await generateMeetingReport(lastFailedAudio.base64, lastFailedAudio.mimeType, detailLevel, languageSetting, false, speakersArray);
       
+      const reportBlob = base64ToBlob(lastFailedAudio.base64, lastFailedAudio.mimeType);
       setLastFailedAudio(null);
       const newItem = await saveToHistory(result, user.id);
       if (newItem) {
         setCurrentHistoryId(newItem.id);
+        await saveAudio(newItem.id, reportBlob);
         const updatedHistory = await getHistory(user.id);
         setHistory(updatedHistory);
       }
@@ -324,6 +341,12 @@ export default function App() {
       const newItem = await saveToHistory(result, user.id);
       if (newItem) {
         setCurrentHistoryId(newItem.id);
+        try {
+          const blob = base64ToBlob(base64, mimeType);
+          await saveAudio(newItem.id, blob);
+        } catch (err) {
+          console.error("Failed to store uploaded audio local:", err);
+        }
         const updatedHistory = await getHistory(user.id);
         setHistory(updatedHistory);
       }
@@ -501,6 +524,11 @@ export default function App() {
               const newItem = await saveToHistory(res, user!.id);
               if (newItem) {
                 setCurrentHistoryId(newItem.id);
+                try {
+                  await saveAudio(newItem.id, audioBlob);
+                } catch (err) {
+                  console.error("Failed to store recorded audio locally:", err);
+                }
                 setHistory(prev => [newItem, ...prev]);
               }
               setReport(res);
@@ -586,6 +614,7 @@ export default function App() {
     if (deleteConfirmId && user) {
       const success = await deleteFromHistory(deleteConfirmId);
       if (success) {
+        await deleteAudio(deleteConfirmId);
         setHistory(prev => prev.filter(item => item.id !== deleteConfirmId));
         if (currentHistoryId === deleteConfirmId) {
           handleGoHome();
@@ -599,6 +628,7 @@ export default function App() {
     if (user) {
       const success = await clearHistory(user.id);
       if (success) {
+        await clearAllAudios();
         setHistory([]);
         handleGoHome();
       }
@@ -1088,6 +1118,7 @@ export default function App() {
         <ReportView 
           report={report} 
           title={history.find(h => h.id === currentHistoryId)?.title}
+          meetingId={currentHistoryId || undefined}
           onReset={handleGoHome} 
           onUpdate={handleUpdateReport}
           onUpdateTitle={handleUpdateTitle}
