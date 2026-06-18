@@ -390,7 +390,8 @@ export default function App() {
 
       // Clear any raw backups and store metadata right before starting
       await clearBackup();
-      await saveMetadata({ mimeType: mimeType || 'audio/webm', timestamp: Date.now() });
+      const actualMimeType = mediaRecorder.mimeType || mimeType || 'audio/webm';
+      await saveMetadata({ mimeType: actualMimeType, timestamp: Date.now() });
 
       const audioContext = new AudioContext();
       const source = audioContext.createMediaStreamSource(stream);

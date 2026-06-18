@@ -70,14 +70,13 @@ export async function generateMeetingReport(
   `;
 
   try {
-    let result;
     let retries = 0;
-    const maxRetries = 4;
+    const maxRetries = 3;
     
-    while (retries <= maxRetries) {
+    while (true) {
       try {
-        result = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+        const result = await ai.models.generateContent({
+          model: "gemini-3.5-flash",
           contents: [
             {
               parts: [
@@ -117,36 +116,60 @@ export async function generateMeetingReport(
             },
           },
         });
-        break;
-      } catch (apiError: any) {
-        const isTransientError = apiError?.message?.includes('503') || apiError?.status === 503 || apiError?.message?.includes('429') || apiError?.status === 429;
+
+        if (!result || !result.text) {
+          throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Empty response from AI model.');
+        }
+
+        let textToParse = result.text.trim();
+        // Robust markdown fences stripping
+        if (textToParse.startsWith("```")) {
+          const match = textToParse.match(/^```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (match) {
+            textToParse = match[1].trim();
+          }
+        }
+
+        const parsed = JSON.parse(textToParse);
+        return parsed as MeetingReport;
+
+      } catch (err: any) {
+        const isQuotaOrServerFail = 
+          err?.message?.includes('503') || 
+          err?.status === 503 || 
+          err?.message?.includes('429') || 
+          err?.status === 429 ||
+          err?.message?.includes('exhausted') ||
+          err?.message?.includes('rate limit') ||
+          err?.message?.includes('overloaded');
         
-        if (isTransientError && retries < maxRetries) {
+        // Retry on syntax errors (parse errors) or explicit parse/empty MeetingAnalysisError or standard network dropped (unspecified status)
+        const isParseOrEmptyError = 
+          (err instanceof MeetingAnalysisError && (err.type === 'EMPTY_RESPONSE' || err.type === 'PARSE_ERROR')) || 
+          err instanceof SyntaxError;
+        
+        const isNetworkError = !err?.status && err?.message?.toLowerCase().includes('fetch');
+
+        if ((isQuotaOrServerFail || isParseOrEmptyError || isNetworkError || !err?.status) && retries < maxRetries) {
           retries++;
-          const backoffTime = 5000 * Math.pow(2, retries - 1);
-          console.warn(`Retry attempt ${retries}/${maxRetries} after ${backoffTime}ms...`);
+          const backoffTime = 2000 * Math.pow(2, retries - 1);
+          console.warn(`Retry attempt ${retries}/${maxRetries} after ${backoffTime}ms due to: ${err?.message || err}...`);
           await new Promise(resolve => setTimeout(resolve, backoffTime));
           continue;
         }
-        throw apiError;
+
+        if (err instanceof SyntaxError || (err instanceof MeetingAnalysisError && err.type === 'PARSE_ERROR')) {
+          throw new MeetingAnalysisError('PARSE_ERROR', 'Falha ao processar a transcrição estruturada após várias tentativas.');
+        }
+        
+        if (err instanceof MeetingAnalysisError) throw err;
+        throw new MeetingAnalysisError('API_ERROR', `Serviço de IA Indisponível: ${err?.message || err}`);
       }
-    }
-
-    if (!result || !result.text) {
-      throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Empty response from AI model.');
-    }
-
-    try {
-      const parsed = JSON.parse(result.text);
-      return parsed as MeetingReport;
-    } catch (parseError) {
-      console.error("JSON Parse Error:", result.text);
-      throw new MeetingAnalysisError('PARSE_ERROR', 'Failed to parse the structured report.');
     }
   } catch (error) {
     if (error instanceof MeetingAnalysisError) throw error;
     console.error("Gemini API Error:", error);
-    throw new MeetingAnalysisError('API_ERROR', `AI Service Error: ${error instanceof Error ? error.message : 'Unknown'}`);
+    throw new MeetingAnalysisError('API_ERROR', `Erro do Serviço de IA: ${error instanceof Error ? error.message : 'Desconhecido'}`);
   }
 }
 
@@ -203,7 +226,7 @@ ${report.transcript.map(t => `[${t.timestamp}] ${t.speaker}: ${t.text}`).join('\
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.5-flash",
       config: {
         systemInstruction,
       },
