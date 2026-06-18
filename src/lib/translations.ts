@@ -167,6 +167,8 @@ export interface TranslationKeys {
   audioQualityWarningTooLow: string;
   audioQualityOptimal: string;
   audioQualityStatus: string;
+  sessionProgress: string;
+  sessionDurationHint: string;
 }
 
 export const translations: Record<'portuguese' | 'english' | string, TranslationKeys> = {
@@ -329,7 +331,9 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     audioQualityWarningClipping: "O áudio está a distorcer! Fale mais suavemente ou afaste o microfone.",
     audioQualityWarningTooLow: "O volume está muito baixo. Fale mais alto ou aproxime-se do microfone.",
     audioQualityOptimal: "Qualidade do áudio ideal",
-    audioQualityStatus: "Monitor do Microfone"
+    audioQualityStatus: "Monitor do Microfone",
+    sessionProgress: "Progresso da Reunião",
+    sessionDurationHint: "Escala sugerida: 60 min"
   },
   english: {
     welcomeBack: "Welcome Back",
@@ -490,6 +494,8 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     audioQualityWarningClipping: "Audio is clipping! Speak softer or move the microphone away.",
     audioQualityWarningTooLow: "Audio level is too low. Speak louder or move closer to the mic.",
     audioQualityOptimal: "Optimal audio level",
-    audioQualityStatus: "Microphone Quality"
+    audioQualityStatus: "Microphone Quality",
+    sessionProgress: "Session Progress",
+    sessionDurationHint: "Suggested scale: 60 min"
   }
 };

@@ -1308,6 +1308,84 @@ export default function App() {
                       </div>
 
                       {isRecording && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="w-full max-w-xs flex flex-col gap-2 p-3.5 bg-slate-500/5 dark:bg-slate-400/5 border border-slate-500/10 rounded-2xl"
+                        >
+                          <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                            <span>{t('sessionProgress')}</span>
+                            <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">{t('sessionDurationHint')}</span>
+                          </div>
+                          
+                          {/* Progress bar container */}
+                          <div className="relative w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mt-2 mb-2">
+                            {/* Filling progress */}
+                            <motion.div 
+                              className="absolute left-0 top-0 h-full bg-app-green rounded-full shadow-[0_0_8px_rgba(30,172,130,0.3)]"
+                              style={{ width: `${Math.min(100, (duration / 3600) * 100)}%` }}
+                              layout
+                            />
+                            
+                            {/* Tick Marks for 15, 30, 45, 60 minutes */}
+                            <div className="absolute inset-0 flex justify-between px-0 pointer-events-none">
+                              {/* 15m */}
+                              <div className="absolute left-[25%] -translate-x-1/2 -top-1">
+                                <div className={cn(
+                                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
+                                  duration >= 900 
+                                    ? "bg-app-green border-app-green text-white" 
+                                    : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
+                                )}>
+                                  15
+                                </div>
+                              </div>
+                              {/* 30m */}
+                              <div className="absolute left-[50%] -translate-x-1/2 -top-1">
+                                <div className={cn(
+                                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
+                                  duration >= 1800 
+                                    ? "bg-app-green border-app-green text-white" 
+                                    : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
+                                )}>
+                                  30
+                                </div>
+                              </div>
+                              {/* 45m */}
+                              <div className="absolute left-[75%] -translate-x-1/2 -top-1">
+                                <div className={cn(
+                                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
+                                  duration >= 2700 
+                                    ? "bg-app-green border-app-green text-white" 
+                                    : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
+                                )}>
+                                  45
+                                </div>
+                              </div>
+                              {/* 60m */}
+                              <div className="absolute left-[100%] -translate-x-1/2 -top-1">
+                                <div className={cn(
+                                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
+                                  duration >= 3600 
+                                    ? "bg-app-green border-app-green text-white" 
+                                    : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
+                                )}>
+                                  60
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Phases labels */}
+                          <div className="flex items-center justify-between text-[9px] text-slate-400 dark:text-slate-500 font-mono mt-0.5 px-0.5">
+                            <span className={cn(duration < 900 ? "text-app-green font-bold" : "")}>Intro</span>
+                            <span className={cn(duration >= 900 && duration < 2700 ? "text-app-green font-bold" : "")}>Body</span>
+                            <span className={cn(duration >= 2700 ? "text-app-green font-bold" : "")}>Wrap-up</span>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {isRecording && (
                         <div className="flex flex-col gap-4 w-full items-center max-w-xs transition-all duration-300">
                           {/* Audio Input Quality Monitor */}
                           <motion.div 
