@@ -49,6 +49,7 @@ export default function App() {
   const [summaryDetail, setSummaryDetail] = useState(localStorage.getItem('echonotes_summary_detail') || 'detailed');
   const [expectedSpeakers, setExpectedSpeakers] = useState('');
   const [activeBackup, setActiveBackup] = useState<{ chunks: Blob[]; metadata: BackupMetadata } | null>(null);
+  const [audioInputQuality, setAudioInputQuality] = useState<'optimal' | 'too-low' | 'clipping'>('optimal');
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -56,6 +57,8 @@ export default function App() {
   const processingTimerRef = useRef<number | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const lastNormalVolumeTimeRef = useRef<number>(Date.now());
+  const lastNormalClipTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -393,6 +396,11 @@ export default function App() {
       const actualMimeType = mediaRecorder.mimeType || mimeType || 'audio/webm';
       await saveMetadata({ mimeType: actualMimeType, timestamp: Date.now() });
 
+      // Reset audio quality metrics and timers on start
+      lastNormalVolumeTimeRef.current = Date.now();
+      lastNormalClipTimeRef.current = Date.now();
+      setAudioInputQuality('optimal');
+
       const audioContext = new AudioContext();
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
@@ -406,10 +414,36 @@ export default function App() {
         analyserRef.current.getByteFrequencyData(dataArray);
         
         let sum = 0;
+        let peakValue = 0;
         for (let i = 0; i < dataArray.length; i++) {
           sum += dataArray[i];
+          if (dataArray[i] > peakValue) {
+            peakValue = dataArray[i];
+          }
         }
-        setAudioLevel(sum / dataArray.length);
+        const currentLevel = sum / dataArray.length;
+        setAudioLevel(currentLevel);
+
+        // Quality monitor analysis
+        const now = Date.now();
+        const isCurrentlySilent = currentLevel < 4.5 && peakValue < 12;
+        if (!isCurrentlySilent) {
+          lastNormalVolumeTimeRef.current = now;
+        }
+
+        const isCurrentlyClipping = currentLevel > 180 || peakValue > 250;
+        if (!isCurrentlyClipping) {
+          lastNormalClipTimeRef.current = now;
+        }
+
+        let qualityStatus: 'optimal' | 'too-low' | 'clipping' = 'optimal';
+        if (now - lastNormalVolumeTimeRef.current > 6000) {
+          qualityStatus = 'too-low';
+        } else if (now - lastNormalClipTimeRef.current > 2000) {
+          qualityStatus = 'clipping';
+        }
+        
+        setAudioInputQuality(qualityStatus);
 
         const resizedData = [];
         const step = Math.floor(dataArray.length / 40);
@@ -442,6 +476,7 @@ export default function App() {
 
       mediaRecorder.onstop = async () => {
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        setAudioInputQuality('optimal');
         const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         
         // Final tracks cleanup
@@ -489,8 +524,8 @@ export default function App() {
         }
       };
 
-      // Emit slices every 10 seconds to back up chunks sequentially
-      mediaRecorder.start(10000);
+      // Emit slices every 5 seconds to back up chunks sequentially to minimize potential data loss
+      mediaRecorder.start(5000);
       setIsRecording(true);
     } catch (err) {
       console.error("Start recording failed:", err);
@@ -1273,13 +1308,59 @@ export default function App() {
                       </div>
 
                       {isRecording && (
-                        <div className="flex flex-col gap-6 w-full items-center">
-                          <div className="w-full max-w-xs h-16 flex items-end justify-center gap-[2px]">
+                        <div className="flex flex-col gap-4 w-full items-center max-w-xs transition-all duration-300">
+                          {/* Audio Input Quality Monitor */}
+                          <motion.div 
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={cn(
+                              "w-full flex flex-col gap-1 items-start px-3.5 py-2.5 rounded-xl text-xs font-medium border transition-all duration-300 shadow-xs",
+                              audioInputQuality === 'optimal' 
+                                ? "bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                : audioInputQuality === 'too-low'
+                                ? "bg-amber-500/5 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 animate-pulse"
+                                : "bg-rose-500/5 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 animate-bounce"
+                            )}
+                          >
+                            <div className="w-full flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <span className={cn(
+                                  "flex h-2 w-2 rounded-full",
+                                  audioInputQuality === 'optimal' 
+                                    ? "bg-emerald-500" 
+                                    : audioInputQuality === 'too-low' 
+                                    ? "bg-amber-500" 
+                                    : "bg-rose-500"
+                                )} />
+                                <span className="font-bold uppercase tracking-wider text-[9px] opacity-80">{t('audioQualityStatus')}</span>
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-wider">
+                                {audioInputQuality === 'optimal' && "OK"}
+                                {audioInputQuality === 'too-low' && "LOW VOLUME"}
+                                {audioInputQuality === 'clipping' && "CLIPPING"}
+                              </span>
+                            </div>
+                            <span className="text-[10px] leading-snug mt-0.5 opacity-90 text-left font-medium">
+                              {audioInputQuality === 'optimal' && t('audioQualityOptimal')}
+                              {audioInputQuality === 'too-low' && t('audioQualityWarningTooLow')}
+                              {audioInputQuality === 'clipping' && t('audioQualityWarningClipping')}
+                            </span>
+                          </motion.div>
+
+                          {/* Dynamic Waveform Visualizer */}
+                          <div className="w-full h-16 flex items-end justify-center gap-[2px]">
                             {frequencyData.map((value, i) => (
                               <motion.div
                                 key={i}
-                                className="flex-1 bg-app-green/60 rounded-t-[1px]"
-                                animate={{ height: `${(value / 255) * 100}%` }}
+                                className={cn(
+                                  "flex-1 rounded-t-[1px] transition-colors duration-200",
+                                  audioInputQuality === 'optimal' 
+                                    ? "bg-emerald-500/60" 
+                                    : audioInputQuality === 'too-low' 
+                                    ? "bg-amber-500/50" 
+                                    : "bg-rose-500/80"
+                                )}
+                                animate={{ height: `${Math.max(4, (value / 255) * 100)}%` }}
                                 transition={{ duration: 0.1 }}
                               />
                             ))}
