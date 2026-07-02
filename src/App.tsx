@@ -61,6 +61,9 @@ export default function App() {
   const [expectedSpeakers, setExpectedSpeakers] = useState('');
   const [activeBackup, setActiveBackup] = useState<{ chunks: Blob[]; metadata: BackupMetadata } | null>(null);
   const [audioInputQuality, setAudioInputQuality] = useState<'optimal' | 'too-low' | 'clipping'>('optimal');
+  const [sessionType, setSessionType] = useState<'meeting' | 'quick_draft'>('meeting');
+  const [manualNotes, setManualNotes] = useState('');
+  const [template, setTemplate] = useState('standard');
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -213,6 +216,7 @@ export default function App() {
         const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
         
         try {
+          const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
           const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
           const result = await generateMeetingReport(
             base64Audio, 
@@ -220,7 +224,11 @@ export default function App() {
             detailLevel, 
             languageSetting, 
             false, 
-            speakersArray
+            speakersArray,
+            sessionType === 'quick_draft',
+            manualNotes,
+            template,
+            customTerms
           );
           
           const newItem = await saveToHistory(result, user.id);
@@ -294,7 +302,7 @@ export default function App() {
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
-      const result = await generateMeetingReport(lastFailedAudio.base64, lastFailedAudio.mimeType, detailLevel, languageSetting, false, speakersArray);
+      const result = await generateMeetingReport(lastFailedAudio.base64, lastFailedAudio.mimeType, detailLevel, languageSetting, false, speakersArray, sessionType === 'quick_draft', manualNotes, template, localStorage.getItem('echonotes_custom_terms') || '');
       
       const reportBlob = base64ToBlob(lastFailedAudio.base64, lastFailedAudio.mimeType);
       setLastFailedAudio(null);
@@ -335,7 +343,11 @@ export default function App() {
         detailLevel, 
         languageSetting, 
         options.optimizeLowVolume,
-        speakersArray
+        speakersArray,
+        sessionType === 'quick_draft',
+        manualNotes,
+        template,
+        localStorage.getItem('echonotes_custom_terms') || ''
       );
       
       const newItem = await saveToHistory(result, user.id);
@@ -517,10 +529,11 @@ export default function App() {
             const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
             const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
             
+            const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
             try {
               // Extract expected speakers array
               const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
-              const res = await generateMeetingReport(base64Audio, audioBlob.type, detailLevel, languageSetting, false, speakersArray);
+              const res = await generateMeetingReport(base64Audio, audioBlob.type, detailLevel, languageSetting, false, speakersArray, sessionType === 'quick_draft', manualNotes, template, customTerms);
               const newItem = await saveToHistory(res, user!.id);
               if (newItem) {
                 setCurrentHistoryId(newItem.id);
@@ -1144,22 +1157,90 @@ export default function App() {
                   </p>
                 </div>
 
-                {!isRecording && (
+                 {!isRecording && (
                   <motion.div 
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-xs space-y-2 text-left"
+                    className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-xs space-y-4 text-left"
                   >
                     <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block">
-                      {t('expectedSpeakersLabel')}
+                      {t('sessionTypeTitle')}
                     </label>
-                    <input
-                      type="text"
-                      value={expectedSpeakers}
-                      onChange={(e) => setExpectedSpeakers(e.target.value)}
-                      placeholder={t('expectedSpeakersPlaceholder')}
-                      className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400/50"
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Option Meeting */}
+                      <button
+                        type="button"
+                        onClick={() => setSessionType('meeting')}
+                        className={cn(
+                          "flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all relative active:scale-98",
+                          sessionType === 'meeting'
+                            ? "bg-slate-50/80 dark:bg-slate-800/80 border-[#526C78] dark:border-slate-300 ring-1 ring-[#526C78] dark:ring-slate-300"
+                            : "bg-transparent border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
+                        )}
+                      >
+                        <span className="text-xs font-bold text-slate-850 dark:text-slate-100 flex items-center gap-1.5">
+                          {t('sessionTypeMeeting')}
+                        </span>
+                        <span className="text-[10px] leading-tight text-slate-400 dark:text-slate-500">
+                          {t('sessionTypeMeetingDesc')}
+                        </span>
+                      </button>
+                      
+                      {/* Option Quick Draft */}
+                      <button
+                        type="button"
+                        onClick={() => setSessionType('quick_draft')}
+                        className={cn(
+                          "flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all relative active:scale-98",
+                          sessionType === 'quick_draft'
+                            ? "bg-slate-50/80 dark:bg-slate-800/80 border-[#526C78] dark:border-slate-300 ring-1 ring-[#526C78] dark:ring-slate-300"
+                            : "bg-transparent border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
+                        )}
+                      >
+                        <span className="text-xs font-bold text-slate-850 dark:text-slate-100 flex items-center gap-1.5">
+                          {t('sessionTypeQuickDraft')}
+                        </span>
+                        <span className="text-[10px] leading-tight text-slate-400 dark:text-slate-500">
+                          {t('sessionTypeQuickDraftDesc')}
+                        </span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {!isRecording && sessionType === 'meeting' && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-xs space-y-4 text-left"
+                  >
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block">
+                        {t('expectedSpeakersLabel')}
+                      </label>
+                      <input
+                        type="text"
+                        value={expectedSpeakers}
+                        onChange={(e) => setExpectedSpeakers(e.target.value)}
+                        placeholder={t('expectedSpeakersPlaceholder')}
+                        className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block">
+                        Template
+                      </label>
+                      <select
+                        value={template}
+                        onChange={(e) => setTemplate(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400/50"
+                      >
+                        <option value="standard">Padrão</option>
+                        <option value="client_meeting">Reunião com cliente</option>
+                        <option value="internal_meeting">Reunião interna/Ata</option>
+                        <option value="brainstorming">Brainstorming</option>
+                      </select>
+                    </div>
                   </motion.div>
                 )}
 
@@ -1337,6 +1418,18 @@ export default function App() {
                       )}>
                         {formatDuration(duration)}
                       </div>
+
+                      {isRecording && (
+                        <div className="w-full flex flex-col gap-2 mt-4 px-4">
+                          <textarea
+                            placeholder="Notas rápidas (fusing notes)..."
+                            value={manualNotes}
+                            onChange={(e) => setManualNotes(e.target.value)}
+                            className="w-full p-3 border border-slate-300 dark:border-slate-700 rounded-xl bg-transparent text-xs text-slate-700 dark:text-slate-200"
+                            rows={3}
+                          />
+                        </div>
+                      )}
 
                       {isRecording && (
                         <motion.div 

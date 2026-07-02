@@ -37,6 +37,7 @@ export function SettingsView({
   const [theme, setTheme] = useState(initialTheme || localStorage.getItem('echonotes_theme') || 'light');
   const [language, setLanguage] = useState(initialLanguage || localStorage.getItem('echonotes_language') || 'english');
   const [summaryDetail, setSummaryDetail] = useState(initialSummaryDetail || localStorage.getItem('echonotes_summary_detail') || 'detailed');
+  const [customTerms, setCustomTerms] = useState(localStorage.getItem('echonotes_custom_terms') || '');
   const [isSaved, setIsSaved] = useState(false);
 
   // Raw local storage tracking state for audio records
@@ -88,6 +89,7 @@ export function SettingsView({
     localStorage.setItem('echonotes_theme', theme);
     localStorage.setItem('echonotes_language', language);
     localStorage.setItem('echonotes_summary_detail', summaryDetail);
+    localStorage.setItem('echonotes_custom_terms', customTerms);
     
     // Save to Supabase profiles table
     try {
@@ -287,6 +289,17 @@ export function SettingsView({
                     {t('detailed')}
                   </button>
                 </div>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-xs font-bold text-app-fg/40">Dicionário Pessoal (Palavras a lembrar)</label>
+                <input 
+                  type="text"
+                  value={customTerms}
+                  onChange={(e) => setCustomTerms(e.target.value)}
+                  placeholder="Ex: Skolae, EchoNotes, Projeto X"
+                  className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg placeholder:text-app-fg/20"
+                />
+                <p className="text-[10px] text-app-fg/40">Insira palavras separadas por vírgula que a IA deve reconhecer corretamente.</p>
               </div>
             </div>
           </section>

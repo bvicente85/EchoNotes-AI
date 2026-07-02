@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { FileText, CheckCircle2, ListFilter, MessageSquare, Download, FileJson, Plus, Trash2, Copy, Check, Undo, Redo, Gavel, Hash, User, Sparkles, Play, Pause, Volume2, VolumeX, Clock, FastForward, RotateCcw } from 'lucide-react';
+import { FileText, CheckCircle2, ListFilter, MessageSquare, Download, FileJson, Plus, Trash2, Copy, Check, Undo, Redo, Gavel, Hash, User, Sparkles, Play, Pause, Volume2, VolumeX, Clock, FastForward, RotateCcw, Mail, Database } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MeetingReport } from '../services/gemini';
 import { jsPDF } from 'jspdf';
@@ -36,7 +36,13 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
     transcript: report.transcript,
     clientName: report.clientName || '',
     meetingDate: report.meetingDate || new Date().toISOString().slice(0, 16),
-    title: initialTitle || 'Meeting Intelligence Report'
+    title: initialTitle || 'Meeting Intelligence Report',
+    isQuickDraft: report.isQuickDraft || false,
+    quickDraft: report.quickDraft || {
+      formattedNotes: '',
+      taskList: [],
+      emailDraft: ''
+    }
   });
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -44,8 +50,32 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
   const [editingSpeakerIndex, setEditingSpeakerIndex] = useState<number | null>(null);
   const [editingSpeakerValue, setEditingSpeakerValue] = useState('');
   const [copied, setCopied] = useState(false);
+  const [copiedType, setCopiedType] = useState<'markdown' | 'text' | 'email' | 'crm' | 'scratchpad' | 'tasks' | null>(null);
   const [copiedTranscript, setCopiedTranscript] = useState(false);
   const [includeTranscript, setIncludeTranscript] = useState(true);
+
+  // Quick Draft State
+  const [activeDraftTab, setActiveDraftTab] = useState<'scratchpad' | 'tasks' | 'email'>('scratchpad');
+  const [isEditingDraftNotes, setIsEditingDraftNotes] = useState(false);
+  const [isEditingDraftEmail, setIsEditingDraftEmail] = useState(false);
+
+  const copyQuickDraftContent = async (type: 'scratchpad' | 'tasks' | 'email') => {
+    try {
+      let content = '';
+      if (type === 'scratchpad') {
+        content = data.quickDraft?.formattedNotes || '';
+      } else if (type === 'tasks') {
+        content = (data.quickDraft?.taskList || []).map(t => `- [ ] ${t}`).join('\n');
+      } else if (type === 'email') {
+        content = data.quickDraft?.emailDraft || '';
+      }
+      await navigator.clipboard.writeText(content);
+      setCopiedType(type);
+      setTimeout(() => setCopiedType(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy quick draft content: ', err);
+    }
+  };
 
   // Audio Player State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -207,7 +237,13 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
       transcript: report.transcript,
       clientName: report.clientName || '',
       meetingDate: report.meetingDate || new Date().toISOString().slice(0, 16),
-      title: initialTitle || 'Meeting Intelligence Report'
+      title: initialTitle || 'Meeting Intelligence Report',
+      isQuickDraft: report.isQuickDraft || false,
+      quickDraft: report.quickDraft || {
+        formattedNotes: '',
+        taskList: [],
+        emailDraft: ''
+      }
     });
   }, [report, initialTitle, reset]);
 
@@ -279,22 +315,35 @@ MEETING INTELLIGENCE REPORT
     text += `DATE: ${formattedDate}\n`;
     text += `\n`;
 
-    text += `EXECUTIVE SUMMARY
------------------
-${data.summary}
+    if (data.isQuickDraft && data.quickDraft) {
+      text += `CLEAN SCRATCHPAD\n`;
+      text += `----------------\n`;
+      text += `${data.quickDraft.formattedNotes}\n\n`;
 
-KEY HIGHLIGHTS
---------------
-${data.highlights.map((h) => `• ${h}`).join('\n')}
+      text += `TASK CHECKLIST\n`;
+      text += `--------------\n`;
+      text += `${(data.quickDraft.taskList || []).map(t => `[ ] ${t}`).join('\n')}\n\n`;
 
-KEY DECISIONS
--------------
-${data.keyDecisions.map((d) => `✓ ${d}`).join('\n')}
+      text += `EMAIL DRAFT\n`;
+      text += `-----------\n`;
+      text += `${data.quickDraft.emailDraft}\n`;
+    } else {
+      text += `EXECUTIVE SUMMARY\n`;
+      text += `-----------------\n`;
+      text += `${data.summary}\n\n`;
 
-NEXT ACTIONS
-------------
-${data.nextActions.map((a, i) => `${i + 1}. ${a}`).join('\n')}
-`;
+      text += `KEY HIGHLIGHTS\n`;
+      text += `--------------\n`;
+      text += `${data.highlights.map((h) => `• ${h}`).join('\n')}\n\n`;
+
+      text += `KEY DECISIONS\n`;
+      text += `-------------\n`;
+      text += `${data.keyDecisions.map((d) => `✓ ${d}`).join('\n')}\n\n`;
+
+      text += `NEXT ACTIONS\n`;
+      text += `------------\n`;
+      text += `${data.nextActions.map((a, i) => `${i + 1}. ${a}`).join('\n')}\n`;
+    }
 
     if (includeTranscript) {
       text += `
@@ -317,25 +366,35 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
     const formattedDate = new Date(data.meetingDate).toLocaleString();
     md += `**Date:** ${formattedDate}\n\n`;
     
-    md += `## Executive Summary\n${data.summary}\n\n`;
-    
-    md += `## Key Highlights\n`;
-    data.highlights.forEach(h => {
-      md += `* ${h}\n`;
-    });
-    md += `\n`;
+    if (data.isQuickDraft && data.quickDraft) {
+      md += `## Clean Scratchpad\n${data.quickDraft.formattedNotes}\n\n`;
+      md += `## Task Checklist\n`;
+      (data.quickDraft.taskList || []).forEach(t => {
+        md += `* [ ] ${t}\n`;
+      });
+      md += `\n`;
+      md += `## Email Draft\n\`\`\`\n${data.quickDraft.emailDraft}\n\`\`\`\n\n`;
+    } else {
+      md += `## Executive Summary\n${data.summary}\n\n`;
+      
+      md += `## Key Highlights\n`;
+      data.highlights.forEach(h => {
+        md += `* ${h}\n`;
+      });
+      md += `\n`;
 
-    md += `## Key Decisions\n`;
-    data.keyDecisions.forEach(d => {
-      md += `* ${d}\n`;
-    });
-    md += `\n`;
+      md += `## Key Decisions\n`;
+      data.keyDecisions.forEach(d => {
+        md += `* ${d}\n`;
+      });
+      md += `\n`;
 
-    md += `## Next Actions\n`;
-    data.nextActions.forEach((a, i) => {
-      md += `${i + 1}. ${a}\n`;
-    });
-    md += `\n`;
+      md += `## Next Actions\n`;
+      data.nextActions.forEach((a, i) => {
+        md += `${i + 1}. ${a}\n`;
+      });
+      md += `\n`;
+    }
 
     if (includeTranscript) {
       md += `## Full Transcript\n\n`;
@@ -355,6 +414,100 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const getEmailFormat = () => {
+    const formattedDate = new Date(data.meetingDate).toLocaleString(language === 'portuguese' ? 'pt-PT' : 'en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+    
+    const clientStr = data.clientName ? ` - ${data.clientName}` : '';
+    
+    if (language === 'portuguese') {
+      return `Assunto: Resumo de Reunião: ${data.title}${clientStr} (${formattedDate})
+
+Olá a todos,
+
+Espero que estejam bem.
+
+Aqui está o resumo executivo, decisões tomadas e os próximos passos definidos na nossa reunião realizada em ${formattedDate}:
+
+### 📋 Resumo Executivo
+${data.summary}
+
+### ✨ Destaques Principais
+${data.highlights.map(h => `• ${h}`).join('\n')}
+
+${data.keyDecisions.length > 0 ? `### ⚖️ Decisões Chave\n${data.keyDecisions.map(d => `• ${d}`).join('\n')}\n` : ''}
+### 🚀 Próximos Passos
+${data.nextActions.map((a, i) => `${i + 1}. [ ] ${a}`).join('\n')}
+
+Se tiverem alguma dúvida ou sugestão de alteração, por favor avisem.
+
+Melhores cumprimentos,
+[A equipa]`;
+    } else {
+      return `Subject: Meeting Summary: ${data.title}${clientStr} (${formattedDate})
+
+Hi everyone,
+
+Hope you're doing well.
+
+Here is a quick summary, key decisions, and next steps from our meeting held on ${formattedDate}:
+
+### 📋 Executive Summary
+${data.summary}
+
+### ✨ Key Highlights
+${data.highlights.map(h => `• ${h}`).join('\n')}
+
+${data.keyDecisions.length > 0 ? `### ⚖️ Key Decisions\n${data.keyDecisions.map(d => `• ${d}`).join('\n')}\n` : ''}
+### 🚀 Next Actions
+${data.nextActions.map((a, i) => `${i + 1}. [ ] ${a}`).join('\n')}
+
+Please let me know if you have any questions or corrections.
+
+Best regards,
+[The team]`;
+    }
+  };
+
+  const getCrmFormat = () => {
+    const formattedDate = new Date(data.meetingDate).toLocaleString(language === 'portuguese' ? 'pt-PT' : 'en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+    
+    const clientStr = data.clientName ? data.clientName : 'N/A';
+    
+    return `[MEETING LOG]
+Client: ${clientStr}
+Meeting: ${data.title}
+Date: ${formattedDate}
+
+----------------------------------------
+SUMMARY:
+${data.summary}
+
+HIGHLIGHTS:
+${data.highlights.map(h => `- ${h}`).join('\n')}
+
+${data.keyDecisions.length > 0 ? `DECISIONS:\n${data.keyDecisions.map(d => `- ${d}`).join('\n')}\n` : ''}
+ACTION ITEMS:
+${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
+----------------------------------------`;
+  };
+
+  const copyTemplate = async (type: 'email' | 'crm') => {
+    try {
+      const content = type === 'email' ? getEmailFormat() : getCrmFormat();
+      await navigator.clipboard.writeText(content);
+      setCopiedType(type);
+      setTimeout(() => setCopiedType(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy template: ', err);
     }
   };
 
@@ -439,24 +592,43 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
     doc.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 15;
 
-    // Summary
-    addWrappedText('EXECUTIVE SUMMARY', 12, true, [100, 100, 100]);
-    addWrappedText(data.summary, 11, false, [20, 20, 20]);
-    yPos += 5;
+    if (data.isQuickDraft && data.quickDraft) {
+      // Scratchpad
+      addWrappedText('CLEAN SCRATCHPAD', 12, true, [100, 100, 100]);
+      addWrappedText(data.quickDraft.formattedNotes || '', 11, false, [20, 20, 20]);
+      yPos += 5;
 
-    // Highlights
-    addWrappedText('KEY HIGHLIGHTS', 12, true, [100, 100, 100]);
-    data.highlights.forEach((h, i) => {
-      addWrappedText(`${i + 1}. ${h}`, 10, false, [40, 40, 40]);
-    });
-    yPos += 5;
+      // Tasks
+      addWrappedText('TASK CHECKLIST', 12, true, [100, 100, 100]);
+      (data.quickDraft.taskList || []).forEach((t, idx) => {
+        addWrappedText(`[ ] ${t}`, 10, false, [40, 40, 40]);
+      });
+      yPos += 5;
 
-    // Next Actions
-    addWrappedText('NEXT ACTIONS', 12, true, [100, 100, 100]);
-    data.nextActions.forEach((a) => {
-      addWrappedText(`[ ] ${a}`, 10, false, [40, 40, 40]);
-    });
-    yPos += 10;
+      // Email
+      addWrappedText('EMAIL DRAFT', 12, true, [100, 100, 100]);
+      addWrappedText(data.quickDraft.emailDraft || '', 11, false, [20, 20, 20]);
+      yPos += 10;
+    } else {
+      // Summary
+      addWrappedText('EXECUTIVE SUMMARY', 12, true, [100, 100, 100]);
+      addWrappedText(data.summary, 11, false, [20, 20, 20]);
+      yPos += 5;
+
+      // Highlights
+      addWrappedText('KEY HIGHLIGHTS', 12, true, [100, 100, 100]);
+      data.highlights.forEach((h, i) => {
+        addWrappedText(`${i + 1}. ${h}`, 10, false, [40, 40, 40]);
+      });
+      yPos += 5;
+
+      // Next Actions
+      addWrappedText('NEXT ACTIONS', 12, true, [100, 100, 100]);
+      data.nextActions.forEach((a) => {
+        addWrappedText(`[ ] ${a}`, 10, false, [40, 40, 40]);
+      });
+      yPos += 10;
+    }
 
     // Transcript
     if (includeTranscript) {
@@ -744,145 +916,448 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
 
         {/* Custom, Clean Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('speakers')}</p>
-              <User size={14} className="text-slate-400 dark:text-slate-550" />
-            </div>
-            <p className="text-xl font-bold text-slate-800 dark:text-white">
-              {data.transcript.reduce((acc, t) => acc.add(t.speaker), new Set()).size}
-            </p>
-          </div>
-          <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('interactions')}</p>
-              <MessageSquare size={14} className="text-slate-400 dark:text-slate-550" />
-            </div>
-            <p className="text-xl font-bold text-slate-800 dark:text-white">
-              {data.transcript.length}
-            </p>
-          </div>
-          <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('decisions')}</p>
-              <Gavel size={14} className="text-slate-400 dark:text-slate-550" />
-            </div>
-            <p className="text-xl font-bold text-slate-800 dark:text-white">
-              {data.keyDecisions.length}
-            </p>
-          </div>
-          <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('pendingActions')}</p>
-              <CheckCircle2 size={14} className="text-slate-400 dark:text-slate-550" />
-            </div>
-            <p className="text-xl font-bold text-slate-800 dark:text-white">
-              {data.nextActions.length}
-            </p>
-          </div>
+          {data.isQuickDraft ? (
+            <>
+              <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                    {language === 'portuguese' ? 'Palavras' : 'Words'}
+                  </p>
+                  <FileText size={14} className="text-slate-400 dark:text-slate-550" />
+                </div>
+                <p className="text-xl font-bold text-slate-800 dark:text-white">
+                  {(data.quickDraft?.formattedNotes || '').split(/\s+/).filter(Boolean).length}
+                </p>
+              </div>
+              <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                    {language === 'portuguese' ? 'Caracteres' : 'Characters'}
+                  </p>
+                  <Hash size={14} className="text-slate-400 dark:text-slate-550" />
+                </div>
+                <p className="text-xl font-bold text-slate-800 dark:text-white">
+                  {(data.quickDraft?.formattedNotes || '').length}
+                </p>
+              </div>
+              <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                    {language === 'portuguese' ? 'Tarefas' : 'Tasks'}
+                  </p>
+                  <CheckCircle2 size={14} className="text-slate-400 dark:text-slate-550" />
+                </div>
+                <p className="text-xl font-bold text-slate-800 dark:text-white">
+                  {(data.quickDraft?.taskList || []).length}
+                </p>
+              </div>
+              <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                    {language === 'portuguese' ? 'Modo' : 'Mode'}
+                  </p>
+                  <Sparkles size={14} className="text-[#1eac82]" />
+                </div>
+                <p className="text-xs font-bold text-[#1eac82] truncate mt-1">
+                  {language === 'portuguese' ? 'Nota de Voz Rápida' : 'Quick Voice Draft'}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('speakers')}</p>
+                  <User size={14} className="text-slate-400 dark:text-slate-550" />
+                </div>
+                <p className="text-xl font-bold text-slate-800 dark:text-white">
+                  {data.transcript.reduce((acc, t) => acc.add(t.speaker), new Set()).size}
+                </p>
+              </div>
+              <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('interactions')}</p>
+                  <MessageSquare size={14} className="text-slate-400 dark:text-slate-550" />
+                </div>
+                <p className="text-xl font-bold text-slate-800 dark:text-white">
+                  {data.transcript.length}
+                </p>
+              </div>
+              <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('decisions')}</p>
+                  <Gavel size={14} className="text-slate-400 dark:text-slate-550" />
+                </div>
+                <p className="text-xl font-bold text-slate-800 dark:text-white">
+                  {data.keyDecisions.length}
+                </p>
+              </div>
+              <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('pendingActions')}</p>
+                  <CheckCircle2 size={14} className="text-slate-400 dark:text-slate-550" />
+                </div>
+                <p className="text-xl font-bold text-slate-800 dark:text-white">
+                  {data.nextActions.length}
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Core Content: Summary & Decisions */}
+        {/* Core Content: Summary & Decisions OR Quick Voice Draft */}
         <div className="lg:col-span-8 space-y-8">
-          
-          {/* Executive Insight Box */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <Sparkles className="text-amber-500 w-4 h-4 shrink-0" />
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('executiveSummary')}</h2>
-              </div>
-              <button 
-                onClick={() => setIsEditingSummary(!isEditingSummary)}
-                className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-slate-900 border border-slate-200 dark:border-white/5 px-3 py-1.5 rounded-lg transition-all bg-white dark:bg-slate-900 shadow-sm"
-              >
-                {isEditingSummary ? t('save') : t('editSummaryWord')}
-              </button>
-            </div>
-            
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm">
-              {isEditingSummary ? (
-                <textarea
-                  autoFocus
-                  value={data.summary}
-                  onChange={(e) => updateData({ ...data, summary: e.target.value })}
-                  onBlur={() => setIsEditingSummary(false)}
-                  className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm leading-relaxed text-slate-800 dark:text-slate-200 min-h-[300px] resize-none font-mono"
-                  placeholder={t('enterStrategicAnalysis')}
-                />
-              ) : (
-                <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-bold text-slate-700 dark:text-slate-350">
-                  <ReactMarkdown>{data.summary}</ReactMarkdown>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Key Decisions Checklist */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <Gavel className="text-slate-500 dark:text-slate-400 w-4 h-4 shrink-0" />
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('keyDecisions')}</h2>
-              </div>
-              <button 
-                onClick={() => updateData({ ...data, keyDecisions: [...data.keyDecisions, ''] })}
-                className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors"
-                title={t('addDecision')}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              {data.keyDecisions.map((decision, i) => (
-                <motion.div 
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  key={i}
-                  className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex items-start gap-4 transition-all hover:border-slate-300 dark:hover:border-white/10"
+          {data.isQuickDraft ? (
+            <section className="space-y-6">
+              {/* Tab Selector */}
+              <div className="flex border-b border-slate-200 dark:border-white/5 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveDraftTab('scratchpad')}
+                  className={cn(
+                    "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer",
+                    activeDraftTab === 'scratchpad'
+                      ? "border-[#526C78] dark:border-slate-300 text-slate-900 dark:text-white"
+                      : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  )}
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 mt-2 shrink-0 shadow-[0_0_6px_rgba(16,185,129,0.4)]" />
-                  <textarea
-                    value={decision}
-                    onChange={(e) => {
-                      const newDecisions = [...data.keyDecisions];
-                      newDecisions[i] = e.target.value;
-                      updateData({ ...data, keyDecisions: newDecisions });
-                    }}
-                    placeholder={t('enterDecisionDetails')}
-                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed"
-                    rows={1}
-                    onInput={(e) => {
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = `${target.scrollHeight}px`;
-                    }}
-                  />
+                  <FileText size={14} />
+                  {t('quickDraftDraft') || 'Rascunho'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDraftTab('tasks')}
+                  className={cn(
+                    "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer",
+                    activeDraftTab === 'tasks'
+                      ? "border-[#526C78] dark:border-slate-300 text-slate-900 dark:text-white"
+                      : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  )}
+                >
+                  <CheckCircle2 size={14} />
+                  {t('quickDraftTasks') || 'Tarefas'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDraftTab('email')}
+                  className={cn(
+                    "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer",
+                    activeDraftTab === 'email'
+                      ? "border-[#526C78] dark:border-slate-300 text-slate-900 dark:text-white"
+                      : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  )}
+                >
+                  <Mail size={14} />
+                  {t('quickDraftEmail') || 'Email'}
+                </button>
+              </div>
+
+              {/* Tab Content Card */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm space-y-4">
+                {activeDraftTab === 'scratchpad' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+                      <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                        {t('quickDraftDraft') || 'Rascunho Polido'}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => copyQuickDraftContent('scratchpad')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-white/5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          {copiedType === 'scratchpad' ? (
+                            <>
+                              <Check size={12} className="text-[#1eac82]" />
+                              {language === 'portuguese' ? 'Copiado!' : 'Copied!'}
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={12} />
+                              {t('quickDraftCopy') || 'Copiar'}
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setIsEditingDraftNotes(!isEditingDraftNotes)}
+                          className="px-3 py-1.5 border border-slate-200 dark:border-white/5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          {isEditingDraftNotes ? t('save') : t('editSummaryWord')}
+                        </button>
+                      </div>
+                    </div>
+
+                    {isEditingDraftNotes ? (
+                      <textarea
+                        autoFocus
+                        value={data.quickDraft?.formattedNotes || ''}
+                        onChange={(e) => {
+                          const qd = data.quickDraft || { formattedNotes: '', taskList: [], emailDraft: '' };
+                          updateData({
+                            ...data,
+                            quickDraft: { ...qd, formattedNotes: e.target.value }
+                          });
+                        }}
+                        onBlur={() => setIsEditingDraftNotes(false)}
+                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm leading-relaxed text-slate-800 dark:text-slate-200 min-h-[400px] resize-none font-mono focus:outline-none"
+                      />
+                    ) : (
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed text-slate-700 dark:text-slate-350">
+                        <ReactMarkdown>{data.quickDraft?.formattedNotes || ''}</ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeDraftTab === 'tasks' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+                      <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                        {t('quickDraftTasks') || 'Lista de Tarefas'}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => copyQuickDraftContent('tasks')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-white/5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          {copiedType === 'tasks' ? (
+                            <>
+                              <Check size={12} className="text-[#1eac82]" />
+                              {language === 'portuguese' ? 'Copiado!' : 'Copied!'}
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={12} />
+                              {t('quickDraftCopy') || 'Copiar'}
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            const qd = data.quickDraft || { formattedNotes: '', taskList: [], emailDraft: '' };
+                            updateData({
+                              ...data,
+                              quickDraft: { ...qd, taskList: [...(qd.taskList || []), ''] }
+                            });
+                          }}
+                          className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {(data.quickDraft?.taskList || []).map((task, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="group flex items-center gap-3 bg-slate-50/50 dark:bg-slate-800/10 border border-slate-100 dark:border-white/5 p-3.5 rounded-xl"
+                        >
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500 cursor-pointer accent-[#1eac82]"
+                          />
+                          <input
+                            type="text"
+                            value={task}
+                            onChange={(e) => {
+                              const qd = data.quickDraft || { formattedNotes: '', taskList: [], emailDraft: '' };
+                              const newList = [...(qd.taskList || [])];
+                              newList[i] = e.target.value;
+                              updateData({
+                                ...data,
+                                quickDraft: { ...qd, taskList: newList }
+                              });
+                            }}
+                            className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none"
+                            placeholder="Nova tarefa..."
+                          />
+                          <button
+                            onClick={() => {
+                              const qd = data.quickDraft || { formattedNotes: '', taskList: [], emailDraft: '' };
+                              const newList = (qd.taskList || []).filter((_, idx) => idx !== i);
+                              updateData({
+                                ...data,
+                                quickDraft: { ...qd, taskList: newList }
+                              });
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-500 transition-all scale-90 cursor-pointer"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </motion.div>
+                      ))}
+
+                      {(data.quickDraft?.taskList || []).length === 0 && (
+                        <div className="py-12 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
+                          <CheckCircle2 size={24} className="mb-2 text-slate-400" />
+                          <p className="text-xs font-bold uppercase tracking-wider">
+                            {language === 'portuguese' ? 'Nenhuma tarefa detetada' : 'No tasks detected'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {activeDraftTab === 'email' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+                      <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                        {t('quickDraftEmail') || 'Email Gerado'}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => copyQuickDraftContent('email')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-white/5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          {copiedType === 'email' ? (
+                            <>
+                              <Check size={12} className="text-[#1eac82]" />
+                              {language === 'portuguese' ? 'Copiado!' : 'Copied!'}
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={12} />
+                              {t('quickDraftCopy') || 'Copiar'}
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setIsEditingDraftEmail(!isEditingDraftEmail)}
+                          className="px-3 py-1.5 border border-slate-200 dark:border-white/5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          {isEditingDraftEmail ? t('save') : t('editSummaryWord')}
+                        </button>
+                      </div>
+                    </div>
+
+                    {isEditingDraftEmail ? (
+                      <textarea
+                        autoFocus
+                        value={data.quickDraft?.emailDraft || ''}
+                        onChange={(e) => {
+                          const qd = data.quickDraft || { formattedNotes: '', taskList: [], emailDraft: '' };
+                          updateData({
+                            ...data,
+                            quickDraft: { ...qd, emailDraft: e.target.value }
+                          });
+                        }}
+                        onBlur={() => setIsEditingDraftEmail(false)}
+                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm leading-relaxed text-slate-800 dark:text-slate-200 min-h-[400px] resize-none font-mono focus:outline-none"
+                      />
+                    ) : (
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed text-slate-700 dark:text-slate-350 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200/50 dark:border-white/5 whitespace-pre-wrap font-sans">
+                        {data.quickDraft?.emailDraft || ''}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : (
+            <>
+              {/* Executive Insight Box */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="text-amber-500 w-4 h-4 shrink-0" />
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('executiveSummary')}</h2>
+                  </div>
                   <button 
-                    onClick={() => {
-                      const newDecisions = data.keyDecisions.filter((_, idx) => idx !== i);
-                      updateData({ ...data, keyDecisions: newDecisions });
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 mt-0.5"
-                    title={t('delete')}
+                    onClick={() => setIsEditingSummary(!isEditingSummary)}
+                    className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-slate-900 border border-slate-200 dark:border-white/5 px-3 py-1.5 rounded-lg transition-all bg-white dark:bg-slate-900 shadow-sm cursor-pointer"
                   >
-                    <Trash2 size={14} />
+                    {isEditingSummary ? t('save') : t('editSummaryWord')}
                   </button>
-                </motion.div>
-              ))}
-              {data.keyDecisions.length === 0 && (
-                <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
-                  <Gavel size={24} className="mb-2 text-slate-400" />
-                  <p className="text-xs font-bold uppercase tracking-wider">{t('noDecisionsRecorded')}</p>
                 </div>
-              )}
-            </div>
-          </section>
+                
+                <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm">
+                  {isEditingSummary ? (
+                    <textarea
+                      autoFocus
+                      value={data.summary}
+                      onChange={(e) => updateData({ ...data, summary: e.target.value })}
+                      onBlur={() => setIsEditingSummary(false)}
+                      className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm leading-relaxed text-slate-800 dark:text-slate-200 min-h-[300px] resize-none font-mono focus:outline-none"
+                      placeholder={t('enterStrategicAnalysis')}
+                    />
+                  ) : (
+                    <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-bold text-slate-700 dark:text-slate-350">
+                      <ReactMarkdown>{data.summary}</ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Key Decisions Checklist */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <Gavel className="text-slate-500 dark:text-slate-400 w-4 h-4 shrink-0" />
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('keyDecisions')}</h2>
+                  </div>
+                  <button 
+                    onClick={() => updateData({ ...data, keyDecisions: [...data.keyDecisions, ''] })}
+                    className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
+                    title={t('addDecision')}
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  {data.keyDecisions.map((decision, i) => (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      key={i}
+                      className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex items-start gap-4 transition-all hover:border-slate-300 dark:hover:border-white/10"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 mt-2 shrink-0 shadow-[0_0_6px_rgba(16,185,129,0.4)]" />
+                      <textarea
+                        value={decision}
+                        onChange={(e) => {
+                          const newDecisions = [...data.keyDecisions];
+                          newDecisions[i] = e.target.value;
+                          updateData({ ...data, keyDecisions: newDecisions });
+                        }}
+                        placeholder={t('enterDecisionDetails')}
+                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed focus:outline-none"
+                        rows={1}
+                        onInput={(e) => {
+                          const target = e.target as HTMLTextAreaElement;
+                          target.style.height = 'auto';
+                          target.style.height = `${target.scrollHeight}px`;
+                        }}
+                      />
+                      <button 
+                        onClick={() => {
+                          const newDecisions = data.keyDecisions.filter((_, idx) => idx !== i);
+                          updateData({ ...data, keyDecisions: newDecisions });
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 mt-0.5 cursor-pointer"
+                        title={t('delete')}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </motion.div>
+                  ))}
+                  {data.keyDecisions.length === 0 && (
+                    <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
+                      <Gavel size={24} className="mb-2 text-slate-400" />
+                      <p className="text-xs font-bold uppercase tracking-wider">{t('noDecisionsRecorded')}</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </>
+          )}
         </div>
 
         {/* Sidebar Space: Highlights, Actions & Exports */}
@@ -936,14 +1411,69 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
                 File (.md)
               </button>
               <button 
-                onClick={downloadJSON}
+                onClick={downloadPDF}
                 className="px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center rounded-lg transition-colors"
-                title={t('downloadJsonFile')}
+                title="Download PDF"
               >
-                File (.json)
+                File (.pdf)
               </button>
             </div>
           </div>
+
+          {/* Quick Copy Templates (Email, CRM) */}
+          {!data.isQuickDraft && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {t('copyTemplatesHeader')}
+              </span>
+
+              <div className="space-y-3">
+                {/* Team Email Template */}
+                <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Mail size={15} className="text-[#1eac82]" />
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        {t('copyEmailFormat')}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => copyTemplate('email')}
+                      className="p-1.5 hover:bg-[#1eac82]/10 text-slate-400 hover:text-[#1eac82] rounded-lg transition-all cursor-pointer"
+                      title={t('copyEmailFormat')}
+                    >
+                      {copiedType === 'email' ? <Check size={14} className="text-[#1eac82]" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                  <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
+                    {t('copyEmailFormatDesc')}
+                  </p>
+                </div>
+
+                {/* CRM Format Template */}
+                <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Database size={15} className="text-indigo-500" />
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        {t('copyCrmFormat')}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => copyTemplate('crm')}
+                      className="p-1.5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 rounded-lg transition-all cursor-pointer"
+                      title={t('copyCrmFormat')}
+                    >
+                      {copiedType === 'crm' ? <Check size={14} className="text-indigo-500" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                  <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
+                    {t('copyCrmFormatDesc')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Highlights Section */}
           <section className="space-y-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm">
@@ -997,57 +1527,59 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
           </section>
 
           {/* Immediate Next Actions Checklist */}
-          <section className="space-y-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('nextActions')}</h3>
-              <button 
-                onClick={() => updateData({ ...data, nextActions: [...data.nextActions, ''] })}
-                className="w-7 h-7 border border-slate-200 dark:border-white/5 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-            
-            <div className="space-y-3 pt-1">
-              {data.nextActions.map((action, i) => (
-                <motion.div 
-                  key={i}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="group bg-slate-50/50 dark:bg-slate-800/20 border border-slate-100 dark:border-white/5 p-3 rounded-xl flex items-start gap-3 transition-all"
+          {!data.isQuickDraft && (
+            <section className="space-y-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('nextActions')}</h3>
+                <button 
+                  onClick={() => updateData({ ...data, nextActions: [...data.nextActions, ''] })}
+                  className="w-7 h-7 border border-slate-200 dark:border-white/5 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <span className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-white/5 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0 mt-0.5">
-                    {i + 1}
-                  </span>
-                  <textarea
-                    value={action}
-                    onChange={(e) => {
-                      const newActions = [...data.nextActions];
-                      newActions[i] = e.target.value;
-                      updateData({ ...data, nextActions: newActions });
-                    }}
-                    className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-xs font-semibold text-slate-700 dark:text-slate-200 leading-normal resize-none"
-                    rows={1}
-                    onInput={(e) => {
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = `${target.scrollHeight}px`;
-                    }}
-                  />
-                  <button 
-                    onClick={() => {
-                      const newActions = data.nextActions.filter((_, idx) => idx !== i);
-                      updateData({ ...data, nextActions: newActions });
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0"
+                  <Plus size={14} />
+                </button>
+              </div>
+              
+              <div className="space-y-3 pt-1">
+                {data.nextActions.map((action, i) => (
+                  <motion.div 
+                    key={i}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="group bg-slate-50/50 dark:bg-slate-800/20 border border-slate-100 dark:border-white/5 p-3 rounded-xl flex items-start gap-3 transition-all"
                   >
-                    <Trash2 size={13} />
-                  </button>
-                </motion.div>
-              ))}
-            </div>
-          </section>
+                    <span className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-white/5 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <textarea
+                      value={action}
+                      onChange={(e) => {
+                        const newActions = [...data.nextActions];
+                        newActions[i] = e.target.value;
+                        updateData({ ...data, nextActions: newActions });
+                      }}
+                      className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-xs font-semibold text-slate-700 dark:text-slate-200 leading-normal resize-none focus:outline-none"
+                      rows={1}
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = `${target.scrollHeight}px`;
+                      }}
+                    />
+                    <button 
+                      onClick={() => {
+                        const newActions = data.nextActions.filter((_, idx) => idx !== i);
+                        updateData({ ...data, nextActions: newActions });
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 cursor-pointer"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            </section>
+          )}
         </aside>
       </div>
 
@@ -1073,12 +1605,7 @@ ${data.transcript.map(t => `[${t.timestamp}] ${t.speaker.toUpperCase()}: ${t.tex
               />
               <label htmlFor="includeTranscriptBottom" className="text-[10px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer uppercase tracking-wider">{t('includeInExport')}</label>
             </div>
-            <button 
-              onClick={downloadOnlyTranscript}
-              className="px-4 py-2 border border-slate-200/80 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 bg-white dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all"
-            >
-              {t('exportTranscriptTxt')}
-            </button>
+            {/* No other buttons */}
           </div>
         </div>
 

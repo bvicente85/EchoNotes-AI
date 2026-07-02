@@ -11,6 +11,14 @@ export interface MeetingReport {
   transcript: { speaker: string; text: string; timestamp: string }[];
   clientName?: string;
   meetingDate?: string;
+  isQuickDraft?: boolean;
+  quickDraft?: {
+    formattedNotes: string;
+    taskList: string[];
+    emailDraft: string;
+  };
+  manualNotes?: string;
+  template?: string;
 }
 
 export class MeetingAnalysisError extends Error {
@@ -26,7 +34,11 @@ export async function generateMeetingReport(
   detailLevel: string = 'detailed', 
   language: string = 'english',
   optimizeLowVolume: boolean = false,
-  expectedSpeakers?: string[]
+  expectedSpeakers?: string[],
+  isQuickDraft: boolean = false,
+  manualNotes?: string,
+  template: string = 'standard',
+  customTerms?: string
 ): Promise<MeetingReport> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "") {
@@ -36,36 +48,68 @@ export async function generateMeetingReport(
   const lowVolumeInstruction = optimizeLowVolume 
     ? "The audio recording has low volume or background noise. Use advanced signal processing and context reasoning to accurately transcribe every word. Pay extra attention to faint voices."
     : "";
-
   const summaryInstruction = detailLevel === 'concise' 
     ? "Provide a very concise executive summary (max 3 sentences)." 
     : "Provide a detailed executive summary covering all key aspects.";
+  
+  const templateInstruction = `Template to follow: ${template}. Adjust structure and tone based on this template: if 'client_meeting', focus on client needs, relationship building, and agreed action items; if 'internal_meeting', focus on team alignment, operational clarity, and accountability; if 'brainstorming', be creative, capture all ideas, and identify potential paths forward; if 'standard', provide a balanced, comprehensive summary.`;
+
+  const customTermsInstruction = customTerms && customTerms.trim() !== ""
+    ? `IMPORTANT: The following terms are specific to the user and must be recognized and spelled correctly in the transcript and summary (do NOT autocorrect these to similar sounding words): ${customTerms}.`
+    : "";
 
   const speakersInstruction = expectedSpeakers && expectedSpeakers.length > 0
     ? `The expected speaking participants in this session are: ${expectedSpeakers.join(', ')}.
        Map these voice signatures carefully and attribute them to these specified names logical to the speech content (e.g. if someone identifies themselves or by contextual flow, map the voices to their corresponding name from the expected participants list). Try to tag dialogue to these names respectively, otherwise fallback to Speaker A / Speaker B only if there's absolutely no matching speaker.`
     : "Determine speaker names sequentially (e.g. Speaker A, Speaker B).";
+  
+  const notesInstruction = manualNotes 
+    ? `User's manual notes taken during the meeting (Prioritize these in analysis as key focus areas):\n${manualNotes}`
+    : "";
 
-  const prompt = `
+  const prompt = isQuickDraft ? `
+    You are an expert personal assistant and speech-to-text formatter. This is NOT a standard meeting, but rather a Quick Voice Draft ("Nota de Voz Rápida").
+    The user is recording a quick personal note, a thought, a walk-and-talk idea, or a direct voice dictation.
+    Goals: Clean up verbal clutter (remove "humm", "like", "you know", hesitations, repeated words), and format the transcribed speech into a beautiful, highly useful personal note:
+        1. "summary" field: Provide a short, friendly, and descriptive title or 1-sentence description of this quick draft (e.g., "Ideia para nova funcionalidade").
+    2. "highlights" field: Summarize the main thoughts expressed (as a brief array of bullet points).
+    3. "keyDecisions" field: Keep empty array unless explicit conclusions are made (keep as string[]).
+    4. "nextActions" field: Keep empty array unless explicit tasks/to-dos are dictated.
+    5. "isQuickDraft" field: Set to true.
+    6. "quickDraft" field: Structure the voice draft beautifully. Populate it with:
+       - "formattedNotes": A clean scratchpad / markdown block formatting the transcription elegantly (with nice paragraphs, clean bullet points, or polished narrative style).
+       - "taskList": A structured list of tasks/to-dos extracted from the dictation.
+       - "emailDraft": A professional email draft based on what the user was talking about, formatted with a Subject line and clean greetings, ready to copy and paste.
+    7. "transcript" field: Provide the word-for-word transcript with speaker identification ("Utilizador" or "User") and timestamps.
+    LANGUAGE REQUIREMENTS:
+    - Output language for summary, highlights, decisions, formattedNotes, taskList, emailDraft and next actions: ${language}.
+    - IF THE LANGUAGE IS PORTUGUESE: You MUST use EUROPEAN PORTUGUESE (PT-PT).
+    - CRITICAL: Use correct UTF-8 encoding for Portuguese characters (ã, á, é, ç, í, ó, etc.). 
+     - Ensure all accents (agudo, circunflexo, til, grave) are correctly applied. Do NOT use escape sequences. 
+     - VOCABULARY: Use "planeamento" (not planejamento), "equipa" (not equipe), "utilizador" (not usuário).
+    - The transcript remains in the original language spoken.
+    ${customTermsInstruction}
+  ` : `
     You are an expert business analyst and scribe. Analyze the following meeting audio.
-    
+        
     ${lowVolumeInstruction}
     ${speakersInstruction}
-    
+    ${templateInstruction}
+    ${notesInstruction}
+    ${customTermsInstruction}
+
     Goals: Capture essence, outcomes, and specific commitments.
-    
-    1. ${summaryInstruction} Use Markdown for headers or bolding.
+        1. ${summaryInstruction} Use Markdown for headers or bolding.
     2. "Key Highlights": Most important topics and data points.
     3. "Key Decisions": Agreements, approvals, or conclusions.
     4. "Next Actions": Concrete tasks with owners and deadlines.
     5. "Comprehensive Transcript": Full word-for-word transcript with speaker identification and timestamps.
-
     LANGUAGE REQUIREMENTS:
     - Output language for summary, highlights, decisions, and next actions: ${language}.
     - IF THE LANGUAGE IS PORTUGUESE: You MUST use EUROPEAN PORTUGUESE (PT-PT).
     - CRITICAL: Use correct UTF-8 encoding for Portuguese characters (ã, á, é, ç, í, ó, etc.). 
-    - Ensure all accents (agudo, circunflexo, til, grave) are correctly applied. Do NOT use escape sequences. 
-    - VOCABULARY: Use "planeamento" (not planejamento), "equipa" (not equipe), "utilizador" (not usuário).
+     - Ensure all accents (agudo, circunflexo, til, grave) are correctly applied. Do NOT use escape sequences. 
+     - VOCABULARY: Use "planeamento" (not planejamento), "equipa" (not equipe), "utilizador" (not usuário).
     - The transcript remains in the original language spoken.
   `;
 
@@ -113,6 +157,16 @@ export async function generateMeetingReport(
                     required: ["speaker", "text", "timestamp"],
                   },
                 },
+                isQuickDraft: { type: Type.BOOLEAN },
+                quickDraft: {
+                  type: Type.OBJECT,
+                  properties: {
+                    formattedNotes: { type: Type.STRING },
+                    taskList: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    emailDraft: { type: Type.STRING }
+                  },
+                  required: ["formattedNotes", "taskList", "emailDraft"]
+                }
               },
               required: ["summary", "highlights", "keyDecisions", "nextActions", "transcript"],
             },
@@ -340,7 +394,7 @@ export async function postProcessReport(report: MeetingReport, language: string)
             parts: [{ text: prompt }]
           }
         ],
-        config: {
+          config: {
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -360,6 +414,16 @@ export async function postProcessReport(report: MeetingReport, language: string)
                   },
                   required: ["speaker", "text", "timestamp"],
                 },
+              },
+              isQuickDraft: { type: Type.BOOLEAN },
+              quickDraft: {
+                type: Type.OBJECT,
+                properties: {
+                  formattedNotes: { type: Type.STRING },
+                  taskList: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  emailDraft: { type: Type.STRING }
+                },
+                required: ["formattedNotes", "taskList", "emailDraft"]
               },
               clientName: { type: Type.STRING },
               meetingDate: { type: Type.STRING },

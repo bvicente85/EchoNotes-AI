@@ -180,6 +180,22 @@ export interface TranslationKeys {
   audioPlaybackSpeed: string;
   audioPlayerLoading: string;
   audioPlayerNotFound: string;
+  copyTemplatesHeader: string;
+  copyEmailFormat: string;
+  copyEmailFormatDesc: string;
+  copyCrmFormat: string;
+  copyCrmFormatDesc: string;
+  copiedEmail: string;
+  copiedCrm: string;
+  sessionTypeTitle: string;
+  sessionTypeMeeting: string;
+  sessionTypeMeetingDesc: string;
+  sessionTypeQuickDraft: string;
+  sessionTypeQuickDraftDesc: string;
+  quickDraftDraft: string;
+  quickDraftTasks: string;
+  quickDraftEmail: string;
+  quickDraftCopy: string;
 }
 
 export const translations: Record<'portuguese' | 'english' | string, TranslationKeys> = {
@@ -355,7 +371,23 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     audioPlayerPause: "Pausar",
     audioPlaybackSpeed: "Velocidade de Reprodução",
     audioPlayerLoading: "A carregar áudio...",
-    audioPlayerNotFound: "Nenhum áudio local armazenado para esta sessão"
+    audioPlayerNotFound: "Nenhum áudio local armazenado para esta sessão",
+    copyTemplatesHeader: "Copiar Formatos Rápidos",
+    copyEmailFormat: "Copiar Email de Equipa",
+    copyEmailFormatDesc: "Formatado como uma atualização de email pronta a enviar para a sua equipa.",
+    copyCrmFormat: "Copiar Formato CRM",
+    copyCrmFormatDesc: "Registo conciso otimizado para colar no Salesforce, HubSpot ou CRM.",
+    copiedEmail: "Formato de email copiado!",
+    copiedCrm: "Formato CRM copiado!",
+    sessionTypeTitle: "Tipo de Gravação",
+    sessionTypeMeeting: "👥 Reunião de Equipa",
+    sessionTypeMeetingDesc: "Gerar atas de reunião completas com sumário, decisões e próximos passos estruturados.",
+    sessionTypeQuickDraft: "⚡ Nota de Voz Rápida",
+    sessionTypeQuickDraftDesc: "Formatar ideias rápidas ou ditado de áudio diretamente num rascunho polido e pronto a usar.",
+    quickDraftDraft: "Bloco de Notas Limpo",
+    quickDraftTasks: "Lista de Tarefas",
+    quickDraftEmail: "Rascunho de E-mail",
+    quickDraftCopy: "Copiar Bloco"
   },
   english: {
     welcomeBack: "Welcome Back",
@@ -529,6 +561,22 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     audioPlayerPause: "Pause",
     audioPlaybackSpeed: "Playback Speed",
     audioPlayerLoading: "Loading audio...",
-    audioPlayerNotFound: "No local audio stored for this session"
+    audioPlayerNotFound: "No local audio stored for this session",
+    copyTemplatesHeader: "Copy Quick Templates",
+    copyEmailFormat: "Copy Team Email",
+    copyEmailFormatDesc: "Formatted as a professional email update ready to send to your team or client.",
+    copyCrmFormat: "Copy CRM Format",
+    copyCrmFormatDesc: "Concise log format optimized for pasting into Salesforce, HubSpot, or any CRM.",
+    copiedEmail: "Email format copied!",
+    copiedCrm: "CRM format copied!",
+    sessionTypeTitle: "Recording Type",
+    sessionTypeMeeting: "👥 Team Meeting",
+    sessionTypeMeetingDesc: "Generate complete meeting minutes with executive summary, decisions, and structured next steps.",
+    sessionTypeQuickDraft: "⚡ Quick Voice Draft",
+    sessionTypeQuickDraftDesc: "Format quick thoughts or speech dictation directly into a polished, copy-paste-ready draft.",
+    quickDraftDraft: "Clean Scratchpad",
+    quickDraftTasks: "Task Checklist",
+    quickDraftEmail: "Email Draft",
+    quickDraftCopy: "Copy Section"
   }
 };
