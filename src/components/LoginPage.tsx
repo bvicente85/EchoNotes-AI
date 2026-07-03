@@ -60,7 +60,7 @@ export function LoginPage() {
           className={cn(
             "px-3 py-1.5 rounded-xl text-xs font-black tracking-wider transition-all border",
             language === 'portuguese'
-              ? "bg-blue-600 dark:bg-blue-500 text-white border-transparent shadow-xs"
+              ? "bg-app-accent text-white border-transparent shadow-xs"
               : "glass text-app-fg/50 hover:text-app-fg border-slate-200/50 dark:border-white/5"
           )}
         >
@@ -71,7 +71,7 @@ export function LoginPage() {
           className={cn(
             "px-3 py-1.5 rounded-xl text-xs font-black tracking-wider transition-all border",
             language === 'english'
-              ? "bg-blue-600 dark:bg-blue-500 text-white border-transparent shadow-xs"
+              ? "bg-app-accent text-white border-transparent shadow-xs"
               : "glass text-app-fg/50 hover:text-app-fg border-slate-200/50 dark:border-white/5"
           )}
         >
@@ -87,7 +87,7 @@ export function LoginPage() {
         <div className="bg-app-card rounded-3xl shadow-2xl overflow-hidden border border-app-border">
           <div className="p-8 md:p-12">
             <div className="flex flex-col items-center mb-10">
-              <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center mb-4 border border-slate-250/10 shadow-md text-[#114B5F] dark:text-[#38bdf8]">
+              <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center mb-4 border border-slate-250/10 shadow-md text-app-accent">
                 <EchoNotesLogoIcon className="w-11 h-11" />
               </div>
               <h1 className="text-3xl font-display font-bold tracking-tight text-slate-800 dark:text-white">
@@ -108,7 +108,7 @@ export function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-app-bg border border-app-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-slate-800 dark:text-white placeholder:text-app-brown/30"
+                    className="w-full bg-app-bg border border-app-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/10 focus:border-app-accent transition-all text-slate-800 dark:text-white placeholder:text-app-brown/30"
                     placeholder="name@company.com"
                   />
                 </div>
@@ -123,7 +123,7 @@ export function LoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-app-bg border border-app-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-app-fg placeholder:text-app-brown/20"
+                    className="w-full bg-app-bg border border-app-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg placeholder:text-app-brown/20"
                     placeholder="••••••••"
                   />
                 </div>
@@ -135,7 +135,7 @@ export function LoginPage() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="flex items-center gap-2 text-rose-600 bg-rose-500/10 p-3 rounded-xl text-xs font-medium border border-rose-500/20"
+                    className="flex items-center gap-2 text-app-accent bg-app-accent/10 p-3 rounded-xl text-xs font-medium border border-app-accent/20"
                   >
                     <AlertCircle size={14} />
                     {error}
@@ -146,7 +146,7 @@ export function LoginPage() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="flex items-center gap-2 text-emerald-600 bg-emerald-500/10 p-3 rounded-xl text-xs font-medium border border-emerald-500/20"
+                    className="flex items-center gap-2 text-app-green bg-app-green/10 p-3 rounded-xl text-xs font-medium border border-app-green/20"
                   >
                     <Sparkles size={14} />
                     {message}
@@ -157,7 +157,7 @@ export function LoginPage() {
               <button 
                 type="submit"
                 disabled={loading}
-                className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl py-4 font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-md disabled:opacity-70 cursor-pointer"
+                className="w-full bg-app-accent hover:opacity-95 text-white rounded-2xl py-4 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-70 cursor-pointer"
               >
                 {loading ? (
                   <Loader2 className="animate-spin" size={20} />
@@ -177,9 +177,9 @@ export function LoginPage() {
                 className="text-sm text-app-brown/60 hover:text-app-fg transition-colors cursor-pointer"
               >
                 {isLogin ? (
-                  <>{t('dontHaveAccount')} <span className="font-bold text-blue-600 dark:text-blue-400">{t('createOne')}</span></>
+                  <>{t('dontHaveAccount')} <span className="font-bold text-app-accent">{t('createOne')}</span></>
                 ) : (
-                  <>{t('alreadyHaveAccount')} <span className="font-bold text-blue-600 dark:text-blue-400">{t('signIn')}</span></>
+                  <>{t('alreadyHaveAccount')} <span className="font-bold text-app-accent">{t('signIn')}</span></>
                 )}
               </button>
             </div>

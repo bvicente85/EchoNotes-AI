@@ -89,7 +89,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
         )}
       >
         <Sparkles className="group-hover:animate-pulse" size={24} />
-        <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white animate-bounce" />
+        <span className="absolute -top-1 -right-1 w-4 h-4 bg-app-green rounded-full border-2 border-white animate-bounce" />
       </button>
 
       {/* Chat Window */}

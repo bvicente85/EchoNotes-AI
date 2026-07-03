@@ -879,7 +879,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
           <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#1eac82]" />
+                <Clock className="w-4 h-4 text-app-green" />
                 <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   {t('audioPlayerTitle')}
                 </h3>
@@ -893,7 +893,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                       className={cn(
                         "px-2 py-1 text-[9px] font-mono font-bold rounded-md border transition-all cursor-pointer",
                         playbackRate === rate
-                          ? "bg-[#1eac82] border-[#1eac82] text-white"
+                          ? "bg-app-green border-app-green text-white"
                           : "bg-slate-50 dark:bg-slate-950 border-slate-200/80 dark:border-white/5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-850"
                       )}
                     >
@@ -906,7 +906,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
 
             {audioLoading ? (
               <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
-                <div className="w-4 h-4 border-2 border-[#1eac82] border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-app-green border-t-transparent rounded-full animate-spin" />
                 <span>{t('audioPlayerLoading')}</span>
               </div>
             ) : audioUrl ? (
@@ -923,7 +923,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                   
                   <button
                     onClick={togglePlay}
-                    className="p-3 bg-[#1eac82] hover:bg-[#178b68] text-white rounded-full transition-colors flex items-center justify-center shadow-sm cursor-pointer"
+                    className="p-3 bg-app-green hover:opacity-90 text-white rounded-full transition-colors flex items-center justify-center shadow-sm cursor-pointer"
                   >
                     {isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
                   </button>
@@ -950,10 +950,10 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                       max={duration || 100}
                       value={currentTime}
                       onChange={handleSeekChange}
-                      className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#1eac82] focus:outline-none"
+                      className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-app-green focus:outline-none"
                     />
                     <div 
-                      className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-[#1eac82] rounded-lg pointer-events-none"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-app-green rounded-lg pointer-events-none"
                       style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
                     />
                   </div>
@@ -979,7 +979,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                       step={0.05}
                       value={isMuted ? 0 : volume}
                       onChange={handleVolumeChange}
-                      className="w-16 h-1 bg-slate-150 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#1eac82]"
+                      className="w-16 h-1 bg-slate-150 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-app-green"
                     />
                   </div>
                 </div>
@@ -1042,9 +1042,9 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                   <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     {language === 'portuguese' ? 'Modo' : 'Mode'}
                   </p>
-                  <Sparkles size={14} className="text-[#1eac82]" />
+                  <Sparkles size={14} className="text-app-green" />
                 </div>
-                <p className="text-xs font-bold text-[#1eac82] truncate mt-1">
+                <p className="text-xs font-bold text-app-green truncate mt-1">
                   {language === 'portuguese' ? 'Nota de Voz Rápida' : 'Quick Voice Draft'}
                 </p>
               </div>
@@ -1156,7 +1156,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                         >
                           {copiedType === 'scratchpad' ? (
                             <>
-                              <Check size={12} className="text-[#1eac82]" />
+                              <Check size={12} className="text-app-green" />
                               {language === 'portuguese' ? 'Copiado!' : 'Copied!'}
                             </>
                           ) : (
@@ -1210,7 +1210,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                         >
                           {copiedType === 'tasks' ? (
                             <>
-                              <Check size={12} className="text-[#1eac82]" />
+                              <Check size={12} className="text-app-green" />
                               {language === 'portuguese' ? 'Copiado!' : 'Copied!'}
                             </>
                           ) : (
@@ -1245,7 +1245,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                         >
                           <input
                             type="checkbox"
-                            className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500 cursor-pointer accent-[#1eac82]"
+                            className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500 cursor-pointer accent-app-green"
                           />
                           <input
                             type="text"
@@ -1303,7 +1303,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                         >
                           {copiedType === 'email' ? (
                             <>
-                              <Check size={12} className="text-[#1eac82]" />
+                              <Check size={12} className="text-app-green" />
                               {language === 'portuguese' ? 'Copiado!' : 'Copied!'}
                             </>
                           ) : (
@@ -1582,17 +1582,17 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                   <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Mail size={15} className="text-[#1eac82]" />
+                        <Mail size={15} className="text-app-green" />
                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                           {t('copyEmailFormat')}
                         </span>
                       </div>
                       <button
                         onClick={() => copyTemplate('email')}
-                        className="p-1.5 hover:bg-[#1eac82]/10 text-slate-400 hover:text-[#1eac82] rounded-lg transition-all cursor-pointer"
+                        className="p-1.5 hover:bg-app-green/10 text-slate-400 hover:text-app-green rounded-lg transition-all cursor-pointer"
                         title={t('copyEmailFormat')}
                       >
-                        {copiedType === 'email' ? <Check size={14} className="text-[#1eac82]" /> : <Copy size={14} />}
+                        {copiedType === 'email' ? <Check size={14} className="text-app-green" /> : <Copy size={14} />}
                       </button>
                     </div>
                     <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
@@ -1604,17 +1604,17 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                   <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Database size={15} className="text-indigo-500" />
+                        <Database size={15} className="text-app-green" />
                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                           {t('copyCrmFormat')}
                         </span>
                       </div>
                       <button
                         onClick={() => copyTemplate('crm')}
-                        className="p-1.5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 rounded-lg transition-all cursor-pointer"
+                        className="p-1.5 hover:bg-app-green/10 text-slate-400 hover:text-app-green rounded-lg transition-all cursor-pointer"
                         title={t('copyCrmFormat')}
                       >
-                        {copiedType === 'crm' ? <Check size={14} className="text-indigo-500" /> : <Copy size={14} />}
+                        {copiedType === 'crm' ? <Check size={14} className="text-app-green" /> : <Copy size={14} />}
                       </button>
                     </div>
                     <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
@@ -1665,14 +1665,14 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
               onClick={downloadWord}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold transition-all cursor-pointer"
             >
-              <FileText size={15} className="text-blue-500" /> {t('exportWord')}
+              <FileText size={15} className="text-app-green" /> {t('exportWord')}
             </button>
 
             <button 
               onClick={downloadMarkdown}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold transition-all cursor-pointer"
             >
-              <Hash size={15} className="text-[#1eac82]" /> {t('exportMarkdown')}
+              <Hash size={15} className="text-app-green" /> {t('exportMarkdown')}
             </button>
           </div>
         </aside>
@@ -1755,7 +1755,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                     {audioUrl ? (
                       <button 
                         onClick={() => handleJumpToTimestamp(entry.timestamp)}
-                        className="text-[9px] font-mono font-semibold text-[#1eac82] hover:underline uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 bg-[#1eac82]/10 px-1.5 py-0.5 rounded-sm hover:scale-105"
+                        className="text-[9px] font-mono font-semibold text-app-green hover:underline uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 bg-app-green/10 px-1.5 py-0.5 rounded-sm hover:scale-105"
                         title={language === 'portuguese' ? "Clique para ouvir este trecho do áudio" : "Click to play this section of the audio"}
                       >
                         <Play size={8} className="fill-current" />

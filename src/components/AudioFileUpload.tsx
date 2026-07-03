@@ -127,7 +127,7 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
                 </div>
                 <button 
                   onClick={() => setFile(null)}
-                  className="p-1.5 hover:bg-rose-500/10 rounded-full transition-colors text-slate-400 hover:text-rose-500"
+                  className="p-1.5 hover:bg-app-accent/10 rounded-full transition-colors text-slate-400 hover:text-app-accent"
                 >
                   <X size={16} />
                 </button>
@@ -193,7 +193,7 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
 
       <div className="mt-6 flex items-center justify-between text-[10px] text-slate-400 font-mono uppercase tracking-wider px-2">
         <div className="flex items-center gap-1.5">
-          <CheckCircle2 size={12} className="text-emerald-500" />
+          <CheckCircle2 size={12} className="text-app-green" />
           {t('supportedFormatsText')}
         </div>
         <div>{t('maxSizeText')}</div>

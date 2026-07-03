@@ -744,7 +744,7 @@ export default function App() {
                     className={cn(
                       "flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all relative active:scale-98 cursor-pointer",
                       sessionType === 'meeting'
-                        ? "bg-blue-500/5 dark:bg-blue-400/5 border-blue-500 dark:border-blue-400 ring-1 ring-blue-500/30 dark:ring-blue-400/30"
+                        ? "bg-app-accent/5 dark:bg-app-accent/10 border-app-accent ring-1 ring-app-accent/30"
                         : "bg-transparent border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
                     )}
                   >
@@ -763,7 +763,7 @@ export default function App() {
                     className={cn(
                       "flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all relative active:scale-98 cursor-pointer",
                       sessionType === 'quick_draft'
-                        ? "bg-blue-500/5 dark:bg-blue-400/5 border-blue-500 dark:border-blue-400 ring-1 ring-blue-500/30 dark:ring-blue-400/30"
+                        ? "bg-app-accent/5 dark:bg-app-accent/10 border-app-accent ring-1 ring-app-accent/30"
                         : "bg-transparent border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
                     )}
                   >
@@ -792,7 +792,7 @@ export default function App() {
                       value={expectedSpeakers}
                       onChange={(e) => setExpectedSpeakers(e.target.value)}
                       placeholder={t('expectedSpeakersPlaceholder')}
-                      className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/30 dark:focus:border-blue-400"
+                      className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-app-accent/30 focus:border-app-accent"
                     />
                   </div>
                   <div className="space-y-2">
@@ -802,7 +802,7 @@ export default function App() {
                     <select
                       value={template}
                       onChange={(e) => setTemplate(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/30 dark:focus:border-blue-400"
+                      className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-app-accent/30 focus:border-app-accent"
                     >
                       <option value="standard">Padrão</option>
                       <option value="client_meeting">Reunião com cliente</option>
@@ -834,7 +834,7 @@ export default function App() {
                   className={cn(
                     "flex-1 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer",
                     recordingMode === 'mic' 
-                      ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/40 dark:border-white/5" 
+                      ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs border border-slate-200/40 dark:border-white/5" 
                       : "text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-slate-100"
                   )}
                 >
@@ -846,7 +846,7 @@ export default function App() {
                   className={cn(
                     "flex-1 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer",
                     recordingMode === 'system' 
-                      ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/40 dark:border-white/5" 
+                      ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs border border-slate-200/40 dark:border-white/5" 
                       : "text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-slate-100"
                   )}
                 >
@@ -858,7 +858,7 @@ export default function App() {
                   className={cn(
                     "flex-1 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer",
                     recordingMode === 'upload' 
-                      ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/40 dark:border-white/5" 
+                      ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs border border-slate-200/40 dark:border-white/5" 
                       : "text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-slate-100"
                   )}
                 >
@@ -883,7 +883,7 @@ export default function App() {
                       className="glass p-4 rounded-xl max-w-md text-center space-y-2.5 border border-slate-200/40 dark:border-white/5 w-full bg-slate-50/50 dark:bg-slate-950/30"
                     >
                       <p className="text-[10px] text-slate-550 dark:text-slate-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-                        <Monitor size={12} className="text-blue-500" />
+                        <Monitor size={12} className="text-app-green" />
                         {language === 'portuguese' ? 'Configuração de Reunião Virtual' : 'Virtual Meeting Setup'}
                       </p>
                       <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed text-left space-y-1.5 px-1">
@@ -905,21 +905,21 @@ export default function App() {
 
                   <div className="relative flex items-center justify-center py-4">
                     {/* Pulsing Backing Rings */}
-                    <div className="absolute w-44 h-44 rounded-full bg-blue-500/5 dark:bg-blue-400/5 animate-pulse-ring pointer-events-none" />
-                    <div className="absolute w-36 h-36 rounded-full border border-blue-500/10 dark:border-blue-400/10 pointer-events-none" />
+                    <div className="absolute w-44 h-44 rounded-full bg-app-accent/5 animate-pulse-ring pointer-events-none" />
+                    <div className="absolute w-36 h-36 rounded-full border border-app-accent/10 pointer-events-none" />
                     
                     <button
                       onClick={startRecording}
-                      className="relative z-10 w-36 h-36 rounded-full flex flex-col items-center justify-center transition-all duration-300 group active:scale-98 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-50 text-white dark:text-slate-900 shadow-xl border border-slate-800 dark:border-slate-200/10 cursor-pointer"
+                      className="relative z-10 w-36 h-36 rounded-full flex flex-col items-center justify-center transition-all duration-300 group active:scale-98 bg-app-accent text-white shadow-xl border border-app-accent/10 cursor-pointer"
                     >
                       <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
-                      <Mic size={28} className="relative z-10 text-blue-400 dark:text-blue-600 group-hover:scale-110 transition-transform duration-300" />
+                      <Mic size={28} className="relative z-10 text-white group-hover:scale-110 transition-transform duration-300" />
                       <span className="mt-3 font-mono text-[8px] tracking-[0.2em] uppercase font-bold relative z-10 opacity-90">{t('startSession')}</span>
-                      <div className="absolute bottom-8 w-10 h-0.5 bg-slate-500/20 dark:bg-slate-300/30 rounded-full overflow-hidden">
+                      <div className="absolute bottom-8 w-10 h-0.5 bg-white/20 rounded-full overflow-hidden">
                         <motion.div 
                           animate={{ x: ['-100%', '100%'] }}
                           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                          className="w-full h-full bg-blue-500 dark:bg-blue-600 opacity-80"
+                          className="w-full h-full bg-white opacity-80"
                         />
                       </div>
                     </button>
@@ -937,13 +937,13 @@ export default function App() {
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 glass px-4 py-1.5 rounded-full border border-rose-500/20 shadow-lg"
+                className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 glass px-4 py-1.5 rounded-full border border-app-accent/20 shadow-lg"
               >
                 <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-app-accent/70"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-app-accent"></span>
                 </span>
-                <span className="text-[10px] font-black uppercase tracking-widest text-rose-600">Live Recording</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-app-accent">Live Recording</span>
               </motion.div>
               
               <div className="absolute inset-0 flex items-center justify-center">
@@ -967,7 +967,7 @@ export default function App() {
 
               <button
                 onClick={stopRecording}
-                className="relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all duration-300 group active:scale-98 bg-rose-500 text-white shadow-lg overflow-hidden border border-rose-400 cursor-pointer"
+                className="relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all duration-300 group active:scale-98 bg-app-accent text-white shadow-lg overflow-hidden border border-app-accent/40 cursor-pointer"
               >
                 <motion.div 
                   initial={{ scale: 0.8 }}
@@ -1054,17 +1054,17 @@ export default function App() {
                   className={cn(
                     "w-full flex flex-col gap-1 items-start px-3.5 py-2.5 rounded-xl text-xs font-medium border transition-all duration-300 shadow-xs",
                     audioInputQuality === 'optimal' 
-                      ? "bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                      ? "bg-app-green/5 text-app-green border-app-green/20"
                       : audioInputQuality === 'too-low'
-                      ? "bg-amber-500/5 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 animate-pulse"
-                      : "bg-rose-500/5 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 animate-bounce"
+                      ? "bg-app-gold/5 text-app-gold border-app-gold/30 animate-pulse"
+                      : "bg-app-accent/5 text-app-accent border-app-accent/30 animate-bounce"
                   )}
                 >
                   <div className="w-full flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <span className={cn(
                         "flex h-2 w-2 rounded-full",
-                        audioInputQuality === 'optimal' ? "bg-emerald-500" : audioInputQuality === 'too-low' ? "bg-amber-500" : "bg-rose-500"
+                        audioInputQuality === 'optimal' ? "bg-app-green" : audioInputQuality === 'too-low' ? "bg-app-gold" : "bg-app-accent"
                       )} />
                       <span className="font-bold uppercase tracking-wider text-[9px] opacity-80">{t('audioQualityStatus')}</span>
                     </div>
@@ -1087,7 +1087,7 @@ export default function App() {
                       key={i}
                       className={cn(
                         "flex-1 rounded-t-[1px] transition-colors duration-200",
-                        audioInputQuality === 'optimal' ? "bg-emerald-500/60" : audioInputQuality === 'too-low' ? "bg-amber-500/50" : "bg-rose-500/80"
+                        audioInputQuality === 'optimal' ? "bg-app-green/60" : audioInputQuality === 'too-low' ? "bg-app-gold/50" : "bg-app-accent/80"
                       )}
                       animate={{ height: `${Math.max(4, (value / 255) * 100)}%` }}
                       transition={{ duration: 0.1 }}
@@ -1235,7 +1235,7 @@ export default function App() {
                       </button>
                       <button 
                         onClick={handleSignOut}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 text-left transition-colors"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl text-app-accent hover:bg-app-accent/10 hover:text-app-accent text-left transition-colors"
                       >
                         <LogOut size={14} />
                         {t('signOut')}
@@ -1277,7 +1277,7 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setIsClearingAll(true)}
-                      className="p-2 text-app-accent dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
+                      className="p-2 text-app-accent dark:text-slate-400 hover:text-app-accent hover:bg-app-accent/10 rounded-lg transition-all cursor-pointer"
                       title={t('clearHistory')}
                     >
                       <Trash2 size={18} />
@@ -1446,7 +1446,7 @@ export default function App() {
                                   e.stopPropagation();
                                   handleDeleteHistory(item.id, e);
                                 }}
-                                className="p-1 text-slate-400 hover:text-rose-500 transition-all rounded"
+                                className="p-1 text-slate-400 hover:text-app-accent transition-all rounded"
                                 title={t('delete')}
                               >
                                 <Trash2 size={13} />
@@ -1562,7 +1562,7 @@ export default function App() {
               className="bg-app-card w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center border border-app-border"
               onClick={e => e.stopPropagation()}
             >
-              <div className="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trash2 size={24} />
               </div>
               <h3 className="text-lg font-bold mb-2 text-app-fg">
@@ -1585,7 +1585,7 @@ export default function App() {
                 </button>
                 <button 
                   onClick={isClearingAll ? confirmClearAll : confirmDelete}
-                  className="flex-1 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold transition-colors"
+                  className="flex-1 px-4 py-2 bg-app-accent hover:opacity-90 text-white rounded-xl font-bold transition-colors"
                 >
                   {t('delete')}
                 </button>
@@ -1611,7 +1611,7 @@ export default function App() {
               className="bg-app-card w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center border border-app-border"
               onClick={e => e.stopPropagation()}
             >
-              <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 bg-app-gold/10 text-app-gold rounded-full flex items-center justify-center mx-auto mb-4">
                 <Sparkles size={24} />
               </div>
               <h3 className="text-lg font-bold mb-2 text-app-fg">
@@ -1623,7 +1623,7 @@ export default function App() {
               <div className="flex gap-3">
                 <button 
                   onClick={handleDiscardBackup}
-                  className="flex-1 px-4 py-2 bg-app-bg hover:bg-app-card text-rose-500 border border-app-border rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
+                  className="flex-1 px-4 py-2 bg-app-bg hover:bg-app-card text-app-accent border border-app-border rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
                 >
                   {t('discardRecovery')}
                 </button>
@@ -1663,7 +1663,7 @@ export default function App() {
                   <div className="text-center space-y-3 max-w-2xl">
                     <h2 className="text-3xl md:text-4xl font-sans font-bold leading-tight tracking-tight text-slate-800 dark:text-white">
                       {t('recordMeetingsTitle')} <br />
-                      <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500 bg-clip-text text-transparent dark:from-blue-400 dark:via-indigo-300 dark:to-emerald-400 font-extrabold">{t('extractIntelligence')}</span>
+                      <span className="bg-gradient-to-r from-app-accent via-app-green to-app-gold bg-clip-text text-transparent font-extrabold">{t('extractIntelligence')}</span>
                     </h2>
                     <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-normal px-4 max-w-lg mx-auto">
                       {t('dashboardDesc')}
@@ -1857,13 +1857,13 @@ export default function App() {
                         <motion.div 
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 glass px-4 py-1.5 rounded-full border border-rose-500/20 shadow-lg"
+                          className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 glass px-4 py-1.5 rounded-full border border-app-accent/20 shadow-lg"
                         >
                           <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-app-accent/70"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-app-accent"></span>
                           </span>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-rose-600">Live Recording</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-app-accent">Live Recording</span>
                         </motion.div>
                       )}
                       
@@ -1893,8 +1893,8 @@ export default function App() {
                         className={cn(
                           "relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all duration-300 group active:scale-98",
                           isRecording 
-                            ? "bg-rose-500 text-white shadow-lg overflow-hidden border border-rose-400" 
-                            : "bg-[#1E293B] hover:bg-[#334155] dark:bg-white dark:hover:bg-slate-100 text-white dark:text-[#1E293B] shadow-md border border-slate-200/20 dark:border-white/5"
+                            ? "bg-app-accent text-white shadow-lg overflow-hidden border border-app-accent/20" 
+                            : "bg-app-fg hover:opacity-90 text-app-bg shadow-md border border-app-border"
                         )}
                       >
                         {/* Premium Button Glass/Bevel Effect */}
@@ -2036,10 +2036,10 @@ export default function App() {
                             className={cn(
                               "w-full flex flex-col gap-1 items-start px-3.5 py-2.5 rounded-xl text-xs font-medium border transition-all duration-300 shadow-xs",
                               audioInputQuality === 'optimal' 
-                                ? "bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                ? "bg-app-green/5 text-app-green border-app-green/20"
                                 : audioInputQuality === 'too-low'
-                                ? "bg-amber-500/5 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 animate-pulse"
-                                : "bg-rose-500/5 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 animate-bounce"
+                                ? "bg-app-gold/5 text-app-gold border-app-gold/30 animate-pulse"
+                                : "bg-app-accent/5 text-app-accent border-app-accent/30 animate-bounce"
                             )}
                           >
                             <div className="w-full flex items-center justify-between">
@@ -2047,10 +2047,10 @@ export default function App() {
                                 <span className={cn(
                                   "flex h-2 w-2 rounded-full",
                                   audioInputQuality === 'optimal' 
-                                    ? "bg-emerald-500" 
+                                    ? "bg-app-green" 
                                     : audioInputQuality === 'too-low' 
-                                    ? "bg-amber-500" 
-                                    : "bg-rose-500"
+                                    ? "bg-app-gold" 
+                                    : "bg-app-accent"
                                 )} />
                                 <span className="font-bold uppercase tracking-wider text-[9px] opacity-80">{t('audioQualityStatus')}</span>
                               </div>
@@ -2075,10 +2075,10 @@ export default function App() {
                                 className={cn(
                                   "flex-1 rounded-t-[1px] transition-colors duration-200",
                                   audioInputQuality === 'optimal' 
-                                    ? "bg-emerald-500/60" 
+                                    ? "bg-app-green/60" 
                                     : audioInputQuality === 'too-low' 
-                                    ? "bg-amber-500/50" 
-                                    : "bg-rose-500/80"
+                                    ? "bg-app-gold/50" 
+                                    : "bg-app-accent/80"
                                 )}
                                 animate={{ height: `${Math.max(4, (value / 255) * 100)}%` }}
                                 transition={{ duration: 0.1 }}

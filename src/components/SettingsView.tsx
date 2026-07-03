@@ -150,7 +150,7 @@ export function SettingsView({
           </div>
           <button 
             onClick={onClose}
-            className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 transition-colors text-app-fg"
+            className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-app-accent/10 hover:text-app-accent transition-colors text-app-fg"
           >
             <X size={20} />
           </button>
@@ -319,7 +319,7 @@ export function SettingsView({
                   <span className="text-[10px] font-black uppercase tracking-wider text-app-fg/40">
                     {t('storageUsed')}:
                   </span>
-                  <span className="text-xs font-mono font-bold text-[#1eac82]">
+                  <span className="text-xs font-mono font-bold text-app-green">
                     {storageBytes !== null ? formatBytes(storageBytes) : '...'}
                   </span>
                 </div>
@@ -333,8 +333,8 @@ export function SettingsView({
                   storageBytes === 0
                     ? "opacity-50 cursor-not-allowed text-app-fg/30"
                     : storageClearedSuccess
-                    ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
-                    : "text-rose-500 hover:bg-rose-500/10 border-rose-500/10"
+                    ? "text-app-green bg-app-green/10 border-app-green/20"
+                    : "text-app-accent hover:bg-app-accent/10 border-app-accent/10"
                 )}
               >
                 {storageClearedSuccess ? (
@@ -365,7 +365,7 @@ export function SettingsView({
             </div>
             <button 
               onClick={onSignOut}
-              className="flex items-center gap-2 px-5 py-2.5 text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all text-xs font-black uppercase tracking-widest glass"
+              className="flex items-center gap-2 px-5 py-2.5 text-app-accent hover:bg-app-accent/10 rounded-2xl transition-all text-xs font-black uppercase tracking-widest glass"
             >
               <LogOut size={16} /> {t('signOut')}
             </button>
@@ -385,7 +385,7 @@ export function SettingsView({
             className={cn(
               "flex items-center gap-3 px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all shadow-md",
               isSaved 
-                ? "bg-emerald-500 text-white shadow-emerald-500/20" 
+                ? "bg-app-green text-white" 
                 : "bg-app-accent hover:opacity-90 dark:bg-app-accent dark:text-[#131924] text-white font-bold hover:scale-[1.02] active:scale-98"
             )}
           >

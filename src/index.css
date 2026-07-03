@@ -21,59 +21,108 @@
   --color-app-brown: var(--app-brown);
   --color-app-cream: var(--app-cream);
   
-  --color-blueberry: #6B7A8F;
-  --color-apricot: #F7882F;
-  --color-citrus: #F7C331;
-  --color-apple-core: #DCC7AA;
+  --color-blueberry: #5c483a;
+  --color-apricot: #cf6123;
+  --color-citrus: #f3c363;
+  --color-apple-core: #f1e9bb;
+
+  /* Redefine system colors to map exclusively to the 5-color palette */
+  --color-slate-50: #faf7e6;
+  --color-slate-100: #f1e9bb;
+  --color-slate-200: #e3dab0;
+  --color-slate-300: #f3c363;
+  --color-slate-400: #cf6123;
+  --color-slate-500: #5c483a;
+  --color-slate-600: #5c483a;
+  --color-slate-700: #5c483a;
+  --color-slate-800: #5c483a;
+  --color-slate-900: #5c483a;
+  --color-slate-950: #44352a;
+
+  --color-zinc-50: #faf7e6;
+  --color-zinc-100: #f1e9bb;
+  --color-zinc-200: #e3dab0;
+  --color-zinc-300: #f3c363;
+  --color-zinc-400: #cf6123;
+  --color-zinc-500: #5c483a;
+  --color-zinc-600: #5c483a;
+  --color-zinc-700: #5c483a;
+  --color-zinc-800: #5c483a;
+  --color-zinc-900: #5c483a;
+  --color-zinc-950: #44352a;
+
+  --color-gray-50: #faf7e6;
+  --color-gray-100: #f1e9bb;
+  --color-gray-200: #e3dab0;
+  --color-gray-300: #f3c363;
+  --color-gray-400: #cf6123;
+  --color-gray-500: #5c483a;
+  --color-gray-600: #5c483a;
+  --color-gray-700: #5c483a;
+  --color-gray-800: #5c483a;
+  --color-gray-900: #5c483a;
+  --color-gray-950: #44352a;
+
+  --color-emerald-50: #faf7e6;
+  --color-emerald-100: #f1e9bb;
+  --color-emerald-500: #cf6123;
+  --color-emerald-600: #c92c2c;
+  --color-emerald-700: #c92c2c;
+
+  --color-green-500: #cf6123;
+  --color-green-600: #c92c2c;
+
+  --color-rose-500: #c92c2c;
+  --color-rose-600: #c92c2c;
 }
 
 @layer base {
   :root {
-    /* Base Colors - Alegre e Lustroso (Cheerful and Lustrous) */
-    --app-bg: #FAF8F5;  /* Warm editorial sand/cream tint derived from Apple Core */
-    --app-fg: #2C3540;  /* Rich deep blueberry-ink charcoal */
+    /* Base Colors - Exclusively matching the custom 5-color palette */
+    --app-bg: #f1e9bb;  /* Color 4: Soft Cream */
+    --app-fg: #5c483a;  /* Color 5: Warm Dark Brown */
     
-    --app-accent: #6B7A8F; /* Blueberry slate blue */
-    --app-card: #FFFFFF;   /* Clean white cards to contrast with warm sand background */
-    --app-border: rgba(107, 122, 143, 0.12); /* Thin elegant borders based on Blueberry */
+    --app-accent: #c92c2c; /* Color 1: Deep Red */
+    --app-card: #faf7e6;   /* Extra soft tinted cream derived from Color 4 */
+    --app-border: rgba(92, 72, 58, 0.25); /* Thin borders using Color 5 */
     
-    --app-green: #F7882F; /* Warm Apricot as our primary action/record button and success highlight */
-    --app-dark-green: #E06C15; /* Deeper apricot tone */
-    --app-gold: #F7C331;  /* Cheerful warm Citrus */
-    --app-light-gold: #FCF6E5; /* Citrus soft tint background */
-    --app-brown: #6B7A8F;  /* Secondary slate-blue helper text */
-    --app-cream: #F3ECE0;  /* Apple Core cream background elements */
+    --app-green: #cf6123; /* Color 2: Orange */
+    --app-dark-green: #c92c2c; /* Color 1: Deep Red */
+    --app-gold: #f3c363;  /* Color 3: Golden Yellow */
+    --app-light-gold: #faf7e6;
+    --app-brown: #5c483a;  /* Color 5: Warm Dark Brown */
+    --app-cream: #f1e9bb;  /* Color 4: Soft Cream */
 
-    --glass-bg: rgba(255, 255, 255, 0.75);
-    --glass-border: rgba(107, 122, 143, 0.1);
+    --glass-bg: rgba(241, 233, 187, 0.85);
+    --glass-border: rgba(92, 72, 58, 0.15);
   }
 
   .dark {
-    /* Base Colors Dark - Warm rich deep blueberry ink */
-    --app-bg: #131924; /* Very dark slate-blueberry canvas */
-    --app-fg: #FAF9F6; /* Creamy off-white paper text */
-    --app-accent: #8CA3BC; /* Bright premium blueberry blue-gray */
-    --app-card: #1C2433;   /* Rich deep slate-blueberry card bodies */
-    --app-border: rgba(220, 199, 170, 0.14); /* Razor-thin borders based on Apple Core */
+    /* Base Colors Dark - Inverted from the same custom 5-color palette */
+    --app-bg: #44352a; /* Darker tone of Color 5 */
+    --app-fg: #f1e9bb; /* Color 4: Soft Cream */
+    --app-accent: #f3c363; /* Color 3: Golden Yellow */
+    --app-card: #5c483a;   /* Color 5: Warm Dark Brown */
+    --app-border: rgba(241, 233, 187, 0.25); /* Thin borders using Color 4 */
     
-    --app-green: #F7882F; /* Radiating Apricot */
-    --app-dark-green: #3F1D06; /* Dark apricot shadow background */
-    --app-gold: #FBBF24;  /* Glowing Citrus */
-    --app-light-gold: #2C200C; /* Warm contrast background for citrus tags */
-    --app-brown: #8CA3BC;  /* Blueberry slate-blue helper text */
-    --app-cream: #252F42;  /* Medium slate-blueberry elements */
+    --app-green: #cf6123; /* Color 2: Orange */
+    --app-dark-green: #c92c2c; /* Color 1: Deep Red */
+    --app-gold: #f3c363;  /* Color 3: Golden Yellow */
+    --app-light-gold: rgba(243, 195, 99, 0.15);
+    --app-brown: #f1e9bb;  /* Color 4: Soft Cream */
+    --app-cream: #44352a;  /* Darker tone of Color 5 */
 
-    --glass-bg: rgba(28, 36, 51, 0.75);
-    --glass-border: rgba(255, 255, 255, 0.05);
+    --glass-bg: rgba(92, 72, 58, 0.85);
+    --glass-border: rgba(241, 233, 187, 0.15);
   }
 
   body {
     background-color: var(--app-bg);
     color: var(--app-fg);
     background-image: 
-      radial-gradient(at 0% 0%, rgba(247, 136, 47, 0.04) 0px, transparent 40%),
-      radial-gradient(at 100% 0%, rgba(247, 195, 49, 0.03) 0px, transparent 45%),
-      radial-gradient(at 50% 50%, rgba(107, 122, 143, 0.04) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgba(201, 44, 44, 0.05) 0px, transparent 40%),
+      radial-gradient(at 100% 0%, rgba(207, 97, 35, 0.04) 0px, transparent 45%),
+      radial-gradient(at 50% 50%, rgba(92, 72, 58, 0.05) 0px, transparent 50%);
     background-attachment: fixed;
     transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
