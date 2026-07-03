@@ -709,7 +709,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
     <motion.div 
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 pb-32 font-sans text-slate-800 dark:text-slate-200"
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-32 font-sans text-slate-800 dark:text-slate-200"
     >
       {/* Header Section: Minimalist & Clean Title & Metadata */}
       <div className="space-y-6">
@@ -1356,12 +1356,75 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                   )}
                 </div>
               </section>
+
+              {/* Highlights Section */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="text-amber-500 w-4 h-4 shrink-0" />
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('keyHighlights')}</h2>
+                  </div>
+                  <button 
+                    onClick={() => updateData({ ...data, highlights: [...data.highlights, ''] })}
+                    className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
+                    title="Adicionar Destaque"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  {data.highlights.map((item, i) => (
+                    <motion.div 
+                      key={i}
+                      initial={{ opacity: 0, x: 5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex items-start gap-4 transition-all hover:border-slate-300 dark:hover:border-white/10"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0 shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
+                      <textarea
+                        value={item}
+                        onChange={(e) => {
+                          const newHighlights = [...data.highlights];
+                          newHighlights[i] = e.target.value;
+                          updateData({ ...data, highlights: newHighlights });
+                        }}
+                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed focus:outline-none"
+                        rows={1}
+                        onInput={(e) => {
+                          const target = e.target as HTMLTextAreaElement;
+                          target.style.height = 'auto';
+                          target.style.height = `${target.scrollHeight}px`;
+                        }}
+                        placeholder="Novo destaque principal..."
+                      />
+                      <button 
+                        onClick={() => {
+                          const newHighlights = data.highlights.filter((_, idx) => idx !== i);
+                          updateData({ ...data, highlights: newHighlights });
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 mt-0.5 cursor-pointer"
+                        title={t('delete')}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </motion.div>
+                  ))}
+                  {data.highlights.length === 0 && (
+                    <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
+                      <Sparkles size={24} className="mb-2 text-slate-400" />
+                      <p className="text-xs font-bold uppercase tracking-wider">Nenhum destaque registado</p>
+                    </div>
+                  )}
+                </div>
+              </section>
             </>
           )}
         </div>
 
         {/* Sidebar Space: Highlights, Actions & Exports */}
-        <aside className="lg:col-span-4 space-y-6 h-fit lg:sticky lg:top-8">
+        <aside className="lg:col-span-4 space-y-6 h-fit lg:sticky lg:top-28">
           
           {/* Action Panel - Exports & Backups */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4">
@@ -1474,57 +1537,6 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
               </div>
             </div>
           )}
-
-          {/* Highlights Section */}
-          <section className="space-y-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('keyHighlights')}</h3>
-              <button 
-                onClick={() => updateData({ ...data, highlights: [...data.highlights, ''] })}
-                className="w-7 h-7 border border-slate-200 dark:border-white/5 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-            
-            <div className="space-y-3 pt-1">
-              {data.highlights.map((item, i) => (
-                <motion.div 
-                  key={i}
-                  initial={{ opacity: 0, x: 5 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="group relative bg-slate-50/50 dark:bg-slate-800/20 border border-slate-100 dark:border-white/5 px-4 py-3 rounded-xl flex items-start gap-2.5 transition-all"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 mt-2 shrink-0" />
-                  <textarea
-                    value={item}
-                    onChange={(e) => {
-                      const newHighlights = [...data.highlights];
-                      newHighlights[i] = e.target.value;
-                      updateData({ ...data, highlights: newHighlights });
-                    }}
-                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs font-semibold text-slate-700 dark:text-slate-200 leading-relaxed resize-none"
-                    rows={1}
-                    onInput={(e) => {
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = `${target.scrollHeight}px`;
-                    }}
-                  />
-                  <button 
-                    onClick={() => {
-                      const newHighlights = data.highlights.filter((_, idx) => idx !== i);
-                      updateData({ ...data, highlights: newHighlights });
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </motion.div>
-              ))}
-            </div>
-          </section>
 
           {/* Immediate Next Actions Checklist */}
           {!data.isQuickDraft && (

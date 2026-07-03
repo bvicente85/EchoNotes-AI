@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor } from 'lucide-react';
+import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateMeetingReport, MeetingReport, MeetingAnalysisError } from './services/gemini';
 import { AudioFileUpload } from './components/AudioFileUpload';
@@ -10,6 +10,7 @@ import { AskGemini } from './components/AskGemini';
 import { LoginPage } from './components/LoginPage';
 import { SettingsView } from './components/SettingsView';
 import { AdminDashboard } from './components/AdminDashboard';
+import { EchoNotesLogo } from './components/EchoNotesLogo';
 import { saveToHistory, getHistory, deleteFromHistory, updateHistoryItem, clearHistory, HistoryItem, migrateFromLocalStorage } from './services/storage';
 import { cn } from './lib/utils';
 import { useLanguage } from './contexts/LanguageContext';
@@ -41,6 +42,7 @@ export default function App() {
   const [waveform, setWaveform] = useState<number[]>(new Array(64).fill(128));
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedPreviewSessionId, setSelectedPreviewSessionId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [sortField, setSortField] = useState<'date' | 'title'>('date');
@@ -593,19 +595,26 @@ export default function App() {
     setCurrentHistoryId(null);
   };
 
-  const handleUpdateReport = async (updatedReport: MeetingReport) => {
-    if (currentHistoryId && user) {
-      await updateHistoryItem(currentHistoryId, { report: updatedReport });
-      setReport(updatedReport);
+  const handleUpdateReport = async (updatedReport: MeetingReport, customId?: string) => {
+    const idToUpdate = customId || currentHistoryId;
+    if (idToUpdate && user) {
+      await updateHistoryItem(idToUpdate, { report: updatedReport });
+      if (idToUpdate === currentHistoryId) {
+        setReport(updatedReport);
+      }
       const updatedHistory = await getHistory(user.id);
       setHistory(updatedHistory);
     }
   };
 
-  const handleUpdateTitle = async (newTitle: string) => {
-    if (currentHistoryId && user) {
-      const success = await updateHistoryItem(currentHistoryId, { title: newTitle });
+  const handleUpdateTitle = async (newTitle: string, customId?: string) => {
+    const idToUpdate = customId || currentHistoryId;
+    if (idToUpdate && user) {
+      const success = await updateHistoryItem(idToUpdate, { title: newTitle });
       if (success) {
+        if (idToUpdate === currentHistoryId) {
+          // If the title of the active report changed, update state if necessary
+        }
         const updatedHistory = await getHistory(user.id);
         setHistory(updatedHistory);
       }
@@ -707,16 +716,10 @@ export default function App() {
     <div className={`min-h-screen bg-app-bg text-app-fg transition-colors duration-300 font-sans ${theme === 'dark' ? 'dark' : ''}`}>
       <div className="flex flex-col min-h-screen">
         {/* Zen Header */}
-        <header className="h-24 max-w-5xl mx-auto px-6 md:px-8 w-full flex items-center justify-between sticky top-0 z-40 backdrop-blur-md bg-transparent border-none">
+        <header className="h-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between sticky top-0 z-40 backdrop-blur-md bg-transparent border-none">
           {/* Logo */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={handleGoHome}>
-            <div className="w-9 h-9 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-350 border border-slate-205/20 shadow-xs transition-transform hover:scale-105">
-              <Mic size={18} />
-            </div>
-            <div>
-              <h1 className="text-lg font-sans font-semibold tracking-tight leading-none text-slate-800 dark:text-white">EchoNote</h1>
-              <span className="text-[8px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">INTELLIGENCE</span>
-            </div>
+          <div className="cursor-pointer" onClick={handleGoHome}>
+            <EchoNotesLogo />
           </div>
 
           {/* Minimal Navigation Pills */}
@@ -841,62 +844,65 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-slate-950/20 dark:bg-slate-950/40 backdrop-blur-xs flex items-center justify-end"
+            className="fixed inset-0 z-[60] bg-slate-950/20 dark:bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-0 lg:p-6"
             onClick={() => setShowHistory(false)}
           >
             <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="w-full max-w-md h-full bg-slate-50 dark:bg-slate-900 border-l border-slate-200/80 dark:border-white/5 shadow-2xl flex flex-col"
+              initial={{ x: '100%', scale: 1 }}
+              animate={{ x: 0, scale: 1 }}
+              exit={{ x: '100%', scale: 0.95 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+              className="w-full h-full lg:max-w-7xl lg:h-[85vh] lg:rounded-3xl bg-slate-50 dark:bg-slate-900 lg:border border-slate-200/80 dark:border-white/5 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
               onClick={e => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-slate-200/85 dark:border-white/5 bg-white dark:bg-slate-800">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold tracking-tight text-slate-800 dark:text-white">{t('allSessions')}</h2>
+              <div className="p-6 border-b border-slate-200/85 dark:border-white/5 bg-white dark:bg-slate-800 shrink-0">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
+                    <History size={20} className="text-[#526C78]" />
+                    {t('allSessions')}
+                  </h2>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setIsClearingAll(true)}
-                      className="p-2 text-[#526C78] dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+                      className="p-2 text-[#526C78] dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
                       title={t('clearHistory')}
                     >
                       <Trash2 size={18} />
                     </button>
                     <button 
                       onClick={() => setShowHistory(false)}
-                      className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-705 rounded-lg transition-all"
+                      className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-705 rounded-lg transition-all cursor-pointer"
                     >
                       <X size={18} />
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="relative group">
+                <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-center">
+                  <div className="relative group flex-1 max-w-md">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#526C78] transition-colors" size={16} />
                     <input 
                       type="text"
                       placeholder={t('searchPlaceholder')}
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200/75 dark:border-white/5 rounded-xl pl-11 pr-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#526C78]/10 focus:border-[#526C78] transition-all text-slate-800 dark:text-white"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200/75 dark:border-white/5 rounded-xl pl-11 pr-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#526C78]/10 focus:border-[#526C78] transition-all text-slate-800 dark:text-white"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-4">
                     <button 
                       onClick={() => {
                         setSortField(sortField === 'date' ? 'title' : 'date');
                       }}
-                      className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#526C78] transition-colors"
+                      className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#526C78] transition-colors cursor-pointer"
                     >
                       <ArrowUpDown size={11} />
                       {t('sortBy')}: {sortField === 'date' ? t('date') : t('title')}
                     </button>
                     <button 
                       onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                      className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#526C78] transition-colors"
+                      className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#526C78] transition-colors cursor-pointer"
                     >
                       {sortOrder === 'desc' ? t('mostRecent') : t('leastRecent')}
                     </button>
@@ -904,96 +910,189 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                {history.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-200/40 dark:border-white/5">
-                      <History size={24} />
+              <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12">
+                {/* Left Column - Master Sessions List */}
+                <div className="col-span-1 lg:col-span-4 border-r border-slate-200/60 dark:border-white/5 overflow-y-auto p-4 space-y-3 bg-white dark:bg-slate-900/40 custom-scrollbar">
+                  {history.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                      <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-200/40 dark:border-white/5">
+                        <History size={24} />
+                      </div>
+                      <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200 mb-1">{t('noSessionsYet')}</h3>
+                      <p className="text-xs text-slate-400">{t('startRecordingToBegin')}</p>
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200 mb-1">{t('noSessionsYet')}</h3>
-                    <p className="text-xs text-slate-400">{t('startRecordingToBegin')}</p>
-                  </div>
-                ) : (() => {
-                  if (sortedHistory.length === 0) {
+                  ) : (() => {
+                    if (sortedHistory.length === 0) {
+                      return (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                          <p className="text-xs text-slate-400">{t('noSessionsMatch')}</p>
+                        </div>
+                      );
+                    }
+                    return sortedHistory.map((item) => {
+                      const isSelected = item.id === (selectedPreviewSessionId || sortedHistory[0]?.id);
+                      return (
+                        <div 
+                          key={item.id}
+                          onClick={() => {
+                            if (window.innerWidth >= 1024) {
+                              setSelectedPreviewSessionId(item.id);
+                            } else {
+                              handleSelectHistory(item);
+                            }
+                          }}
+                          className={cn(
+                            "group flex flex-col p-4 border rounded-xl cursor-pointer transition-all relative overflow-hidden",
+                            isSelected 
+                              ? "bg-slate-50 dark:bg-slate-800/80 border-[#526C78] dark:border-white/25 shadow-xs" 
+                              : "bg-white dark:bg-slate-800/40 border-slate-200/60 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-xs"
+                          )}
+                        >
+                          {isSelected && (
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#526C78] dark:bg-white" />
+                          )}
+                          
+                          <div className="flex flex-col flex-1 mr-2 overflow-hidden">
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <span className="text-[9px] font-mono text-slate-400 dark:text-slate-455 uppercase tracking-wider">
+                                {item.report.meetingDate 
+                                  ? new Date(item.report.meetingDate).toLocaleDateString() + ' • ' + new Date(item.report.meetingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                  : new Date(item.date).toLocaleDateString() + ' • ' + new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                }
+                              </span>
+                              {item.report.clientName && (
+                                <span className="text-[8px] font-bold text-[#526C78] dark:text-slate-300 uppercase tracking-wider bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
+                                  {item.report.clientName}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {editingId === item.id ? (
+                              <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
+                                <input 
+                                  autoFocus
+                                  value={editingTitle}
+                                  onChange={e => setEditingTitle(e.target.value)}
+                                  onBlur={(e) => handleSaveEdit(item.id, e)}
+                                  className="flex-1 bg-slate-50 dark:bg-slate-900 border border-[#526C78] rounded px-2.5 py-1 text-xs font-medium focus:outline-none ring-2 ring-[#526C78]/10 text-slate-800 dark:text-white"
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') handleSaveEdit(item.id, e);
+                                    if (e.key === 'Escape') setEditingId(null);
+                                  }}
+                                />
+                                <button 
+                                  onMouseDown={e => e.preventDefault()}
+                                  onClick={e => handleSaveEdit(item.id, e)}
+                                  className="text-xs font-bold text-slate-800 dark:text-white hover:opacity-85"
+                                >
+                                  {t('save')}
+                                </button>
+                              </div>
+                            ) : (
+                              <span 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartEdit(item, e);
+                                }}
+                                className="text-slate-800 dark:text-zinc-200 font-semibold text-sm line-clamp-1 hover:text-[#526C78] dark:hover:text-white transition-colors cursor-text leading-tight"
+                                title={t('clickToEditTitle')}
+                              >
+                                {item.title}
+                              </span>
+                            )}
+                            <p className="text-[11px] text-slate-450 dark:text-slate-400 line-clamp-1 mt-1 font-normal leading-relaxed">
+                              {item.report.summary}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 dark:border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectHistory(item);
+                              }}
+                              className="text-[10px] font-bold text-[#526C78] dark:text-slate-300 hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <ExternalLink size={10} />
+                              {language === 'portuguese' ? 'Focar no Painel' : 'Focus on Panel'}
+                            </button>
+                            
+                            <div className="flex gap-1">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartEdit(item, e);
+                                }}
+                                className="p-1 text-slate-400 hover:text-slate-850 dark:hover:text-white transition-all rounded"
+                                title={t('rename')}
+                              >
+                                <Settings size={13} />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteHistory(item.id, e);
+                                }}
+                                className="p-1 text-slate-400 hover:text-rose-500 transition-all rounded"
+                                title={t('delete')}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+
+                {/* Right Column - Detail Session Preview */}
+                <div className="hidden lg:block lg:col-span-8 overflow-y-auto bg-slate-50/50 dark:bg-slate-950/20 custom-scrollbar relative">
+                  {(() => {
+                    const previewItem = sortedHistory.find(h => h.id === (selectedPreviewSessionId || sortedHistory[0]?.id));
+                    if (!previewItem) {
+                      return (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
+                          <Sparkles size={32} className="mb-2 opacity-50" />
+                          <p className="text-sm font-semibold">{language === 'portuguese' ? 'Selecione uma sessão para visualizar' : 'Select a session to view'}</p>
+                        </div>
+                      );
+                    }
                     return (
-                      <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                        <p className="text-xs text-slate-400">{t('noSessionsMatch')}</p>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-4 shadow-sm">
+                          <div>
+                            <p className="text-xs font-bold text-slate-800 dark:text-white">
+                              {language === 'portuguese' ? 'Visualização Rápida de Sessão' : 'Session Quick View'}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-medium">
+                              {language === 'portuguese' ? 'Você pode ver, editar, copiar e interagir com este relatório.' : 'You can view, edit, copy, and interact with this report.'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleSelectHistory(previewItem)}
+                            className="px-4 py-2 bg-[#526C78] dark:bg-white text-white dark:text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 hover:opacity-90 cursor-pointer"
+                          >
+                            <ExternalLink size={14} />
+                            {language === 'portuguese' ? 'Focar no Painel Principal' : 'Focus on Main Panel'}
+                          </button>
+                        </div>
+                        
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-3xl p-6 shadow-sm">
+                          <ReportView 
+                            key={previewItem.id}
+                            report={previewItem.report}
+                            title={previewItem.title}
+                            meetingId={previewItem.id}
+                            onReset={() => {}}
+                            onUpdate={(updatedReport) => handleUpdateReport(updatedReport, previewItem.id)}
+                            onUpdateTitle={(updatedTitle) => handleUpdateTitle(updatedTitle, previewItem.id)}
+                          />
+                        </div>
                       </div>
                     );
-                  }
-                  return sortedHistory.map((item) => (
-                    <div 
-                      key={item.id}
-                      onClick={() => handleSelectHistory(item)}
-                      className="group flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-xs cursor-pointer rounded-xl transition-all"
-                    >
-                      <div className="flex flex-col flex-1 mr-4 overflow-hidden">
-                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <span className="text-[9px] font-mono text-slate-400 dark:text-slate-455 uppercase tracking-wider">
-                            {item.report.meetingDate 
-                              ? new Date(item.report.meetingDate).toLocaleDateString() + ' • ' + new Date(item.report.meetingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                              : new Date(item.date).toLocaleDateString() + ' • ' + new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            }
-                          </span>
-                          {item.report.clientName && (
-                            <span className="text-[8px] font-bold text-[#526C78] dark:text-slate-300 uppercase tracking-wider bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
-                              {item.report.clientName}
-                            </span>
-                          )}
-                        </div>
-                        {editingId === item.id ? (
-                          <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
-                            <input 
-                              autoFocus
-                              value={editingTitle}
-                              onChange={e => setEditingTitle(e.target.value)}
-                              onBlur={(e) => handleSaveEdit(item.id, e)}
-                              className="flex-1 bg-slate-50 dark:bg-slate-900 border border-[#526C78] rounded px-2.5 py-1 text-xs font-medium focus:outline-none ring-2 ring-[#526C78]/10 text-slate-800 dark:text-white"
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') handleSaveEdit(item.id, e);
-                                if (e.key === 'Escape') setEditingId(null);
-                              }}
-                            />
-                            <button 
-                              onMouseDown={e => e.preventDefault()}
-                              onClick={e => handleSaveEdit(item.id, e)}
-                              className="text-xs font-bold text-slate-800 dark:text-white hover:opacity-85"
-                            >
-                              {t('save')}
-                            </button>
-                          </div>
-                        ) : (
-                          <span 
-                            onClick={(e) => handleStartEdit(item, e)}
-                            className="text-slate-800 dark:text-zinc-200 font-semibold text-sm line-clamp-1 hover:text-[#526C78] dark:hover:text-white transition-colors cursor-text leading-tight"
-                            title={t('clickToEditTitle')}
-                          >
-                            {item.title}
-                          </span>
-                        )}
-                        <p className="text-[11px] text-slate-450 dark:text-slate-400 line-clamp-1 mt-1 font-normal leading-relaxed">
-                          {item.report.summary}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button 
-                          onClick={(e) => handleStartEdit(item, e)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all rounded"
-                          title={t('rename')}
-                        >
-                          <Settings size={14} />
-                        </button>
-                        <button 
-                          onClick={(e) => handleDeleteHistory(item.id, e)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-500 transition-all rounded"
-                          title={t('delete')}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ));
-                })()}
+                  })()}
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -1137,7 +1236,7 @@ export default function App() {
           onUpdateTitle={handleUpdateTitle}
         />
       ) : (
-        <main className="max-w-5xl mx-auto px-8 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
           <AnimatePresence mode="wait">
             {!isProcessing ? (
               <motion.div 

@@ -4,6 +4,7 @@ import { Sparkles, Loader2, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-r
 import { getSupabase } from '../supabase';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/LanguageContext';
+import { EchoNotesLogoIcon } from './EchoNotesLogo';
 
 export function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -86,8 +87,8 @@ export function LoginPage() {
         <div className="bg-app-card rounded-3xl shadow-2xl overflow-hidden border border-app-border">
           <div className="p-8 md:p-12">
             <div className="flex flex-col items-center mb-10">
-              <div className="w-12 h-12 bg-app-dark-green rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-                <Sparkles className="text-app-cream" size={24} />
+              <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center mb-4 border border-slate-250/10 shadow-md text-[#114B5F] dark:text-[#38bdf8]">
+                <EchoNotesLogoIcon className="w-11 h-11" />
               </div>
               <h1 className="text-3xl font-display font-bold tracking-tight text-slate-800 dark:text-white">
                 {isLogin ? t('welcomeBack') : t('createAccount')}
