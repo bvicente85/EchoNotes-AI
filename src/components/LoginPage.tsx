@@ -60,7 +60,7 @@ export function LoginPage() {
           className={cn(
             "px-3 py-1.5 rounded-xl text-xs font-black tracking-wider transition-all border",
             language === 'portuguese'
-              ? "bg-[#526C78] text-white border-transparent shadow-sm"
+              ? "bg-blue-600 dark:bg-blue-500 text-white border-transparent shadow-xs"
               : "glass text-app-fg/50 hover:text-app-fg border-slate-200/50 dark:border-white/5"
           )}
         >
@@ -71,7 +71,7 @@ export function LoginPage() {
           className={cn(
             "px-3 py-1.5 rounded-xl text-xs font-black tracking-wider transition-all border",
             language === 'english'
-              ? "bg-[#526C78] text-white border-transparent shadow-sm"
+              ? "bg-blue-600 dark:bg-blue-500 text-white border-transparent shadow-xs"
               : "glass text-app-fg/50 hover:text-app-fg border-slate-200/50 dark:border-white/5"
           )}
         >
@@ -108,7 +108,7 @@ export function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-app-bg border border-app-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-app-green/10 focus:border-app-green transition-all text-slate-800 dark:text-white placeholder:text-app-brown/30"
+                    className="w-full bg-app-bg border border-app-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-slate-800 dark:text-white placeholder:text-app-brown/30"
                     placeholder="name@company.com"
                   />
                 </div>
@@ -123,7 +123,7 @@ export function LoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-app-bg border border-app-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-app-green/10 focus:border-app-green transition-all text-app-fg placeholder:text-app-brown/20"
+                    className="w-full bg-app-bg border border-app-border rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-app-fg placeholder:text-app-brown/20"
                     placeholder="••••••••"
                   />
                 </div>
@@ -157,7 +157,7 @@ export function LoginPage() {
               <button 
                 type="submit"
                 disabled={loading}
-                className="w-full bg-app-dark-green text-app-cream rounded-2xl py-4 font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-xl shadow-app-dark-green/10 disabled:opacity-70"
+                className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl py-4 font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-md disabled:opacity-70 cursor-pointer"
               >
                 {loading ? (
                   <Loader2 className="animate-spin" size={20} />
@@ -174,12 +174,12 @@ export function LoginPage() {
               <button 
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-app-brown/60 hover:text-app-fg transition-colors"
+                className="text-sm text-app-brown/60 hover:text-app-fg transition-colors cursor-pointer"
               >
                 {isLogin ? (
-                  <>{t('dontHaveAccount')} <span className="font-bold text-app-dark-green">{t('createOne')}</span></>
+                  <>{t('dontHaveAccount')} <span className="font-bold text-blue-600 dark:text-blue-400">{t('createOne')}</span></>
                 ) : (
-                  <>{t('alreadyHaveAccount')} <span className="font-bold text-app-dark-green">{t('signIn')}</span></>
+                  <>{t('alreadyHaveAccount')} <span className="font-bold text-blue-600 dark:text-blue-400">{t('signIn')}</span></>
                 )}
               </button>
             </div>

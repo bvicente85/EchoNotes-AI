@@ -20,55 +20,78 @@
   --color-app-light-gold: var(--app-light-gold);
   --color-app-brown: var(--app-brown);
   --color-app-cream: var(--app-cream);
+  
+  --color-blueberry: #6B7A8F;
+  --color-apricot: #F7882F;
+  --color-citrus: #F7C331;
+  --color-apple-core: #DCC7AA;
 }
 
 @layer base {
   :root {
-    /* Base Colors - Suma Slate Clean Theme */
-    --app-bg: #F8FAFC;  /* Off-white very soft */
-    --app-fg: #1E293B;  /* Charcoal slate */
+    /* Base Colors - Alegre e Lustroso (Cheerful and Lustrous) */
+    --app-bg: #FAF8F5;  /* Warm editorial sand/cream tint derived from Apple Core */
+    --app-fg: #2C3540;  /* Rich deep blueberry-ink charcoal */
     
-    --app-accent: #526C78; /* Blueish-gray secondary */
-    --app-card: #FFFFFF;
-    --app-border: rgba(82, 108, 120, 0.15); /* Elegant border */
+    --app-accent: #6B7A8F; /* Blueberry slate blue */
+    --app-card: #FFFFFF;   /* Clean white cards to contrast with warm sand background */
+    --app-border: rgba(107, 122, 143, 0.12); /* Thin elegant borders based on Blueberry */
     
-    --app-green: #10B981; /* Emerald green (success) */
-    --app-dark-green: #0F172A; /* Dark slate */
-    --app-gold: #F59E0B;
-    --app-light-gold: #FEF3C7;
-    --app-brown: #475569;
-    --app-cream: #F1F5F9;
+    --app-green: #F7882F; /* Warm Apricot as our primary action/record button and success highlight */
+    --app-dark-green: #E06C15; /* Deeper apricot tone */
+    --app-gold: #F7C331;  /* Cheerful warm Citrus */
+    --app-light-gold: #FCF6E5; /* Citrus soft tint background */
+    --app-brown: #6B7A8F;  /* Secondary slate-blue helper text */
+    --app-cream: #F3ECE0;  /* Apple Core cream background elements */
 
     --glass-bg: rgba(255, 255, 255, 0.75);
-    --glass-border: rgba(82, 108, 120, 0.12);
+    --glass-border: rgba(107, 122, 143, 0.1);
   }
 
   .dark {
-    --app-bg: #0F172A; /* Deep dark slate representing slate-900 */
-    --app-fg: #F1F5F9;
-    --app-accent: #6CA0BB;
-    --app-card: #1E293B;
-    --app-border: rgba(255, 255, 255, 0.08);
+    /* Base Colors Dark - Warm rich deep blueberry ink */
+    --app-bg: #131924; /* Very dark slate-blueberry canvas */
+    --app-fg: #FAF9F6; /* Creamy off-white paper text */
+    --app-accent: #8CA3BC; /* Bright premium blueberry blue-gray */
+    --app-card: #1C2433;   /* Rich deep slate-blueberry card bodies */
+    --app-border: rgba(220, 199, 170, 0.14); /* Razor-thin borders based on Apple Core */
     
-    --app-green: #34D399;
-    --app-dark-green: #0B0F19; /* Rich elegant midnight dark background for blocks */
-    --app-gold: #FBBF24;
-    --app-light-gold: #F8FAFC; /* Crisp contrast lettering (replaces low contrast dark gray in dark mode) */
-    --app-brown: #94A3B8;
-    --app-cream: #1E293B;
+    --app-green: #F7882F; /* Radiating Apricot */
+    --app-dark-green: #3F1D06; /* Dark apricot shadow background */
+    --app-gold: #FBBF24;  /* Glowing Citrus */
+    --app-light-gold: #2C200C; /* Warm contrast background for citrus tags */
+    --app-brown: #8CA3BC;  /* Blueberry slate-blue helper text */
+    --app-cream: #252F42;  /* Medium slate-blueberry elements */
 
-    --glass-bg: rgba(30, 41, 59, 0.8);
-    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-bg: rgba(28, 36, 51, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.05);
   }
 
   body {
     background-color: var(--app-bg);
     color: var(--app-fg);
     background-image: 
-      radial-gradient(at 0% 0%, rgba(108, 160, 187, 0.03) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(82, 108, 120, 0.03) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgba(247, 136, 47, 0.04) 0px, transparent 40%),
+      radial-gradient(at 100% 0%, rgba(247, 195, 49, 0.03) 0px, transparent 45%),
+      radial-gradient(at 50% 50%, rgba(107, 122, 143, 0.04) 0px, transparent 50%);
     background-attachment: fixed;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
   }
 
   /* Elegantly adjust all Lucide icons to use thin, crisp strokes (1.5px or 2px) */

@@ -197,7 +197,7 @@ export function SettingsView({
                   onClick={() => setDefaultMode('mic')}
                   className={cn(
                     "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                    defaultMode === 'mic' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
+                    defaultMode === 'mic' ? "bg-app-accent text-white dark:bg-app-accent dark:text-[#131924] shadow-xs font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
                   <Mic size={14} /> {t('inPerson')}
@@ -206,7 +206,7 @@ export function SettingsView({
                   onClick={() => setDefaultMode('system')}
                   className={cn(
                     "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                    defaultMode === 'system' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
+                    defaultMode === 'system' ? "bg-app-accent text-white dark:bg-app-accent dark:text-[#131924] shadow-xs font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
                   <Monitor size={14} /> {t('virtualMeeting')}
@@ -228,7 +228,7 @@ export function SettingsView({
                   onClick={() => setTheme('light')}
                   className={cn(
                     "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                    theme === 'light' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
+                    theme === 'light' ? "bg-app-accent text-white dark:bg-app-accent dark:text-[#131924] shadow-xs font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
                   <Sun size={14} /> {t('light')}
@@ -237,7 +237,7 @@ export function SettingsView({
                   onClick={() => setTheme('dark')}
                   className={cn(
                     "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                    theme === 'dark' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
+                    theme === 'dark' ? "bg-app-accent text-white dark:bg-app-accent dark:text-[#131924] shadow-xs font-bold" : "text-app-fg/50 hover:text-app-fg"
                   )}
                 >
                   <Moon size={14} /> {t('dark')}
@@ -274,7 +274,7 @@ export function SettingsView({
                     onClick={() => setSummaryDetail('concise')}
                     className={cn(
                       "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                      summaryDetail === 'concise' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
+                      summaryDetail === 'concise' ? "bg-app-accent text-white dark:bg-app-accent dark:text-[#131924] shadow-xs font-bold" : "text-app-fg/50 hover:text-app-fg"
                     )}
                   >
                     {t('concise')}
@@ -283,7 +283,7 @@ export function SettingsView({
                     onClick={() => setSummaryDetail('detailed')}
                     className={cn(
                       "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                      summaryDetail === 'detailed' ? "bg-[#526C78] text-white dark:bg-[#6CA0BB] dark:text-[#0F172A] shadow-md font-bold" : "text-app-fg/50 hover:text-app-fg"
+                      summaryDetail === 'detailed' ? "bg-app-accent text-white dark:bg-app-accent dark:text-[#131924] shadow-xs font-bold" : "text-app-fg/50 hover:text-app-fg"
                     )}
                   >
                     {t('detailed')}
@@ -355,7 +355,7 @@ export function SettingsView({
           {/* About Section */}
           <section className="pt-8 border-t border-app-border flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-100 dark:bg-white/5 text-[#526C78] dark:text-[#6CA0BB] rounded-2xl flex items-center justify-center border border-slate-200/50 dark:border-white/5 shadow-sm shrink-0">
+              <div className="w-12 h-12 bg-slate-100 dark:bg-white/5 text-app-accent rounded-2xl flex items-center justify-center border border-slate-200/50 dark:border-white/5 shadow-sm shrink-0">
                 <Sparkles size={22} />
               </div>
               <div>
@@ -386,7 +386,7 @@ export function SettingsView({
               "flex items-center gap-3 px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all shadow-md",
               isSaved 
                 ? "bg-emerald-500 text-white shadow-emerald-500/20" 
-                : "bg-[#526C78] hover:bg-[#435761] dark:bg-[#6CA0BB] dark:hover:bg-[#5b8fa8] text-white dark:text-slate-950 font-bold hover:scale-[1.02] active:scale-98"
+                : "bg-app-accent hover:opacity-90 dark:bg-app-accent dark:text-[#131924] text-white font-bold hover:scale-[1.02] active:scale-98"
             )}
           >
             {isSaved ? <Check size={18} /> : <Save size={18} />}

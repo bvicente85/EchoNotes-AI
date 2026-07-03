@@ -157,7 +157,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                   <div className={cn(
                     "p-3 rounded-2xl text-sm leading-relaxed shadow-sm",
                     msg.role === 'user' 
-                      ? "bg-[#526C78] dark:bg-[#526C78]/20 dark:border dark:border-[#526C78]/30 text-white rounded-tr-none font-medium" 
+                      ? "bg-app-accent dark:bg-app-accent/20 dark:border dark:border-app-accent/30 text-white rounded-tr-none font-medium" 
                       : "glass text-app-fg rounded-tl-none"
                   )}>
                     {msg.text}
@@ -191,7 +191,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
                 <button
                   onClick={handleSend}
                   disabled={!query.trim() || isLoading}
-                  className="absolute right-2 p-2 bg-[#526C78] dark:bg-[#6CA0BB] text-white dark:text-[#0F172A] rounded-xl hover:opacity-90 disabled:opacity-50 transition-all"
+                  className="absolute right-2 p-2 bg-app-accent text-white dark:bg-app-accent dark:text-[#131924] rounded-xl hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
                 >
                   <Send size={16} />
                 </button>

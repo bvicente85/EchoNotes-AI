@@ -649,6 +649,92 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
     doc.save(`meeting-report${clientSuffix}-${new Date(data.meetingDate).toISOString().split('T')[0]}.pdf`);
   };
 
+  const downloadWord = () => {
+    const title = data.title;
+    const client = data.clientName ? `<p><strong>Client / Cliente:</strong> ${data.clientName}</p>` : '';
+    const date = `<p><strong>Date / Data:</strong> ${new Date(data.meetingDate).toLocaleString(language === 'portuguese' ? 'pt-PT' : 'en-US')}</p>`;
+    
+    let contentHtml = '';
+    if (data.isQuickDraft && data.quickDraft) {
+      contentHtml = `
+        <h2>${language === 'portuguese' ? 'Bloco de Notas Limpo' : 'Clean Scratchpad'}</h2>
+        <p>${(data.quickDraft.formattedNotes || '').replace(/\n/g, '<br>')}</p>
+        <h2>${language === 'portuguese' ? 'Lista de Tarefas' : 'Task Checklist'}</h2>
+        <ul>
+          ${(data.quickDraft.taskList || []).map(t => `<li>[ ] ${t}</li>`).join('')}
+        </ul>
+        <h2>${language === 'portuguese' ? 'Rascunho de E-mail' : 'Email Draft'}</h2>
+        <p>${(data.quickDraft.emailDraft || '').replace(/\n/g, '<br>')}</p>
+      `;
+    } else {
+      contentHtml = `
+        <h2>${t('executiveSummary')}</h2>
+        <p>${(data.summary || '').replace(/\n/g, '<br>')}</p>
+        <h2>${t('keyHighlights')}</h2>
+        <ul>
+          ${data.highlights.map(h => `<li>${h}</li>`).join('')}
+        </ul>
+        <h2>${t('keyDecisions')}</h2>
+        <ul>
+          ${data.keyDecisions.map(d => `<li>${d}</li>`).join('')}
+        </ul>
+        <h2>${t('nextActions')}</h2>
+        <ol>
+          ${data.nextActions.map(a => `<li>${a}</li>`).join('')}
+        </ol>
+      `;
+    }
+
+    if (includeTranscript && data.transcript && data.transcript.length > 0) {
+      contentHtml += `
+        <h2>${t('fullTranscript')}</h2>
+        ${data.transcript.map(t => `<p><strong>[${t.timestamp}] ${t.speaker.toUpperCase()}:</strong> ${t.text}</p>`).join('')}
+      `;
+    }
+
+    const html = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <title>${title}</title>
+        <!--[if gte mso 9]>
+        <xml>
+          <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+          </w:WordDocument>
+        </xml>
+        <![endif]-->
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+          h1 { color: #1e293b; font-size: 24px; border-bottom: 2px solid #6B7A8F; padding-bottom: 5px; }
+          h2 { color: #6B7A8F; font-size: 18px; margin-top: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; }
+          p, li { font-size: 11pt; color: #334155; }
+          ul, ol { margin-left: 20px; }
+        </style>
+      </head>
+      <body>
+        <h1>${title}</h1>
+        ${client}
+        ${date}
+        <hr/>
+        ${contentHtml}
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const clientSuffix = data.clientName ? `-${data.clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}` : '';
+    link.download = `meeting-report${clientSuffix}-${new Date(data.meetingDate).toISOString().split('T')[0]}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const downloadJSON = () => {
     const exportData = {
       title: data.title,
@@ -1020,7 +1106,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                   className={cn(
                     "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer",
                     activeDraftTab === 'scratchpad'
-                      ? "border-[#526C78] dark:border-slate-300 text-slate-900 dark:text-white"
+                      ? "border-app-accent dark:border-app-accent text-slate-900 dark:text-white"
                       : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   )}
                 >
@@ -1033,7 +1119,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                   className={cn(
                     "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer",
                     activeDraftTab === 'tasks'
-                      ? "border-[#526C78] dark:border-slate-300 text-slate-900 dark:text-white"
+                      ? "border-app-accent dark:border-app-accent text-slate-900 dark:text-white"
                       : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   )}
                 >
@@ -1046,7 +1132,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                   className={cn(
                     "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer",
                     activeDraftTab === 'email'
-                      ? "border-[#526C78] dark:border-slate-300 text-slate-900 dark:text-white"
+                      ? "border-app-accent dark:border-app-accent text-slate-900 dark:text-white"
                       : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   )}
                 >
@@ -1419,6 +1505,124 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                   )}
                 </div>
               </section>
+
+              {/* Next Actions Checklist */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="text-slate-500 dark:text-slate-400 w-4 h-4 shrink-0" />
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('nextActions')}</h2>
+                  </div>
+                  <button 
+                    onClick={() => updateData({ ...data, nextActions: [...data.nextActions, ''] })}
+                    className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
+                    title={t('nextActions')}
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  {data.nextActions.map((action, i) => (
+                    <motion.div 
+                      key={i}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex items-start gap-4 transition-all hover:border-slate-300 dark:hover:border-white/10"
+                    >
+                      <span className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-white/5 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <textarea
+                        value={action}
+                        onChange={(e) => {
+                          const newActions = [...data.nextActions];
+                          newActions[i] = e.target.value;
+                          updateData({ ...data, nextActions: newActions });
+                        }}
+                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed focus:outline-none"
+                        rows={1}
+                        onInput={(e) => {
+                          const target = e.target as HTMLTextAreaElement;
+                          target.style.height = 'auto';
+                          target.style.height = `${target.scrollHeight}px`;
+                        }}
+                        placeholder="Próximo passo..."
+                      />
+                      <button 
+                        onClick={() => {
+                          const newActions = data.nextActions.filter((_, idx) => idx !== i);
+                          updateData({ ...data, nextActions: newActions });
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 mt-0.5 cursor-pointer"
+                        title={t('delete')}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </motion.div>
+                  ))}
+                  {data.nextActions.length === 0 && (
+                    <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
+                      <CheckCircle2 size={24} className="mb-2 text-slate-400" />
+                      <p className="text-xs font-bold uppercase tracking-wider">Nenhum passo seguinte registado</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Quick Copy Templates (Email, CRM) */}
+              <section className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  {t('copyTemplatesHeader')}
+                </span>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Team Email Template */}
+                  <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Mail size={15} className="text-[#1eac82]" />
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          {t('copyEmailFormat')}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => copyTemplate('email')}
+                        className="p-1.5 hover:bg-[#1eac82]/10 text-slate-400 hover:text-[#1eac82] rounded-lg transition-all cursor-pointer"
+                        title={t('copyEmailFormat')}
+                      >
+                        {copiedType === 'email' ? <Check size={14} className="text-[#1eac82]" /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                    <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
+                      {t('copyEmailFormatDesc')}
+                    </p>
+                  </div>
+
+                  {/* CRM Format Template */}
+                  <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Database size={15} className="text-indigo-500" />
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          {t('copyCrmFormat')}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => copyTemplate('crm')}
+                        className="p-1.5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 rounded-lg transition-all cursor-pointer"
+                        title={t('copyCrmFormat')}
+                      >
+                        {copiedType === 'crm' ? <Check size={14} className="text-indigo-500" /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                    <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
+                      {t('copyCrmFormatDesc')}
+                    </p>
+                  </div>
+                </div>
+              </section>
             </>
           )}
         </div>
@@ -1434,7 +1638,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                 <button 
                   onClick={undo} 
                   disabled={!canUndo} 
-                  className="p-1.5 border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-800 rounded-lg disabled:opacity-20 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                  className="p-1.5 border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-800 rounded-lg disabled:opacity-20 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer"
                   title="Desfazer (Ctrl+Z)"
                 >
                   <Undo size={14} />
@@ -1442,7 +1646,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                 <button 
                   onClick={redo} 
                   disabled={!canRedo} 
-                  className="p-1.5 border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-800 rounded-lg disabled:opacity-20 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                  className="p-1.5 border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-800 rounded-lg disabled:opacity-20 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer"
                   title="Refazer (Ctrl+Y)"
                 >
                   <Redo size={14} />
@@ -1452,146 +1656,25 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
 
             <button 
               onClick={downloadPDF}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-bold tracking-wide shadow-sm transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-bold tracking-wide shadow-sm transition-all cursor-pointer"
             >
               <Download size={15} /> {t('exportOfficialPdf')}
             </button>
 
             <button 
-              onClick={() => copyToClipboard('markdown')}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold transition-all"
+              onClick={downloadWord}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold transition-all cursor-pointer"
             >
-              <Hash size={15} /> {t('copyMarkdown')}
+              <FileText size={15} className="text-blue-500" /> {t('exportWord')}
             </button>
 
-            {/* Micro-Dropdown or Secondary Actions list */}
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/50 dark:border-white/5">
-              <button 
-                onClick={downloadMarkdown}
-                className="px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center rounded-lg transition-colors"
-                title={t('downloadMdFile')}
-              >
-                File (.md)
-              </button>
-              <button 
-                onClick={downloadPDF}
-                className="px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center rounded-lg transition-colors"
-                title="Download PDF"
-              >
-                File (.pdf)
-              </button>
-            </div>
+            <button 
+              onClick={downloadMarkdown}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              <Hash size={15} className="text-[#1eac82]" /> {t('exportMarkdown')}
+            </button>
           </div>
-
-          {/* Quick Copy Templates (Email, CRM) */}
-          {!data.isQuickDraft && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                {t('copyTemplatesHeader')}
-              </span>
-
-              <div className="space-y-3">
-                {/* Team Email Template */}
-                <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Mail size={15} className="text-[#1eac82]" />
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                        {t('copyEmailFormat')}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => copyTemplate('email')}
-                      className="p-1.5 hover:bg-[#1eac82]/10 text-slate-400 hover:text-[#1eac82] rounded-lg transition-all cursor-pointer"
-                      title={t('copyEmailFormat')}
-                    >
-                      {copiedType === 'email' ? <Check size={14} className="text-[#1eac82]" /> : <Copy size={14} />}
-                    </button>
-                  </div>
-                  <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
-                    {t('copyEmailFormatDesc')}
-                  </p>
-                </div>
-
-                {/* CRM Format Template */}
-                <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Database size={15} className="text-indigo-500" />
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                        {t('copyCrmFormat')}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => copyTemplate('crm')}
-                      className="p-1.5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 rounded-lg transition-all cursor-pointer"
-                      title={t('copyCrmFormat')}
-                    >
-                      {copiedType === 'crm' ? <Check size={14} className="text-indigo-500" /> : <Copy size={14} />}
-                    </button>
-                  </div>
-                  <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
-                    {t('copyCrmFormatDesc')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Immediate Next Actions Checklist */}
-          {!data.isQuickDraft && (
-            <section className="space-y-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('nextActions')}</h3>
-                <button 
-                  onClick={() => updateData({ ...data, nextActions: [...data.nextActions, ''] })}
-                  className="w-7 h-7 border border-slate-200 dark:border-white/5 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-              
-              <div className="space-y-3 pt-1">
-                {data.nextActions.map((action, i) => (
-                  <motion.div 
-                    key={i}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="group bg-slate-50/50 dark:bg-slate-800/20 border border-slate-100 dark:border-white/5 p-3 rounded-xl flex items-start gap-3 transition-all"
-                  >
-                    <span className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-white/5 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0 mt-0.5">
-                      {i + 1}
-                    </span>
-                    <textarea
-                      value={action}
-                      onChange={(e) => {
-                        const newActions = [...data.nextActions];
-                        newActions[i] = e.target.value;
-                        updateData({ ...data, nextActions: newActions });
-                      }}
-                      className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-xs font-semibold text-slate-700 dark:text-slate-200 leading-normal resize-none focus:outline-none"
-                      rows={1}
-                      onInput={(e) => {
-                        const target = e.target as HTMLTextAreaElement;
-                        target.style.height = 'auto';
-                        target.style.height = `${target.scrollHeight}px`;
-                      }}
-                    />
-                    <button 
-                      onClick={() => {
-                        const newActions = data.nextActions.filter((_, idx) => idx !== i);
-                        updateData({ ...data, nextActions: newActions });
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 cursor-pointer"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
-            </section>
-          )}
         </aside>
       </div>
 

@@ -68,9 +68,9 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
         className={cn(
           "relative group border border-dashed rounded-2xl p-8 transition-all duration-300 flex flex-col items-center justify-center min-h-[300px]",
           dragActive 
-            ? "border-[#526C78] bg-[#526C78]/5 ring-4 ring-[#526C78]/5" 
-            : "border-slate-200 dark:border-white/5 bg-white dark:bg-[#1E293B]/60 hover:border-slate-350 dark:hover:border-white/10 hover:shadow-sm",
-          file && "border-solid border-slate-200 dark:border-white/5 bg-[#526C78]/5"
+            ? "border-app-accent bg-app-accent/5 ring-4 ring-app-accent/5" 
+            : "border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/60 hover:border-slate-350 dark:hover:border-white/10 hover:shadow-xs",
+          file && "border-solid border-slate-200 dark:border-white/5 bg-app-accent/5"
         )}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -103,7 +103,7 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
               </p>
               <button
                 onClick={onButtonClick}
-                className="bg-[#1E293B] hover:bg-[#334155] dark:bg-slate-100 dark:hover:bg-white text-white dark:text-[#1E293B] px-6 py-2.5 rounded-lg text-xs font-semibold shadow-sm transition-all active:scale-98"
+                className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-50 text-white dark:text-slate-900 px-6 py-2.5 rounded-lg text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer"
               >
                 {t('browseFilesButton')}
               </button>
@@ -116,7 +116,7 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
               className="w-full"
             >
               <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200/50 dark:border-white/5 mb-6">
-                <div className="w-10 h-10 bg-white dark:bg-slate-700 text-[#526C78] dark:text-slate-300 rounded-lg flex items-center justify-center border border-slate-200/40 dark:border-white/5 shrink-0">
+                <div className="w-10 h-10 bg-white dark:bg-slate-700 text-app-accent rounded-lg flex items-center justify-center border border-slate-200/40 dark:border-white/5 shrink-0">
                   <FileAudio size={20} />
                 </div>
                 <div className="flex-1 overflow-hidden">
@@ -139,15 +139,15 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
                   className={cn(
                     "flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all border",
                     optimizeLowVolume 
-                      ? "bg-[#526C78]/10 dark:bg-[#526C78]/20 border-transparent text-slate-800 dark:text-white" 
+                      ? "bg-app-accent/10 dark:bg-app-accent/20 border-transparent text-slate-800 dark:text-white" 
                       : "bg-white dark:bg-[#1E293B] text-slate-500 border-slate-200/80 dark:border-white/5 hover:border-slate-300"
                   )}
                 >
                   <div className={cn(
                     "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                    optimizeLowVolume ? "bg-white/40 dark:bg-[#526C78]/30" : "bg-slate-50 dark:bg-slate-800"
+                    optimizeLowVolume ? "bg-white/40 dark:bg-app-accent/30" : "bg-slate-50 dark:bg-slate-800"
                   )}>
-                    <Volume2 size={16} className={cn(optimizeLowVolume ? "text-[#526C78] dark:text-slate-300" : "text-slate-400")} />
+                    <Volume2 size={16} className={cn(optimizeLowVolume ? "text-app-accent" : "text-slate-400")} />
                   </div>
                   <div className="flex-1">
                     <p className="text-xs font-semibold">{t('optimizeVolumeTitle')}</p>
@@ -160,7 +160,7 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
                   </div>
                   <div className={cn(
                     "w-5 h-5 rounded-full border transition-all flex items-center justify-center",
-                    optimizeLowVolume ? "border-[#526C78] bg-[#526C78]" : "border-slate-200 dark:border-white/15"
+                    optimizeLowVolume ? "border-app-accent bg-app-accent" : "border-slate-200 dark:border-white/15"
                   )}>
                     {optimizeLowVolume && <CheckCircle2 className="text-white" size={12} />}
                   </div>
@@ -170,7 +170,7 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
                   <button
                     onClick={handleProcess}
                     disabled={isProcessing}
-                    className="w-full bg-[#1E293B] hover:bg-[#334155] dark:bg-slate-100 dark:hover:bg-white text-white dark:text-[#1E293B] py-3.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 disabled:opacity-50"
+                    className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-50 text-white dark:text-slate-900 py-3.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-98 disabled:opacity-50 cursor-pointer"
                   >
                     {isProcessing ? (
                       <>

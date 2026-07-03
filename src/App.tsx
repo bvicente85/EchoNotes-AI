@@ -700,6 +700,419 @@ export default function App() {
       }
     });
 
+  const renderRecordingUI = () => {
+    return (
+      <>
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl text-sm max-w-md text-center flex flex-col gap-3 items-center shadow-sm"
+          >
+            <p>{error}</p>
+            {lastFailedAudio && (
+              <button 
+                onClick={handleRetry}
+                disabled={isProcessing}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-700 transition-all disabled:opacity-50"
+              >
+                {isProcessing ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
+                Try Again
+              </button>
+            )}
+          </motion.div>
+        )}
+
+        {!isRecording ? (
+          /* Two column side-by-side layout when NOT recording */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full max-w-5xl items-start mt-2">
+            {/* Left Column: Configuration Settings */}
+            <div className="lg:col-span-5 space-y-4 w-full text-left">
+              <motion.div 
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-xs space-y-4 text-left"
+              >
+                <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-widest block">
+                  {t('sessionTypeTitle')}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Option Meeting */}
+                  <button
+                    type="button"
+                    onClick={() => setSessionType('meeting')}
+                    className={cn(
+                      "flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all relative active:scale-98 cursor-pointer",
+                      sessionType === 'meeting'
+                        ? "bg-blue-500/5 dark:bg-blue-400/5 border-blue-500 dark:border-blue-400 ring-1 ring-blue-500/30 dark:ring-blue-400/30"
+                        : "bg-transparent border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
+                    )}
+                  >
+                    <span className="text-xs font-bold text-slate-850 dark:text-slate-100 flex items-center gap-1.5">
+                      {t('sessionTypeMeeting')}
+                    </span>
+                    <span className="text-[10px] leading-tight text-slate-400 dark:text-slate-500">
+                      {t('sessionTypeMeetingDesc')}
+                    </span>
+                  </button>
+                  
+                  {/* Option Quick Draft */}
+                  <button
+                    type="button"
+                    onClick={() => setSessionType('quick_draft')}
+                    className={cn(
+                      "flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all relative active:scale-98 cursor-pointer",
+                      sessionType === 'quick_draft'
+                        ? "bg-blue-500/5 dark:bg-blue-400/5 border-blue-500 dark:border-blue-400 ring-1 ring-blue-500/30 dark:ring-blue-400/30"
+                        : "bg-transparent border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
+                    )}
+                  >
+                    <span className="text-xs font-bold text-slate-850 dark:text-slate-100 flex items-center gap-1.5">
+                      {t('sessionTypeQuickDraft')}
+                    </span>
+                    <span className="text-[10px] leading-tight text-slate-400 dark:text-slate-500">
+                      {t('sessionTypeQuickDraftDesc')}
+                    </span>
+                  </button>
+                </div>
+              </motion.div>
+
+              {sessionType === 'meeting' && (
+                <motion.div 
+                   initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-xs space-y-4 text-left"
+                >
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-widest block">
+                      {t('expectedSpeakersLabel')}
+                    </label>
+                    <input
+                      type="text"
+                      value={expectedSpeakers}
+                      onChange={(e) => setExpectedSpeakers(e.target.value)}
+                      placeholder={t('expectedSpeakersPlaceholder')}
+                      className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/30 dark:focus:border-blue-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-widest block">
+                      Template
+                    </label>
+                    <select
+                      value={template}
+                      onChange={(e) => setTemplate(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/30 dark:focus:border-blue-400"
+                    >
+                      <option value="standard">Padrão</option>
+                      <option value="client_meeting">Reunião com cliente</option>
+                      <option value="internal_meeting">Reunião interna/Ata</option>
+                      <option value="brainstorming">Brainstorming</option>
+                    </select>
+                  </div>
+                </motion.div>
+              )}
+
+              <div className="hidden lg:flex items-center gap-6 text-[10px] font-semibold uppercase tracking-widest text-app-accent/50 px-2 pt-2">
+                <div className="flex items-center gap-1.5">
+                  <Headphones size={12} />
+                  <span>Headset Optimized</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={12} />
+                  <span>AI Diarization</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Capture Options + Big Start Session Button */}
+            <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 shadow-xs flex flex-col items-center justify-center space-y-6 w-full">
+              {/* Tab bar for mic, system audio, upload */}
+              <div className="flex bg-slate-100/50 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200/50 dark:border-white/5 w-full max-w-md">
+                <button 
+                  onClick={() => setRecordingMode('mic')}
+                  className={cn(
+                    "flex-1 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer",
+                    recordingMode === 'mic' 
+                      ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/40 dark:border-white/5" 
+                      : "text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-slate-100"
+                  )}
+                >
+                  <Mic size={14} />
+                  {t('inPerson')}
+                </button>
+                <button 
+                  onClick={() => setRecordingMode('system')}
+                  className={cn(
+                    "flex-1 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer",
+                    recordingMode === 'system' 
+                      ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/40 dark:border-white/5" 
+                      : "text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-slate-100"
+                  )}
+                >
+                  <Headphones size={14} />
+                  {t('virtualMeeting')}
+                </button>
+                <button 
+                  onClick={() => setRecordingMode('upload')}
+                  className={cn(
+                    "flex-1 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer",
+                    recordingMode === 'upload' 
+                      ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/40 dark:border-white/5" 
+                      : "text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-slate-100"
+                  )}
+                >
+                  <Upload size={14} />
+                  {t('uploadFile')}
+                </button>
+              </div>
+
+              {recordingMode === 'upload' ? (
+                <div className="w-full max-w-md">
+                  <AudioFileUpload 
+                    onFileSelect={handleFileUpload} 
+                    isProcessing={isProcessing} 
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4 w-full">
+                  {recordingMode === 'system' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="glass p-4 rounded-xl max-w-md text-center space-y-2.5 border border-slate-200/40 dark:border-white/5 w-full bg-slate-50/50 dark:bg-slate-950/30"
+                    >
+                      <p className="text-[10px] text-slate-550 dark:text-slate-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                        <Monitor size={12} className="text-blue-500" />
+                        {language === 'portuguese' ? 'Configuração de Reunião Virtual' : 'Virtual Meeting Setup'}
+                      </p>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed text-left space-y-1.5 px-1">
+                        <p className="flex gap-2">
+                          <span className="w-4 h-4 flex-shrink-0 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full flex items-center justify-center font-bold text-[9px]">1</span> 
+                          <span>{language === 'portuguese' ? 'Clique em Iniciar Sessão abaixo.' : 'Click Start Session below.'}</span>
+                        </p>
+                        <p className="flex gap-2">
+                          <span className="w-4 h-4 flex-shrink-0 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full flex items-center justify-center font-bold text-[9px]">2</span> 
+                          <span>{language === 'portuguese' ? 'Na janela que abrir, selecione a aba "Ecrã inteiro" ou "Separador".' : 'In the window, select "Entire Screen" or "Tab".'}</span>
+                        </p>
+                        <p className="flex gap-2">
+                          <span className="w-4 h-4 flex-shrink-0 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full flex items-center justify-center font-bold text-[9px]">3</span> 
+                          <span>{language === 'portuguese' ? 'Selecione a opção "Partilhar áudio do sistema" no canto inferior.' : 'Check the "Share system audio" option in the bottom corner.'}</span>
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <div className="relative flex items-center justify-center py-4">
+                    {/* Pulsing Backing Rings */}
+                    <div className="absolute w-44 h-44 rounded-full bg-blue-500/5 dark:bg-blue-400/5 animate-pulse-ring pointer-events-none" />
+                    <div className="absolute w-36 h-36 rounded-full border border-blue-500/10 dark:border-blue-400/10 pointer-events-none" />
+                    
+                    <button
+                      onClick={startRecording}
+                      className="relative z-10 w-36 h-36 rounded-full flex flex-col items-center justify-center transition-all duration-300 group active:scale-98 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-50 text-white dark:text-slate-900 shadow-xl border border-slate-800 dark:border-slate-200/10 cursor-pointer"
+                    >
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
+                      <Mic size={28} className="relative z-10 text-blue-400 dark:text-blue-600 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="mt-3 font-mono text-[8px] tracking-[0.2em] uppercase font-bold relative z-10 opacity-90">{t('startSession')}</span>
+                      <div className="absolute bottom-8 w-10 h-0.5 bg-slate-500/20 dark:bg-slate-300/30 rounded-full overflow-hidden">
+                        <motion.div 
+                          animate={{ x: ['-100%', '100%'] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                          className="w-full h-full bg-blue-500 dark:bg-blue-600 opacity-80"
+                        />
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Centered full active recording container */
+          <div className="w-full max-w-xl flex flex-col items-center gap-6">
+            <div className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
+              <div className="absolute inset-0 border border-app-accent/10 rounded-full" />
+              
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 glass px-4 py-1.5 rounded-full border border-rose-500/20 shadow-lg"
+              >
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-rose-600">Live Recording</span>
+              </motion.div>
+              
+              <div className="absolute inset-0 flex items-center justify-center">
+                {frequencyData.map((value, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-1 bg-app-green/40 rounded-full"
+                    style={{
+                      height: `${Math.max(4, value / 2)}px`,
+                      transform: `rotate(${i * (360 / 40)}deg) translateY(-120px)`,
+                      transformOrigin: '50% 120px'
+                    }}
+                    animate={{
+                      height: `${Math.max(4, value / 2)}px`,
+                      opacity: 0.2 + (value / 255) * 0.8
+                    }}
+                    transition={{ duration: 0.1 }}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={stopRecording}
+                className="relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all duration-300 group active:scale-98 bg-rose-500 text-white shadow-lg overflow-hidden border border-rose-400 cursor-pointer"
+              >
+                <motion.div 
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: [0.8, 1.1, 0.8] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute inset-0 bg-white/10 rounded-full"
+                />
+                <Square fill="currentColor" size={32} className="relative z-10" />
+                <span className="mt-4 font-mono text-[9px] tracking-[0.2em] uppercase font-bold relative z-10">{t('stopSession')}</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center gap-4 w-full">
+              <div className="font-mono text-2xl tracking-tighter opacity-100">
+                {formatDuration(duration)}
+              </div>
+
+              <div className="w-full flex flex-col gap-2 mt-4 px-4">
+                <textarea
+                  placeholder="Notas rápidas (fusing notes)..."
+                  value={manualNotes}
+                  onChange={(e) => setManualNotes(e.target.value)}
+                  className="w-full p-3 border border-slate-300 dark:border-slate-700 rounded-xl bg-transparent text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400/50"
+                  rows={3}
+                />
+              </div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full max-w-xs flex flex-col gap-2 p-3.5 bg-slate-500/5 dark:bg-slate-400/5 border border-slate-500/10 rounded-2xl"
+              >
+                <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  <span>{t('sessionProgress')}</span>
+                  <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">{t('sessionDurationHint')}</span>
+                </div>
+                
+                <div className="relative w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mt-2 mb-2">
+                  <motion.div 
+                    className="absolute left-0 top-0 h-full bg-app-green rounded-full shadow-[0_0_8px_rgba(30,172,130,0.3)]"
+                    style={{ width: `${Math.min(100, (duration / 3600) * 100)}%` }}
+                    layout
+                  />
+                  
+                  <div className="absolute inset-0 flex justify-between px-0 pointer-events-none">
+                    <div className="absolute left-[25%] -translate-x-1/2 -top-1">
+                      <div className={cn(
+                        "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
+                        duration >= 900 ? "bg-app-green border-app-green text-white" : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
+                      )}>15</div>
+                    </div>
+                    <div className="absolute left-[50%] -translate-x-1/2 -top-1">
+                      <div className={cn(
+                        "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
+                        duration >= 1800 ? "bg-app-green border-app-green text-white" : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
+                      )}>30</div>
+                    </div>
+                    <div className="absolute left-[75%] -translate-x-1/2 -top-1">
+                      <div className={cn(
+                        "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
+                        duration >= 2700 ? "bg-app-green border-app-green text-white" : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
+                      )}>45</div>
+                    </div>
+                    <div className="absolute left-[100%] -translate-x-1/2 -top-1">
+                      <div className={cn(
+                        "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
+                        duration >= 3600 ? "bg-app-green border-app-green text-white" : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
+                      )}>60</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[9px] text-slate-400 dark:text-slate-500 font-mono mt-0.5 px-0.5">
+                  <span className={cn(duration < 900 ? "text-app-green font-bold" : "")}>Intro</span>
+                  <span className={cn(duration >= 900 && duration < 2700 ? "text-app-green font-bold" : "")}>Body</span>
+                  <span className={cn(duration >= 2700 ? "text-app-green font-bold" : "")}>Wrap-up</span>
+                </div>
+              </motion.div>
+
+              <div className="flex flex-col gap-4 w-full items-center max-w-xs transition-all duration-300">
+                <motion.div 
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(
+                    "w-full flex flex-col gap-1 items-start px-3.5 py-2.5 rounded-xl text-xs font-medium border transition-all duration-300 shadow-xs",
+                    audioInputQuality === 'optimal' 
+                      ? "bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                      : audioInputQuality === 'too-low'
+                      ? "bg-amber-500/5 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 animate-pulse"
+                      : "bg-rose-500/5 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 animate-bounce"
+                  )}
+                >
+                  <div className="w-full flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn(
+                        "flex h-2 w-2 rounded-full",
+                        audioInputQuality === 'optimal' ? "bg-emerald-500" : audioInputQuality === 'too-low' ? "bg-amber-500" : "bg-rose-500"
+                      )} />
+                      <span className="font-bold uppercase tracking-wider text-[9px] opacity-80">{t('audioQualityStatus')}</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider">
+                      {audioInputQuality === 'optimal' && "OK"}
+                      {audioInputQuality === 'too-low' && "LOW VOLUME"}
+                      {audioInputQuality === 'clipping' && "CLIPPING"}
+                    </span>
+                  </div>
+                  <span className="text-[10px] leading-snug mt-0.5 opacity-90 text-left font-medium">
+                    {audioInputQuality === 'optimal' && t('audioQualityOptimal')}
+                    {audioInputQuality === 'too-low' && t('audioQualityWarningTooLow')}
+                    {audioInputQuality === 'clipping' && t('audioQualityWarningClipping')}
+                  </span>
+                </motion.div>
+
+                <div className="w-full h-16 flex items-end justify-center gap-[2px]">
+                  {frequencyData.map((value, i) => (
+                    <motion.div
+                      key={i}
+                      className={cn(
+                        "flex-1 rounded-t-[1px] transition-colors duration-200",
+                        audioInputQuality === 'optimal' ? "bg-emerald-500/60" : audioInputQuality === 'too-low' ? "bg-amber-500/50" : "bg-rose-500/80"
+                      )}
+                      animate={{ height: `${Math.max(4, (value / 255) * 100)}%` }}
+                      transition={{ duration: 0.1 }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-8 text-xs font-semibold uppercase tracking-widest text-app-brown/40">
+                <div className="flex items-center gap-2">
+                  <Headphones size={14} className="text-app-green" />
+                  <span>Headset Optimized</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Sparkles size={14} className="text-app-green" />
+                  <span>AI Diarization Active</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-app-bg flex items-center justify-center">
@@ -858,13 +1271,13 @@ export default function App() {
               <div className="p-6 border-b border-slate-200/85 dark:border-white/5 bg-white dark:bg-slate-800 shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
-                    <History size={20} className="text-[#526C78]" />
+                    <History size={20} className="text-app-accent" />
                     {t('allSessions')}
                   </h2>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setIsClearingAll(true)}
-                      className="p-2 text-[#526C78] dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
+                      className="p-2 text-app-accent dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
                       title={t('clearHistory')}
                     >
                       <Trash2 size={18} />
@@ -880,13 +1293,13 @@ export default function App() {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-center">
                   <div className="relative group flex-1 max-w-md">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#526C78] transition-colors" size={16} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-app-accent transition-colors" size={16} />
                     <input 
                       type="text"
                       placeholder={t('searchPlaceholder')}
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200/75 dark:border-white/5 rounded-xl pl-11 pr-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#526C78]/10 focus:border-[#526C78] transition-all text-slate-800 dark:text-white"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200/75 dark:border-white/5 rounded-xl pl-11 pr-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-app-accent/10 focus:border-app-accent transition-all text-slate-800 dark:text-white"
                     />
                   </div>
 
@@ -895,14 +1308,14 @@ export default function App() {
                       onClick={() => {
                         setSortField(sortField === 'date' ? 'title' : 'date');
                       }}
-                      className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#526C78] transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-app-accent transition-colors cursor-pointer"
                     >
                       <ArrowUpDown size={11} />
                       {t('sortBy')}: {sortField === 'date' ? t('date') : t('title')}
                     </button>
                     <button 
                       onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                      className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-[#526C78] transition-colors cursor-pointer"
+                      className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-app-accent transition-colors cursor-pointer"
                     >
                       {sortOrder === 'desc' ? t('mostRecent') : t('leastRecent')}
                     </button>
@@ -944,12 +1357,12 @@ export default function App() {
                           className={cn(
                             "group flex flex-col p-4 border rounded-xl cursor-pointer transition-all relative overflow-hidden",
                             isSelected 
-                              ? "bg-slate-50 dark:bg-slate-800/80 border-[#526C78] dark:border-white/25 shadow-xs" 
-                              : "bg-white dark:bg-slate-800/40 border-slate-200/60 dark:border-white/5 hover:border-[#6CA0BB]/60 hover:shadow-xs"
+                              ? "bg-slate-50 dark:bg-slate-800/80 border-app-accent dark:border-white/25 shadow-xs" 
+                              : "bg-white dark:bg-slate-800/40 border-slate-200/60 dark:border-white/5 hover:border-app-accent/60 hover:shadow-xs"
                           )}
                         >
                           {isSelected && (
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#526C78] dark:bg-white" />
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-app-accent dark:bg-white" />
                           )}
                           
                           <div className="flex flex-col flex-1 mr-2 overflow-hidden">
@@ -961,7 +1374,7 @@ export default function App() {
                                 }
                               </span>
                               {item.report.clientName && (
-                                <span className="text-[8px] font-bold text-[#526C78] dark:text-slate-300 uppercase tracking-wider bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
+                                <span className="text-[8px] font-bold text-app-accent dark:text-slate-300 uppercase tracking-wider bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
                                   {item.report.clientName}
                                 </span>
                               )}
@@ -974,7 +1387,7 @@ export default function App() {
                                   value={editingTitle}
                                   onChange={e => setEditingTitle(e.target.value)}
                                   onBlur={(e) => handleSaveEdit(item.id, e)}
-                                  className="flex-1 bg-slate-50 dark:bg-slate-900 border border-[#526C78] rounded px-2.5 py-1 text-xs font-medium focus:outline-none ring-2 ring-[#526C78]/10 text-slate-800 dark:text-white"
+                                  className="flex-1 bg-slate-50 dark:bg-slate-900 border border-app-accent rounded px-2.5 py-1 text-xs font-medium focus:outline-none ring-2 ring-app-accent/10 text-slate-800 dark:text-white"
                                   onKeyDown={e => {
                                     if (e.key === 'Enter') handleSaveEdit(item.id, e);
                                     if (e.key === 'Escape') setEditingId(null);
@@ -994,7 +1407,7 @@ export default function App() {
                                   e.stopPropagation();
                                   handleStartEdit(item, e);
                                 }}
-                                className="text-slate-800 dark:text-zinc-200 font-semibold text-sm line-clamp-1 hover:text-[#526C78] dark:hover:text-white transition-colors cursor-text leading-tight"
+                                className="text-slate-800 dark:text-zinc-200 font-semibold text-sm line-clamp-1 hover:text-app-accent dark:hover:text-white transition-colors cursor-text leading-tight"
                                 title={t('clickToEditTitle')}
                               >
                                 {item.title}
@@ -1011,7 +1424,7 @@ export default function App() {
                                 e.stopPropagation();
                                 handleSelectHistory(item);
                               }}
-                              className="text-[10px] font-bold text-[#526C78] dark:text-slate-300 hover:underline flex items-center gap-1 cursor-pointer"
+                              className="text-[10px] font-bold text-app-accent dark:text-slate-300 hover:underline flex items-center gap-1 cursor-pointer"
                             >
                               <ExternalLink size={10} />
                               {language === 'portuguese' ? 'Focar no Painel' : 'Focus on Panel'}
@@ -1071,7 +1484,7 @@ export default function App() {
                           </div>
                           <button
                             onClick={() => handleSelectHistory(previewItem)}
-                            className="px-4 py-2 bg-[#526C78] dark:bg-white text-white dark:text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 hover:opacity-90 cursor-pointer"
+                            className="px-4 py-2 bg-app-accent dark:bg-white text-white dark:text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 hover:opacity-90 cursor-pointer"
                           >
                             <ExternalLink size={14} />
                             {language === 'portuguese' ? 'Focar no Painel Principal' : 'Focus on Main Panel'}
@@ -1216,7 +1629,7 @@ export default function App() {
                 </button>
                 <button 
                   onClick={handleRecoverBackup}
-                  className="flex-1 px-4 py-2 bg-[#526C78] hover:bg-[#3d515a] dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
+                  className="flex-1 px-4 py-2 bg-app-accent hover:opacity-90 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   {t('recoverButton')}
                 </button>
@@ -1246,17 +1659,23 @@ export default function App() {
                 exit={{ opacity: 0, scale: 1.05 }}
                 className="w-full flex flex-col items-center gap-6 md:gap-8"
               >
-                <div className="text-center space-y-3 max-w-2xl">
-                  <h2 className="text-3xl md:text-4xl font-sans font-bold leading-tight tracking-tight text-slate-800 dark:text-white">
-                    {t('recordMeetingsTitle')} <br />
-                    <span className="text-[#526C78] dark:text-slate-350">{t('extractIntelligence')}</span>
-                  </h2>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-normal px-4 max-w-lg mx-auto">
-                    {t('dashboardDesc')}
-                  </p>
-                </div>
+                {!isRecording && (
+                  <div className="text-center space-y-3 max-w-2xl">
+                    <h2 className="text-3xl md:text-4xl font-sans font-bold leading-tight tracking-tight text-slate-800 dark:text-white">
+                      {t('recordMeetingsTitle')} <br />
+                      <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500 bg-clip-text text-transparent dark:from-blue-400 dark:via-indigo-300 dark:to-emerald-400 font-extrabold">{t('extractIntelligence')}</span>
+                    </h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-normal px-4 max-w-lg mx-auto">
+                      {t('dashboardDesc')}
+                    </p>
+                  </div>
+                )}
 
-                 {!isRecording && (
+                {renderRecordingUI()}
+
+                {false && (
+                  <>
+                    {!isRecording && (
                   <motion.div 
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1273,7 +1692,7 @@ export default function App() {
                         className={cn(
                           "flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all relative active:scale-98",
                           sessionType === 'meeting'
-                            ? "bg-slate-50/80 dark:bg-slate-800/80 border-[#526C78] dark:border-slate-300 ring-1 ring-[#526C78] dark:ring-slate-300"
+                            ? "bg-slate-50/80 dark:bg-slate-800/80 border-app-accent dark:border-slate-300 ring-1 ring-app-accent dark:ring-slate-300"
                             : "bg-transparent border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
                         )}
                       >
@@ -1292,7 +1711,7 @@ export default function App() {
                         className={cn(
                           "flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all relative active:scale-98",
                           sessionType === 'quick_draft'
-                            ? "bg-slate-50/80 dark:bg-slate-800/80 border-[#526C78] dark:border-slate-300 ring-1 ring-[#526C78] dark:ring-slate-300"
+                            ? "bg-slate-50/80 dark:bg-slate-800/80 border-app-accent dark:border-slate-300 ring-1 ring-app-accent dark:ring-slate-300"
                             : "bg-transparent border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
                         )}
                       >
@@ -1681,6 +2100,8 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                )}
+                  </>
                 )}
               </motion.div>
             ) : (
