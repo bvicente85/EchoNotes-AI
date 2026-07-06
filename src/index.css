@@ -78,51 +78,51 @@
 
 @layer base {
   :root {
-    /* Base Colors - Exclusively matching the custom 5-color palette */
-    --app-bg: #f1e9bb;  /* Color 4: Soft Cream */
-    --app-fg: #5c483a;  /* Color 5: Warm Dark Brown */
+    /* Base Colors - Terracotta Bento minimal luxury design */
+    --app-bg: #f5f4f0;  /* Premium soft neutral warm gray */
+    --app-fg: #111215;  /* Deep off-black / charcoal */
     
-    --app-accent: #c92c2c; /* Color 1: Deep Red */
-    --app-card: #faf7e6;   /* Extra soft tinted cream derived from Color 4 */
-    --app-border: rgba(92, 72, 58, 0.25); /* Thin borders using Color 5 */
+    --app-accent: #ce6f55; /* Warm terracotta / burnt sienna */
+    --app-card: #ffffff;   /* Crisp white cards */
+    --app-border: rgba(17, 18, 21, 0.08); /* Clean thin borders */
     
-    --app-green: #cf6123; /* Color 2: Orange */
-    --app-dark-green: #c92c2c; /* Color 1: Deep Red */
-    --app-gold: #f3c363;  /* Color 3: Golden Yellow */
-    --app-light-gold: #faf7e6;
-    --app-brown: #5c483a;  /* Color 5: Warm Dark Brown */
-    --app-cream: #f1e9bb;  /* Color 4: Soft Cream */
+    --app-green: #4a8b71; /* Elegant sage green */
+    --app-dark-green: #376854;
+    --app-gold: #e59a54;  /* Warm ochre gold */
+    --app-light-gold: #fcfbf9;
+    --app-brown: #5c4d44;  
+    --app-cream: #faf9f7;  
 
-    --glass-bg: rgba(241, 233, 187, 0.85);
-    --glass-border: rgba(92, 72, 58, 0.15);
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(17, 18, 21, 0.06);
   }
 
   .dark {
-    /* Base Colors Dark - Inverted from the same custom 5-color palette */
-    --app-bg: #44352a; /* Darker tone of Color 5 */
-    --app-fg: #f1e9bb; /* Color 4: Soft Cream */
-    --app-accent: #f3c363; /* Color 3: Golden Yellow */
-    --app-card: #5c483a;   /* Color 5: Warm Dark Brown */
-    --app-border: rgba(241, 233, 187, 0.25); /* Thin borders using Color 4 */
+    /* Base Colors Dark - High-end studio dark theme */
+    --app-bg: #121316; /* Sophisticated deep charcoal */
+    --app-fg: #eae9e6; /* Elegant warm off-white */
+    --app-accent: #e2836b; /* Soft warm terracotta */
+    --app-card: #1b1c20;   /* Deep gray-black cards */
+    --app-border: rgba(234, 233, 230, 0.08);
     
-    --app-green: #cf6123; /* Color 2: Orange */
-    --app-dark-green: #c92c2c; /* Color 1: Deep Red */
-    --app-gold: #f3c363;  /* Color 3: Golden Yellow */
-    --app-light-gold: rgba(243, 195, 99, 0.15);
-    --app-brown: #f1e9bb;  /* Color 4: Soft Cream */
-    --app-cream: #44352a;  /* Darker tone of Color 5 */
+    --app-green: #5ca883; 
+    --app-dark-green: #458264; 
+    --app-gold: #f2ac6c;  
+    --app-light-gold: rgba(242, 172, 108, 0.15);
+    --app-brown: #eae9e6;  
+    --app-cream: #121316;  
 
-    --glass-bg: rgba(92, 72, 58, 0.85);
-    --glass-border: rgba(241, 233, 187, 0.15);
+    --glass-bg: rgba(27, 28, 32, 0.85);
+    --glass-border: rgba(234, 233, 230, 0.06);
   }
 
   body {
     background-color: var(--app-bg);
     color: var(--app-fg);
     background-image: 
-      radial-gradient(at 0% 0%, rgba(201, 44, 44, 0.05) 0px, transparent 40%),
-      radial-gradient(at 100% 0%, rgba(207, 97, 35, 0.04) 0px, transparent 45%),
-      radial-gradient(at 50% 50%, rgba(92, 72, 58, 0.05) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgba(206, 111, 85, 0.04) 0px, transparent 40%),
+      radial-gradient(at 100% 0%, rgba(74, 139, 113, 0.03) 0px, transparent 45%),
+      radial-gradient(at 50% 50%, rgba(17, 18, 21, 0.02) 0px, transparent 50%);
     background-attachment: fixed;
     transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }

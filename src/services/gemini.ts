@@ -38,7 +38,10 @@ export async function generateMeetingReport(
   isQuickDraft: boolean = false,
   manualNotes?: string,
   template: string = 'standard',
-  customTerms?: string
+  customTerms?: string,
+  modelOverride?: string,
+  tone?: string,
+  customGuidelines?: string
 ): Promise<MeetingReport> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "") {
@@ -53,6 +56,19 @@ export async function generateMeetingReport(
     : "Provide a detailed executive summary covering all key aspects.";
   
   const templateInstruction = `Template to follow: ${template}. Adjust structure and tone based on this template: if 'client_meeting', focus on client needs, relationship building, and agreed action items; if 'internal_meeting', focus on team alignment, operational clarity, and accountability; if 'brainstorming', be creative, capture all ideas, and identify potential paths forward; if 'standard', provide a balanced, comprehensive summary.`;
+
+  const toneInstruction = tone
+    ? `TONE OF THE REPORT: Please write the report with a ${tone} tone.
+       - If 'professional', use a polished, formal, and structured business tone.
+       - If 'technical', use a precise, direct, and spec-focused tone with industry/technical terms.
+       - If 'casual', use an approachable, light, easy-to-read, and conversational tone.
+       - If 'action_oriented', use an extremely actionable, results-oriented, and structured tone, putting tasks and deadlines first.`
+    : "TONE OF THE REPORT: Professional, structured and clear.";
+
+  const guidelinesInstruction = customGuidelines && customGuidelines.trim() !== ""
+    ? `ADDITIONAL SYSTEM GUIDELINES: Strictly apply the following instruction/formatting rules requested by the user:
+       "${customGuidelines}"`
+    : "";
 
   const customTermsInstruction = customTerms && customTerms.trim() !== ""
     ? `IMPORTANT: The following terms are specific to the user and must be recognized and spelled correctly in the transcript and summary (do NOT autocorrect these to similar sounding words): ${customTerms}.`
@@ -89,6 +105,8 @@ export async function generateMeetingReport(
      - VOCABULARY: Use "planeamento" (not planejamento), "equipa" (not equipe), "utilizador" (not usuário).
     - The transcript remains in the original language spoken.
     ${customTermsInstruction}
+    ${toneInstruction}
+    ${guidelinesInstruction}
   ` : `
     You are an expert business analyst and scribe. Analyze the following meeting audio.
         
@@ -97,6 +115,8 @@ export async function generateMeetingReport(
     ${templateInstruction}
     ${notesInstruction}
     ${customTermsInstruction}
+    ${toneInstruction}
+    ${guidelinesInstruction}
 
     Goals: Capture essence, outcomes, and specific commitments.
         1. ${summaryInstruction} Use Markdown for headers or bolding.
@@ -113,7 +133,7 @@ export async function generateMeetingReport(
     - The transcript remains in the original language spoken.
   `;
 
-  let modelName = "gemini-3.5-flash";
+  let modelName = modelOverride || "gemini-3.5-flash";
   try {
     let retries = 0;
     const maxRetries = 3;
@@ -209,7 +229,13 @@ export async function generateMeetingReport(
           err?.message?.includes('high demand') ||
           err?.message?.toLowerCase().includes('demand');
         
-        // If it's a quota/rate limit/demand error and we haven't tried gemini-2.5-flash yet, fallback immediately
+        // If it's a quota/rate limit/demand error, fallback cascade
+        if (isQuotaOrServerFail && modelName === "gemini-2.5-pro") {
+          console.warn(`Model ${modelName} rate-limited or unavailable. Automatically falling back to gemini-3.5-flash...`);
+          modelName = "gemini-3.5-flash";
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
         if (isQuotaOrServerFail && modelName === "gemini-3.5-flash") {
           console.warn(`Model ${modelName} rate-limited or unavailable (Overloaded/High demand). Automatically falling back to highly available gemini-2.5-flash...`);
           modelName = "gemini-2.5-flash";

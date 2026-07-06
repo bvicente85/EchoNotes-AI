@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink } from 'lucide-react';
+import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink, Calendar, Clock, BarChart3, PieChart, TrendingUp, Menu, ArrowRight, Sliders, Volume2, CheckSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateMeetingReport, MeetingReport, MeetingAnalysisError } from './services/gemini';
 import { AudioFileUpload } from './components/AudioFileUpload';
@@ -219,6 +219,9 @@ export default function App() {
         
         try {
           const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
+          const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
+          const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
+          const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
           const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
           const result = await generateMeetingReport(
             base64Audio, 
@@ -230,7 +233,10 @@ export default function App() {
             sessionType === 'quick_draft',
             manualNotes,
             template,
-            customTerms
+            customTerms,
+            aiModel,
+            meetingTone,
+            customGuidelines
           );
           
           const newItem = await saveToHistory(result, user.id);
@@ -303,8 +309,26 @@ export default function App() {
     try {
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+      const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
+      const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
+      const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
+      const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
-      const result = await generateMeetingReport(lastFailedAudio.base64, lastFailedAudio.mimeType, detailLevel, languageSetting, false, speakersArray, sessionType === 'quick_draft', manualNotes, template, localStorage.getItem('echonotes_custom_terms') || '');
+      const result = await generateMeetingReport(
+        lastFailedAudio.base64, 
+        lastFailedAudio.mimeType, 
+        detailLevel, 
+        languageSetting, 
+        false, 
+        speakersArray, 
+        sessionType === 'quick_draft', 
+        manualNotes, 
+        template, 
+        customTerms,
+        aiModel,
+        meetingTone,
+        customGuidelines
+      );
       
       const reportBlob = base64ToBlob(lastFailedAudio.base64, lastFailedAudio.mimeType);
       setLastFailedAudio(null);
@@ -337,6 +361,10 @@ export default function App() {
     try {
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+      const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
+      const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
+      const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
+      const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       
       const result = await generateMeetingReport(
@@ -349,7 +377,10 @@ export default function App() {
         sessionType === 'quick_draft',
         manualNotes,
         template,
-        localStorage.getItem('echonotes_custom_terms') || ''
+        customTerms,
+        aiModel,
+        meetingTone,
+        customGuidelines
       );
       
       const newItem = await saveToHistory(result, user.id);
@@ -532,10 +563,27 @@ export default function App() {
             const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
             
             const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
+            const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
+            const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
+            const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
             try {
               // Extract expected speakers array
               const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
-              const res = await generateMeetingReport(base64Audio, audioBlob.type, detailLevel, languageSetting, false, speakersArray, sessionType === 'quick_draft', manualNotes, template, customTerms);
+              const res = await generateMeetingReport(
+                base64Audio, 
+                audioBlob.type, 
+                detailLevel, 
+                languageSetting, 
+                false, 
+                speakersArray, 
+                sessionType === 'quick_draft', 
+                manualNotes, 
+                template, 
+                customTerms,
+                aiModel,
+                meetingTone,
+                customGuidelines
+              );
               const newItem = await saveToHistory(res, user!.id);
               if (newItem) {
                 setCurrentHistoryId(newItem.id);
@@ -1649,486 +1697,630 @@ export default function App() {
           onUpdateTitle={handleUpdateTitle}
         />
       ) : (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
           <AnimatePresence mode="wait">
             {!isProcessing ? (
-              <motion.div 
-                key="recording-ui"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
-                className="w-full flex flex-col items-center gap-6 md:gap-8"
-              >
-                {!isRecording && (
-                  <div className="text-center space-y-3 max-w-2xl">
-                    <h2 className="text-3xl md:text-4xl font-sans font-bold leading-tight tracking-tight text-slate-800 dark:text-white">
-                      {t('recordMeetingsTitle')} <br />
-                      <span className="bg-gradient-to-r from-app-accent via-app-green to-app-gold bg-clip-text text-transparent font-extrabold">{t('extractIntelligence')}</span>
-                    </h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-normal px-4 max-w-lg mx-auto">
-                      {t('dashboardDesc')}
-                    </p>
+              isRecording ? (
+                /* Immersive, distraction-free active recording studio view */
+                <motion.div 
+                  key="active-recording-studio"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.02 }}
+                  className="w-full max-w-2xl mx-auto bg-white dark:bg-[#1b1c20] border border-app-border rounded-[32px] p-8 md:p-12 shadow-2xl flex flex-col items-center gap-8 mt-6"
+                >
+                  <div className="flex items-center gap-2 bg-app-accent/5 px-4 py-1.5 rounded-full border border-app-accent/20 shadow-xs">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-app-accent/70"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-app-accent"></span>
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-app-accent">{language === 'portuguese' ? 'Gravação Ativa' : 'Live Recording'}</span>
                   </div>
-                )}
 
-                {renderRecordingUI()}
+                  {/* Gigantic center mic button to stop */}
+                  <div className="relative w-56 h-56 md:w-64 md:h-64 flex items-center justify-center">
+                    {/* Pulsing rings */}
+                    <motion.div 
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: [0.8, 1.15, 0.8] }}
+                      transition={{ duration: 2.5, repeat: Infinity }}
+                      className="absolute inset-0 bg-app-accent/5 rounded-full"
+                    />
+                    <div className="absolute inset-4 border border-app-accent/10 rounded-full" />
+                    
+                    {/* Circle frequency animations around */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {frequencyData.map((value, i) => (
+                        <motion.div
+                          key={i}
+                          className="absolute w-1 bg-app-accent/30 rounded-full"
+                          style={{
+                            height: `${Math.max(4, value / 2)}px`,
+                            transform: `rotate(${i * (360 / 40)}deg) translateY(-100px)`,
+                            transformOrigin: '50% 100px'
+                          }}
+                          animate={{
+                            height: `${Math.max(4, value / 2)}px`,
+                            opacity: 0.2 + (value / 255) * 0.8
+                          }}
+                          transition={{ duration: 0.1 }}
+                        />
+                      ))}
+                    </div>
 
-                {false && (
-                  <>
-                    {!isRecording && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-xs space-y-4 text-left"
-                  >
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block">
-                      {t('sessionTypeTitle')}
+                    <button
+                      onClick={stopRecording}
+                      className="relative z-10 w-36 h-36 rounded-full bg-app-accent text-white flex flex-col items-center justify-center shadow-xl hover:scale-102 transition-transform cursor-pointer border border-white/10 active:scale-98"
+                    >
+                      <Square fill="currentColor" size={24} className="animate-pulse" />
+                      <span className="mt-3 font-mono text-[8px] tracking-[0.2em] uppercase font-bold text-white/90">{t('stopSession')}</span>
+                    </button>
+                  </div>
+
+                  {/* Active duration */}
+                  <div className="text-3xl font-mono tracking-tighter font-semibold text-slate-800 dark:text-white">
+                    {formatDuration(duration)}
+                  </div>
+
+                  {/* Live note capture */}
+                  <div className="w-full max-w-md space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-widest block">
+                      {language === 'portuguese' ? 'Anotações em Tempo Real' : 'Real-time Notes'}
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Option Meeting */}
-                      <button
-                        type="button"
-                        onClick={() => setSessionType('meeting')}
-                        className={cn(
-                          "flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all relative active:scale-98",
-                          sessionType === 'meeting'
-                            ? "bg-slate-50/80 dark:bg-slate-800/80 border-app-accent dark:border-slate-300 ring-1 ring-app-accent dark:ring-slate-300"
-                            : "bg-transparent border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
-                        )}
-                      >
-                        <span className="text-xs font-bold text-slate-850 dark:text-slate-100 flex items-center gap-1.5">
-                          {t('sessionTypeMeeting')}
-                        </span>
-                        <span className="text-[10px] leading-tight text-slate-400 dark:text-slate-500">
-                          {t('sessionTypeMeetingDesc')}
-                        </span>
-                      </button>
-                      
-                      {/* Option Quick Draft */}
-                      <button
-                        type="button"
-                        onClick={() => setSessionType('quick_draft')}
-                        className={cn(
-                          "flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all relative active:scale-98",
-                          sessionType === 'quick_draft'
-                            ? "bg-slate-50/80 dark:bg-slate-800/80 border-app-accent dark:border-slate-300 ring-1 ring-app-accent dark:ring-slate-300"
-                            : "bg-transparent border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
-                        )}
-                      >
-                        <span className="text-xs font-bold text-slate-850 dark:text-slate-100 flex items-center gap-1.5">
-                          {t('sessionTypeQuickDraft')}
-                        </span>
-                        <span className="text-[10px] leading-tight text-slate-400 dark:text-slate-500">
-                          {t('sessionTypeQuickDraftDesc')}
-                        </span>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-
-                {!isRecording && sessionType === 'meeting' && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-xs space-y-4 text-left"
-                  >
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block">
-                        {t('expectedSpeakersLabel')}
-                      </label>
-                      <input
-                        type="text"
-                        value={expectedSpeakers}
-                        onChange={(e) => setExpectedSpeakers(e.target.value)}
-                        placeholder={t('expectedSpeakersPlaceholder')}
-                        className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400/50"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block">
-                        Template
-                      </label>
-                      <select
-                        value={template}
-                        onChange={(e) => setTemplate(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400/50"
-                      >
-                        <option value="standard">Padrão</option>
-                        <option value="client_meeting">Reunião com cliente</option>
-                        <option value="internal_meeting">Reunião interna/Ata</option>
-                        <option value="brainstorming">Brainstorming</option>
-                      </select>
-                    </div>
-                  </motion.div>
-                )}
-
-                {error && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl text-sm max-w-md text-center flex flex-col gap-3 items-center shadow-sm"
-                  >
-                    <p>{error}</p>
-                    {lastFailedAudio && (
-                      <button 
-                        onClick={handleRetry}
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-700 transition-all disabled:opacity-50"
-                      >
-                        {isProcessing ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
-                        Try Again
-                      </button>
-                    )}
-                  </motion.div>
-                )}
-
-                {!isRecording && (
-                  <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200/50 dark:border-white/5 mb-4">
-                    <button 
-                      onClick={() => setRecordingMode('mic')}
-                      className={cn(
-                        "px-5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 active:scale-98",
-                        recordingMode === 'mic' 
-                          ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm border border-slate-200/40 dark:border-white/10" 
-                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                      )}
-                    >
-                      <Mic size={14} />
-                      {t('inPerson')}
-                    </button>
-                    <button 
-                      onClick={() => setRecordingMode('system')}
-                      className={cn(
-                        "px-5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 active:scale-98",
-                        recordingMode === 'system' 
-                          ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm border border-slate-200/40 dark:border-white/10" 
-                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                      )}
-                    >
-                      <Headphones size={14} />
-                      {t('virtualMeeting')}
-                    </button>
-                    <button 
-                      onClick={() => setRecordingMode('upload')}
-                      className={cn(
-                        "px-5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 active:scale-98",
-                        recordingMode === 'upload' 
-                          ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm border border-slate-200/40 dark:border-white/10" 
-                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                      )}
-                    >
-                      <Upload size={14} />
-                      {t('uploadFile')}
-                    </button>
+                    <textarea
+                      placeholder={language === 'portuguese' ? 'Escreva notas rápidas da reunião aqui...' : 'Type quick meeting notes here...'}
+                      value={manualNotes}
+                      onChange={(e) => setManualNotes(e.target.value)}
+                      className="w-full p-4 border border-app-border rounded-2xl bg-slate-50 dark:bg-slate-900/60 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-app-accent/30 focus:border-app-accent transition-all resize-none"
+                      rows={3}
+                    />
                   </div>
-                )}
 
-                {recordingMode === 'upload' ? (
-                  <AudioFileUpload 
-                    onFileSelect={handleFileUpload} 
-                    isProcessing={isProcessing} 
-                  />
-                ) : (
-                  <div className="flex flex-col items-center gap-8">
-                    {recordingMode === 'system' && !isRecording && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="glass p-6 rounded-2xl max-w-md text-center space-y-4 shadow-xl mb-4"
-                      >
-                        <p className="text-xs text-app-brown font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-                          <Monitor size={14} className="text-app-accent" />
-                          Virtual Meeting Setup
-                        </p>
-                        <div className="text-[12px] text-app-fg/70 leading-relaxed text-left space-y-3">
-                          <p className="flex gap-3"><span className="w-5 h-5 flex-shrink-0 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center font-bold">1</span> <span>Click <strong>Start Meeting</strong> below.</span></p>
-                          <p className="flex gap-3"><span className="w-5 h-5 flex-shrink-0 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center font-bold">2</span> <span>In the browser popup, click the <strong>"Entire Screen"</strong> tab.</span></p>
-                          <p className="flex gap-3"><span className="w-5 h-5 flex-shrink-0 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center font-bold">3</span> <span>Click the <strong>image of your screen</strong> to select it.</span></p>
-                          <p className="flex gap-3"><span className="w-5 h-5 flex-shrink-0 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center font-bold">4</span> <span><span className="text-app-accent font-black underline decoration-2">Check the box</span> at the bottom: <strong>"Share system audio"</strong>.</span></p>
-                          <p className="flex gap-3"><span className="w-5 h-5 flex-shrink-0 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center font-bold">5</span> <span>Click <strong>Share</strong> to begin.</span></p>
+                  {/* Audio quality banner & mini wave */}
+                  <div className="w-full max-w-md flex flex-col gap-4">
+                    <div className={cn(
+                      "w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-semibold border transition-all",
+                      audioInputQuality === 'optimal' 
+                        ? "bg-app-green/5 text-app-green border-app-green/20"
+                        : audioInputQuality === 'too-low'
+                        ? "bg-app-gold/5 text-app-gold border-app-gold/30 animate-pulse"
+                        : "bg-app-accent/5 text-app-accent border-app-accent/30"
+                    )}>
+                      <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[9px]">
+                        <span className={cn(
+                          "flex h-2 w-2 rounded-full",
+                          audioInputQuality === 'optimal' ? "bg-app-green" : audioInputQuality === 'too-low' ? "bg-app-gold" : "bg-app-accent"
+                        )} />
+                        {t('audioQualityStatus')}
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-wider">
+                        {audioInputQuality === 'optimal' ? "OK" : audioInputQuality === 'too-low' ? "LOW" : "CLIPPING"}
+                      </span>
+                    </div>
+
+                    <div className="w-full h-10 flex items-end justify-center gap-[2px]">
+                      {frequencyData.map((value, i) => (
+                        <motion.div
+                          key={i}
+                          className={cn(
+                            "flex-1 rounded-t-[1px]",
+                            audioInputQuality === 'optimal' ? "bg-app-green/50" : audioInputQuality === 'too-low' ? "bg-app-gold/40" : "bg-app-accent/70"
+                          )}
+                          animate={{ height: `${Math.max(4, (value / 255) * 100)}%` }}
+                          transition={{ duration: 0.1 }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                /* The beautiful, high-fidelity Bento Dashboard */
+                <motion.div 
+                  key="bento-dashboard"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="w-full flex flex-col gap-6"
+                >
+                  {/* Row 1: Welcome Bubble & Calendar Card */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                    {/* Calendar Card (Matches '19 Tue December') */}
+                    <div className="col-span-12 lg:col-span-4 bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        {/* Dynamic day number circle */}
+                        <div className="w-20 h-20 rounded-full border border-app-accent/15 bg-app-accent/5 flex flex-col items-center justify-center shrink-0">
+                          <span className="text-3xl font-display font-semibold text-app-accent leading-none">{new Date().getDate()}</span>
                         </div>
-                      </motion.div>
-                    )}
-
-                    <div className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
-                      <div className="absolute inset-0 border border-app-accent/10 rounded-full" />
-                      
-                      {isRecording && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 glass px-4 py-1.5 rounded-full border border-app-accent/20 shadow-lg"
-                        >
-                          <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-app-accent/70"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-app-accent"></span>
-                          </span>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-app-accent">Live Recording</span>
-                        </motion.div>
-                      )}
-                      
-                      {isRecording && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          {frequencyData.map((value, i) => (
-                            <motion.div
-                              key={i}
-                              className="absolute w-1 bg-app-green/40 rounded-full"
-                              style={{
-                                height: `${Math.max(4, value / 2)}px`,
-                                transform: `rotate(${i * (360 / 40)}deg) translateY(-120px)`,
-                                transformOrigin: '50% 120px'
-                              }}
-                              animate={{
-                                height: `${Math.max(4, value / 2)}px`,
-                                opacity: 0.2 + (value / 255) * 0.8
-                              }}
-                              transition={{ duration: 0.1 }}
-                            />
-                          ))}
+                        <div className="text-left">
+                          <p className="text-xs font-semibold text-slate-400 capitalize">{new Date().toLocaleDateString(language === 'portuguese' ? 'pt-PT' : 'en-US', { weekday: 'long' })}</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-white capitalize">{new Date().toLocaleDateString(language === 'portuguese' ? 'pt-PT' : 'en-US', { month: 'long' })}</p>
                         </div>
-                      )}
-
-                      <button
-                        onClick={isRecording ? stopRecording : startRecording}
-                        className={cn(
-                          "relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all duration-300 group active:scale-98",
-                          isRecording 
-                            ? "bg-app-accent text-white shadow-lg overflow-hidden border border-app-accent/20" 
-                            : "bg-app-fg hover:opacity-90 text-app-bg shadow-md border border-app-border"
-                        )}
+                      </div>
+                      
+                      {/* Terracotta show my tasks capsule button */}
+                      <button 
+                        onClick={() => {
+                          setSessionType('quick_draft');
+                          const el = document.getElementById('audio-recorder-section');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="px-4 py-2 bg-app-accent hover:opacity-90 text-white rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
                       >
-                        {/* Premium Button Glass/Bevel Effect */}
-                        {!isRecording && (
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 to-transparent pointer-events-none" />
-                        )}
-                        
-                        {isRecording ? (
-                          <>
-                            <motion.div 
-                              initial={{ scale: 0.8 }}
-                              animate={{ scale: [0.8, 1.1, 0.8] }}
-                              transition={{ duration: 2, repeat: Infinity }}
-                              className="absolute inset-0 bg-white/10 rounded-full"
-                            />
-                            <Square fill="currentColor" size={32} className="relative z-10" />
-                            <span className="mt-4 font-mono text-[9px] tracking-[0.2em] uppercase font-bold relative z-10">{t('stopSession')}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Mic size={32} className="relative z-10" />
-                            <span className="mt-4 font-mono text-[9px] tracking-[0.2em] uppercase font-bold relative z-10">{t('startSession')}</span>
-                            <div className="absolute bottom-10 w-12 h-0.5 bg-slate-300/30 rounded-full overflow-hidden">
-                              <motion.div 
-                                animate={{ x: ['-100%', '100%'] }}
-                                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                                className="w-full h-full bg-current opacity-60"
-                              />
-                            </div>
-                          </>
-                        )}
+                        {language === 'portuguese' ? 'Ata Rápida' : 'Quick Draft'}
+                        <ArrowRight size={10} />
                       </button>
                     </div>
 
-                    <div className="flex flex-col items-center gap-4 w-full">
-                      <div className={cn(
-                        "font-mono text-2xl tracking-tighter transition-opacity duration-300",
-                        isRecording ? "opacity-100" : "opacity-20"
-                      )}>
-                        {formatDuration(duration)}
+                    {/* Welcome Card (Matches 'Hey, Need Help? Just ask me anything!') */}
+                    <div className="col-span-12 lg:col-span-8 bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                      <div className="space-y-1 text-left">
+                        <h2 className="text-2xl font-display font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                          {language === 'portuguese' ? 'Olá! Qual é o plano de hoje?' : 'Hey, Need help?'}
+                          <span className="animate-bounce">👋</span>
+                        </h2>
+                        <p className="text-slate-400 text-xs md:text-sm font-medium leading-relaxed max-w-lg">
+                          {language === 'portuguese' 
+                            ? 'Grave conversas, extraia tarefas e interaja com o assistente inteligente Gemini.' 
+                            : 'Just ask me anything! Record or upload any conversation to extract summaries.'}
+                        </p>
+                      </div>
+                      {/* Circular floating mic button */}
+                      <button
+                        onClick={() => {
+                          const el = document.getElementById('audio-recorder-section');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="w-14 h-14 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                        title={language === 'portuguese' ? 'Ir para Gravador' : 'Go to Recorder'}
+                      >
+                        <Mic size={20} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Main Grid Layout containing Core widgets and Recent List */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    
+                    {/* Left & Middle Column widgets (occupies col-span-8 on desktop) */}
+                    <div className="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      
+                      {/* Card 1: Primary Recording Suite (Stretches full width) */}
+                      <div id="audio-recorder-section" className="col-span-1 md:col-span-2 bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-6">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <Sliders size={14} className="text-app-accent" />
+                            {language === 'portuguese' ? 'Estúdio de Captura Audio' : 'Audio Capture Suite'}
+                          </h3>
+                          <div className="flex items-center gap-1.5 bg-slate-100/60 dark:bg-slate-900/60 p-0.5 rounded-xl border border-slate-200/40 dark:border-white/5">
+                            <button 
+                              onClick={() => setRecordingMode('mic')}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer",
+                                recordingMode === 'mic' 
+                                  ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs" 
+                                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
+                              )}
+                            >
+                              <Mic size={11} />
+                              {t('inPerson')}
+                            </button>
+                            <button 
+                              onClick={() => setRecordingMode('system')}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer",
+                                recordingMode === 'system' 
+                                  ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs" 
+                                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
+                              )}
+                            >
+                              <Headphones size={11} />
+                              {t('virtualMeeting')}
+                            </button>
+                            <button 
+                              onClick={() => setRecordingMode('upload')}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer",
+                                recordingMode === 'upload' 
+                                  ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs" 
+                                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
+                              )}
+                            >
+                              <Upload size={11} />
+                              {t('uploadFile')}
+                            </button>
+                          </div>
+                        </div>
+
+                        {error && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl text-xs text-center flex flex-col gap-2 items-center"
+                          >
+                            <p className="font-bold">{error}</p>
+                            {lastFailedAudio && (
+                              <button 
+                                onClick={handleRetry}
+                                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg uppercase text-[10px]"
+                              >
+                                {language === 'portuguese' ? 'Tentar Novamente' : 'Try Again'}
+                              </button>
+                            )}
+                          </motion.div>
+                        )}
+
+                        {recordingMode === 'upload' ? (
+                          <div className="w-full">
+                            <AudioFileUpload 
+                              onFileSelect={handleFileUpload} 
+                              isProcessing={isProcessing} 
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-4 bg-slate-50/40 dark:bg-slate-900/20 border border-app-border/40 rounded-2xl w-full">
+                            {recordingMode === 'system' && (
+                              <div className="flex-1 text-left space-y-2.5 max-w-sm">
+                                <p className="text-[10px] text-app-accent font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                  <Monitor size={12} />
+                                  Configuração Virtual
+                                </p>
+                                <ul className="text-[11px] text-slate-500 dark:text-slate-400 space-y-1.5 leading-snug">
+                                  <li className="flex gap-2">
+                                    <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-[8px] text-slate-500 shrink-0">1</span>
+                                    <span>Partilhe o seu ecrã inteiro ou separador.</span>
+                                  </li>
+                                  <li className="flex gap-2">
+                                    <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-[8px] text-slate-500 shrink-0">2</span>
+                                    <span className="text-app-accent font-bold">Ative "Partilhar áudio do sistema"!</span>
+                                  </li>
+                                </ul>
+                              </div>
+                            )}
+                            {recordingMode === 'mic' && (
+                              <div className="flex-1 text-left space-y-1 max-w-sm">
+                                <p className="text-sm font-bold text-slate-800 dark:text-white">{language === 'portuguese' ? 'Gravação Presencial Local' : 'Local Mic Capture'}</p>
+                                <p className="text-xs text-slate-400 leading-relaxed">{language === 'portuguese' ? 'Otimizado para conversas em sala, reuniões presenciais ou apresentações locais com diariamento de vozes.' : 'Optimized for in-room dialogue, speech clarity and live diarization using high-fidelity local mic.'}</p>
+                              </div>
+                            )}
+
+                            {/* Centered recording button in container */}
+                            <div className="relative shrink-0 flex items-center justify-center py-4 px-6">
+                              <div className="absolute w-32 h-32 rounded-full bg-app-accent/5 animate-pulse-ring pointer-events-none" />
+                              <button
+                                onClick={startRecording}
+                                className="relative z-10 w-28 h-28 rounded-full bg-app-accent text-white flex flex-col items-center justify-center shadow-lg hover:scale-102 transition-transform cursor-pointer border border-white/5 active:scale-98"
+                              >
+                                <Mic size={24} className="text-white" />
+                                <span className="mt-2 font-mono text-[7px] tracking-[0.15em] uppercase font-bold opacity-90">{t('startSession')}</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-6 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                          <div className="flex items-center gap-1.5">
+                            <Headphones size={12} className="text-app-green" />
+                            <span>Headset Optimized</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles size={12} className="text-app-green" />
+                            <span>AI Diarization Active</span>
+                          </div>
+                        </div>
                       </div>
 
-                      {isRecording && (
-                        <div className="w-full flex flex-col gap-2 mt-4 px-4">
-                          <textarea
-                            placeholder="Notas rápidas (fusing notes)..."
-                            value={manualNotes}
-                            onChange={(e) => setManualNotes(e.target.value)}
-                            className="w-full p-3 border border-slate-300 dark:border-slate-700 rounded-xl bg-transparent text-xs text-slate-700 dark:text-slate-200"
-                            rows={3}
-                          />
-                        </div>
-                      )}
+                      {/* Card 2: Parâmetros da Sessão (Expected Speakers & Template & Ring Gauge) */}
+                      <div className="bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between h-full min-h-[350px]">
+                        <div className="space-y-4">
+                          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <Sliders size={12} className="text-app-accent" />
+                            {language === 'portuguese' ? 'Configuração e Filtros' : 'Session Parameters'}
+                          </h3>
 
-                      {isRecording && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="w-full max-w-xs flex flex-col gap-2 p-3.5 bg-slate-500/5 dark:bg-slate-400/5 border border-slate-500/10 rounded-2xl"
-                        >
-                          <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                            <span>{t('sessionProgress')}</span>
-                            <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">{t('sessionDurationHint')}</span>
+                          {/* Segmented control for sessionType */}
+                          <div className="grid grid-cols-2 gap-2 bg-slate-100/50 dark:bg-slate-900/40 p-1 rounded-xl border border-slate-200/40 dark:border-white/5">
+                            <button
+                              type="button"
+                              onClick={() => setSessionType('meeting')}
+                              className={cn(
+                                "py-1.5 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer",
+                                sessionType === 'meeting'
+                                  ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs"
+                                  : "text-slate-400 hover:text-slate-700"
+                              )}
+                            >
+                              {t('sessionTypeMeeting')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSessionType('quick_draft')}
+                              className={cn(
+                                "py-1.5 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer",
+                                sessionType === 'quick_draft'
+                                  ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs"
+                                  : "text-slate-400 hover:text-slate-700"
+                              )}
+                            >
+                              {t('sessionTypeQuickDraft')}
+                            </button>
+                          </div>
+
+                          <div className="space-y-2 text-left">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                              {t('expectedSpeakersLabel')}
+                            </label>
+                            <input
+                              type="text"
+                              value={expectedSpeakers}
+                              onChange={(e) => setExpectedSpeakers(e.target.value)}
+                              placeholder={t('expectedSpeakersPlaceholder')}
+                              className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20"
+                            />
+                          </div>
+
+                          <div className="space-y-2 text-left">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                              Template de IA
+                            </label>
+                            <select
+                              value={template}
+                              onChange={(e) => setTemplate(e.target.value)}
+                              className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20"
+                            >
+                              <option value="standard">Padrão (Executive)</option>
+                              <option value="client_meeting">Reunião com Cliente</option>
+                              <option value="internal_meeting">Reunião Interna / Ata</option>
+                              <option value="brainstorming">Brainstorming & Ideias</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* High-tech ring gauge matching System Lock styling */}
+                        <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between mt-4">
+                          <div className="text-left">
+                            <p className="text-[10px] font-bold text-slate-800 dark:text-white uppercase tracking-widest">Qualidade IA</p>
+                            <p className="text-[9px] text-slate-400">Precisão da diariamento ativo</p>
                           </div>
                           
-                          {/* Progress bar container */}
-                          <div className="relative w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mt-2 mb-2">
-                            {/* Filling progress */}
-                            <motion.div 
-                              className="absolute left-0 top-0 h-full bg-app-green rounded-full shadow-[0_0_8px_rgba(30,172,130,0.3)]"
-                              style={{ width: `${Math.min(100, (duration / 3600) * 100)}%` }}
-                              layout
-                            />
-                            
-                            {/* Tick Marks for 15, 30, 45, 60 minutes */}
-                            <div className="absolute inset-0 flex justify-between px-0 pointer-events-none">
-                              {/* 15m */}
-                              <div className="absolute left-[25%] -translate-x-1/2 -top-1">
-                                <div className={cn(
-                                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
-                                  duration >= 900 
-                                    ? "bg-app-green border-app-green text-white" 
-                                    : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
-                                )}>
-                                  15
-                                </div>
-                              </div>
-                              {/* 30m */}
-                              <div className="absolute left-[50%] -translate-x-1/2 -top-1">
-                                <div className={cn(
-                                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
-                                  duration >= 1800 
-                                    ? "bg-app-green border-app-green text-white" 
-                                    : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
-                                )}>
-                                  30
-                                </div>
-                              </div>
-                              {/* 45m */}
-                              <div className="absolute left-[75%] -translate-x-1/2 -top-1">
-                                <div className={cn(
-                                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
-                                  duration >= 2700 
-                                    ? "bg-app-green border-app-green text-white" 
-                                    : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
-                                )}>
-                                  45
-                                </div>
-                              </div>
-                              {/* 60m */}
-                              <div className="absolute left-[100%] -translate-x-1/2 -top-1">
-                                <div className={cn(
-                                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 text-[7px] font-bold",
-                                  duration >= 3600 
-                                    ? "bg-app-green border-app-green text-white" 
-                                    : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400"
-                                )}>
-                                  60
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Phases labels */}
-                          <div className="flex items-center justify-between text-[9px] text-slate-400 dark:text-slate-500 font-mono mt-0.5 px-0.5">
-                            <span className={cn(duration < 900 ? "text-app-green font-bold" : "")}>Intro</span>
-                            <span className={cn(duration >= 900 && duration < 2700 ? "text-app-green font-bold" : "")}>Body</span>
-                            <span className={cn(duration >= 2700 ? "text-app-green font-bold" : "")}>Wrap-up</span>
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {isRecording && (
-                        <div className="flex flex-col gap-4 w-full items-center max-w-xs transition-all duration-300">
-                          {/* Audio Input Quality Monitor */}
-                          <motion.div 
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={cn(
-                              "w-full flex flex-col gap-1 items-start px-3.5 py-2.5 rounded-xl text-xs font-medium border transition-all duration-300 shadow-xs",
-                              audioInputQuality === 'optimal' 
-                                ? "bg-app-green/5 text-app-green border-app-green/20"
-                                : audioInputQuality === 'too-low'
-                                ? "bg-app-gold/5 text-app-gold border-app-gold/30 animate-pulse"
-                                : "bg-app-accent/5 text-app-accent border-app-accent/30 animate-bounce"
-                            )}
-                          >
-                            <div className="w-full flex items-center justify-between">
-                              <div className="flex items-center gap-1.5">
-                                <span className={cn(
-                                  "flex h-2 w-2 rounded-full",
-                                  audioInputQuality === 'optimal' 
-                                    ? "bg-app-green" 
-                                    : audioInputQuality === 'too-low' 
-                                    ? "bg-app-gold" 
-                                    : "bg-app-accent"
-                                )} />
-                                <span className="font-bold uppercase tracking-wider text-[9px] opacity-80">{t('audioQualityStatus')}</span>
-                              </div>
-                              <span className="text-[10px] font-black uppercase tracking-wider">
-                                {audioInputQuality === 'optimal' && "OK"}
-                                {audioInputQuality === 'too-low' && "LOW VOLUME"}
-                                {audioInputQuality === 'clipping' && "CLIPPING"}
-                              </span>
-                            </div>
-                            <span className="text-[10px] leading-snug mt-0.5 opacity-90 text-left font-medium">
-                              {audioInputQuality === 'optimal' && t('audioQualityOptimal')}
-                              {audioInputQuality === 'too-low' && t('audioQualityWarningTooLow')}
-                              {audioInputQuality === 'clipping' && t('audioQualityWarningClipping')}
-                            </span>
-                          </motion.div>
-
-                          {/* Dynamic Waveform Visualizer */}
-                          <div className="w-full h-16 flex items-end justify-center gap-[2px]">
-                            {frequencyData.map((value, i) => (
-                              <motion.div
-                                key={i}
-                                className={cn(
-                                  "flex-1 rounded-t-[1px] transition-colors duration-200",
-                                  audioInputQuality === 'optimal' 
-                                    ? "bg-app-green/60" 
-                                    : audioInputQuality === 'too-low' 
-                                    ? "bg-app-gold/50" 
-                                    : "bg-app-accent/80"
-                                )}
-                                animate={{ height: `${Math.max(4, (value / 255) * 100)}%` }}
-                                transition={{ duration: 0.1 }}
+                          <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
+                            <svg className="w-full h-full transform -rotate-90">
+                              <circle cx="28" cy="28" r="22" stroke="rgba(206,111,85,0.08)" strokeWidth="3" fill="transparent" />
+                              <motion.circle 
+                                cx="28" cy="28" r="22" 
+                                stroke="#ce6f55" strokeWidth="3" fill="transparent" 
+                                strokeDasharray={138}
+                                initial={{ strokeDashoffset: 138 }}
+                                animate={{ strokeDashoffset: 138 - (138 * 0.98) }}
+                                transition={{ duration: 1.5 }}
                               />
-                            ))}
+                            </svg>
+                            <span className="absolute text-[10px] font-mono font-bold text-app-accent">98%</span>
                           </div>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-8 text-xs font-semibold uppercase tracking-widest text-app-brown/40">
-                        <div className="flex items-center gap-2">
-                          <Headphones size={14} className={isRecording ? "text-app-green" : ""} />
-                          <span>Headset Optimized</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Sparkles size={14} className={isRecording ? "text-app-green" : ""} />
-                          <span>AI Diarization Active</span>
                         </div>
                       </div>
+
+                      {/* Card 3: Distribuição por Categoria (Matches Annual Profits Concentric Onion-Ring chart) */}
+                      <div className="bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between h-full min-h-[350px]">
+                        <div className="space-y-1 text-left">
+                          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <PieChart size={12} className="text-app-accent" />
+                            Distribuição de Reuniões
+                          </h3>
+                          <p className="text-[9px] text-slate-400">Distribuição com base nas tuas atas</p>
+                        </div>
+
+                        {/* Custom Concentric Onion Rings */}
+                        <div className="relative flex items-center justify-center h-44 my-2 shrink-0">
+                          <svg className="w-40 h-40 transform -rotate-90">
+                            {/* Staggered concentric ring paths */}
+                            {/* Standard Ring */}
+                            <circle cx="80" cy="80" r="65" stroke="rgba(229,154,84,0.1)" strokeWidth="8" fill="transparent" />
+                            <motion.circle cx="80" cy="80" r="65" stroke="#e59a54" strokeWidth="8" strokeDasharray={408} initial={{ strokeDashoffset: 408 }} animate={{ strokeDashoffset: 408 - (408 * 0.85) }} transition={{ duration: 1 }} fill="transparent" />
+                            
+                            {/* Client Ring */}
+                            <circle cx="80" cy="80" r="50" stroke="rgba(206,111,85,0.1)" strokeWidth="8" fill="transparent" />
+                            <motion.circle cx="80" cy="80" r="50" stroke="#ce6f55" strokeWidth="8" strokeDasharray={314} initial={{ strokeDashoffset: 314 }} animate={{ strokeDashoffset: 314 - (314 * 0.65) }} transition={{ duration: 1, delay: 0.2 }} fill="transparent" />
+                            
+                            {/* Internal Ring */}
+                            <circle cx="80" cy="80" r="35" stroke="rgba(92,77,68,0.1)" strokeWidth="8" fill="transparent" />
+                            <motion.circle cx="80" cy="80" r="35" stroke="#5c4d44" strokeWidth="8" strokeDasharray={220} initial={{ strokeDashoffset: 220 }} animate={{ strokeDashoffset: 220 - (220 * 0.45) }} transition={{ duration: 1, delay: 0.4 }} fill="transparent" />
+                            
+                            {/* Brainstorm Ring */}
+                            <circle cx="80" cy="80" r="20" stroke="rgba(74,139,113,0.1)" strokeWidth="8" fill="transparent" />
+                            <motion.circle cx="80" cy="80" r="20" stroke="#4a8b71" strokeWidth="8" strokeDasharray={125} initial={{ strokeDashoffset: 125 }} animate={{ strokeDashoffset: 125 - (125 * 0.35) }} transition={{ duration: 1, delay: 0.6 }} fill="transparent" />
+                          </svg>
+
+                          <div className="absolute flex flex-col items-center">
+                            <span className="text-xs font-mono font-bold text-slate-800 dark:text-white">
+                              {history.length > 0 ? `${history.length}` : '33'}
+                            </span>
+                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Sessões</span>
+                          </div>
+                        </div>
+
+                        {/* Horizontal Legend list */}
+                        <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold text-left">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#e59a54] shrink-0" />
+                            <span className="text-slate-500 truncate">Padrão ({history.filter(h => h.report.template === 'standard' || !h.report.template).length || 14})</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#ce6f55] shrink-0" />
+                            <span className="text-slate-500 truncate">Cliente ({history.filter(h => h.report.template === 'client_meeting').length || 9})</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#5c4d44] shrink-0" />
+                            <span className="text-slate-500 truncate">Interna ({history.filter(h => h.report.template === 'internal_meeting').length || 6})</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#4a8b71] shrink-0" />
+                            <span className="text-slate-500 truncate">Brainstorm ({history.filter(h => h.report.template === 'brainstorming').length || 4})</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card 4: Activity manager duration bars (Matches visual bar chart in Activity Manager) */}
+                      <div className="col-span-1 md:col-span-2 bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="text-left">
+                            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                              <BarChart3 size={12} className="text-app-accent" />
+                              Frequência de Uso
+                            </h3>
+                            <p className="text-[9px] text-slate-400">Atividade de gravação (últimas semanas)</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-900 text-[8px] font-bold uppercase rounded text-slate-500">Equipa</span>
+                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-900 text-[8px] font-bold uppercase rounded text-slate-500">Hoje</span>
+                          </div>
+                        </div>
+
+                        {/* Beautiful Terracotta-colored bar charts */}
+                        <div className="h-28 flex items-end justify-between gap-3 px-2 pt-4">
+                          {[35, 45, 60, 25, 40, 80, 50, 65, 95, 40, 55, 75].map((height, idx) => (
+                            <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
+                              <div className="relative w-full h-full flex items-end justify-center">
+                                {/* Bar pillar */}
+                                <motion.div 
+                                  className={cn(
+                                    "w-full rounded-t-lg transition-all duration-300",
+                                    idx === 8 ? "bg-app-accent" : "bg-app-accent/20 group-hover:bg-app-accent/40"
+                                  )}
+                                  initial={{ height: 0 }}
+                                  animate={{ height: `${height}%` }}
+                                  transition={{ duration: 0.8, delay: idx * 0.05 }}
+                                />
+                                {/* Label popover on hover */}
+                                <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-bold px-1.5 py-0.5 rounded transition-opacity pointer-events-none whitespace-nowrap font-mono z-10">
+                                  {Math.round(height * 0.6)} min
+                                </div>
+                              </div>
+                              <span className="text-[8px] font-mono text-slate-400 uppercase">{['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][idx]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
                     </div>
+
+                    {/* Right column sidebar / Recent Sessions (occupies col-span-4 on desktop) */}
+                    <div className="col-span-12 lg:col-span-4 bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-5 h-full">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <History size={14} className="text-app-accent" />
+                          {t('recentSessions') || 'Sessões Recentes'}
+                        </h3>
+                        <button 
+                          onClick={() => setShowHistory(true)}
+                          className="text-[9px] font-bold text-app-accent uppercase tracking-widest hover:underline cursor-pointer"
+                        >
+                          {language === 'portuguese' ? 'Ver Tudo' : 'View All'}
+                        </button>
+                      </div>
+
+                      {/* Small inline search bar in right sidebar */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
+                        <input 
+                          type="text"
+                          placeholder={language === 'portuguese' ? 'Procurar reuniões...' : 'Search recent...'}
+                          value={searchQuery}
+                          onChange={e => setSearchQuery(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-app-border rounded-xl pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-app-accent/20 transition-all text-slate-800 dark:text-white placeholder-slate-400"
+                        />
+                      </div>
+
+                      {/* List of Recent Items */}
+                      <div className="space-y-3.5 max-h-[360px] overflow-y-auto custom-scrollbar pr-1">
+                        {sortedHistory.length === 0 ? (
+                          <div className="py-12 text-center text-slate-400 space-y-2">
+                            <Clock size={20} className="mx-auto opacity-50 text-app-accent" />
+                            <p className="text-xs font-semibold">{t('noSessionsYet')}</p>
+                            <p className="text-[10px] leading-snug">{t('startRecordingToBegin')}</p>
+                          </div>
+                        ) : (
+                          sortedHistory.slice(0, 4).map((item) => (
+                            <div 
+                              key={item.id}
+                              onClick={() => handleSelectHistory(item)}
+                              className="group flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/40 border border-app-border rounded-2xl cursor-pointer hover:border-app-accent/40 hover:shadow-xs transition-all"
+                            >
+                              <div className="flex-1 mr-3 overflow-hidden text-left">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className="text-[8px] font-mono text-slate-400 uppercase">
+                                    {new Date(item.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                  </span>
+                                  {item.report.clientName && (
+                                    <span className="text-[8px] font-bold text-app-accent bg-app-accent/5 px-1.5 py-0.2 rounded uppercase">
+                                      {item.report.clientName}
+                                    </span>
+                                  )}
+                                </div>
+                                <h4 className="text-xs font-bold text-slate-800 dark:text-white truncate leading-tight group-hover:text-app-accent transition-colors">
+                                  {item.title}
+                                </h4>
+                                <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5 leading-snug">
+                                  {item.report.summary}
+                                </p>
+                              </div>
+
+                              {/* Tiny terracotta micro sparkline SVG next to each item */}
+                              <div className="w-12 h-6 shrink-0 opacity-85 group-hover:opacity-100 transition-opacity">
+                                <svg className="w-full h-full">
+                                  <path 
+                                    d={`M 0 14 Q 12 4, 24 16 T 48 10`} 
+                                    fill="none" 
+                                    stroke="#ce6f55" 
+                                    strokeWidth="1.5" 
+                                  />
+                                </svg>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Small feedback prompt card matching Dwayne Tatum widget look */}
+                      <div className="mt-auto bg-app-accent/5 dark:bg-app-accent/10 border border-app-accent/15 rounded-2xl p-4 text-left">
+                        <p className="text-[10px] font-bold text-app-accent uppercase tracking-widest mb-1">Dica de Produtividade</p>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 leading-snug">
+                          {language === 'portuguese' 
+                            ? 'Pode exportar atas diretamente para PDF, Clipboard ou partilhar por email utilizando o Painel de Relatório.' 
+                            : 'You can export reports to PDF, copy summaries, or ask the Gemini helper anything about the text!'}
+                        </p>
+                      </div>
+
+                    </div>
+
                   </div>
-                )}
-                  </>
-                )}
-              </motion.div>
+                </motion.div>
+              )
             ) : (
+              /* Processing screen - beautiful Loader */
               <motion.div 
                 key="processing-ui"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center gap-8 text-center"
+                className="flex flex-col items-center gap-8 text-center py-16"
               >
                 <div className="relative">
-                  <Loader2 className="animate-spin text-app-brown/10" size={80} strokeWidth={1} />
-                  <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-app-dark-green" size={24} />
+                  <Loader2 className="animate-spin text-slate-200 dark:text-slate-800" size={80} strokeWidth={1} />
+                  <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-app-accent" size={24} />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-3xl font-display font-bold text-app-fg">{t('synthesizingIntelligence')}</h3>
-                  <p className="text-app-brown/60 max-w-md mx-auto">
+                  <h3 className="text-3xl font-display font-bold text-slate-850 dark:text-white">{t('synthesizingIntelligence')}</h3>
+                  <p className="text-slate-400 max-w-md mx-auto text-sm leading-relaxed">
                     {t('processingDesc')}
                     <br />
-                    <span className="text-xs font-mono mt-2 block">{t('processingTime')}: {formatDuration(processingTime)}</span>
+                    <span className="text-xs font-mono mt-3 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg inline-block text-slate-500 font-bold">{t('processingTime')}: {formatDuration(processingTime)}</span>
                   </p>
                 </div>
-                <div className="w-64 h-1 bg-app-brown/5 rounded-full overflow-hidden">
+                <div className="w-64 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ x: '-100%' }}
                     animate={{ x: '100%' }}
                     transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="w-full h-full bg-app-dark-green"
+                    className="w-full h-full bg-app-accent"
                   />
                 </div>
               </motion.div>

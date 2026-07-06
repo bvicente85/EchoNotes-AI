@@ -38,6 +38,9 @@ export function SettingsView({
   const [language, setLanguage] = useState(initialLanguage || localStorage.getItem('echonotes_language') || 'english');
   const [summaryDetail, setSummaryDetail] = useState(initialSummaryDetail || localStorage.getItem('echonotes_summary_detail') || 'detailed');
   const [customTerms, setCustomTerms] = useState(localStorage.getItem('echonotes_custom_terms') || '');
+  const [aiModel, setAiModel] = useState(localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash');
+  const [meetingTone, setMeetingTone] = useState(localStorage.getItem('echonotes_meeting_tone') || 'professional');
+  const [customGuidelines, setCustomGuidelines] = useState(localStorage.getItem('echonotes_custom_guidelines') || '');
   const [isSaved, setIsSaved] = useState(false);
 
   // Raw local storage tracking state for audio records
@@ -90,6 +93,9 @@ export function SettingsView({
     localStorage.setItem('echonotes_language', language);
     localStorage.setItem('echonotes_summary_detail', summaryDetail);
     localStorage.setItem('echonotes_custom_terms', customTerms);
+    localStorage.setItem('echonotes_ai_model', aiModel);
+    localStorage.setItem('echonotes_meeting_tone', meetingTone);
+    localStorage.setItem('echonotes_custom_guidelines', customGuidelines);
     
     // Save to Supabase profiles table
     try {
@@ -290,16 +296,56 @@ export function SettingsView({
                   </button>
                 </div>
               </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-app-fg/40">Model de IA de Precisão</label>
+                <select 
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                  className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg appearance-none cursor-pointer"
+                >
+                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Rápido & Inteligente)</option>
+                  <option value="gemini-2.5-pro">Gemini 2.5 Pro (Alta Precisão & Raciocínio)</option>
+                </select>
+                <p className="text-[10px] text-app-fg/40">O Pro é excelente para reuniões densas e com terminologia complexa.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-app-fg/40">Tom do Relatório</label>
+                <select 
+                  value={meetingTone}
+                  onChange={(e) => setMeetingTone(e.target.value)}
+                  className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg appearance-none cursor-pointer"
+                >
+                  <option value="professional">Profissional & Formal</option>
+                  <option value="technical">Técnico & Preciso</option>
+                  <option value="casual">Conversacional & Descontraído</option>
+                  <option value="action_oriented">Focado em Ações & Resultados</option>
+                </select>
+                <p className="text-[10px] text-app-fg/40">Modifica o vocabulário e a estrutura da análise gerada pela IA.</p>
+              </div>
+
               <div className="md:col-span-2 space-y-2">
-                <label className="text-xs font-bold text-app-fg/40">Dicionário Pessoal (Palavras a lembrar)</label>
+                <label className="text-xs font-bold text-app-fg/40">Dicionário Pessoal (Termos Customizados)</label>
                 <input 
                   type="text"
                   value={customTerms}
                   onChange={(e) => setCustomTerms(e.target.value)}
-                  placeholder="Ex: Skolae, EchoNotes, Projeto X"
+                  placeholder="Ex: Skolae, EchoNotes, Projeto X, Ana Silva"
                   className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg placeholder:text-app-fg/20"
                 />
-                <p className="text-[10px] text-app-fg/40">Insira palavras separadas por vírgula que a IA deve reconhecer corretamente.</p>
+                <p className="text-[10px] text-app-fg/40">Termos, marcas ou nomes separados por vírgula que a IA deve reconhecer sem autocorrigir.</p>
+              </div>
+
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-xs font-bold text-app-fg/40">Instruções Customizadas da IA (Diretrizes Adicionais)</label>
+                <textarea 
+                  value={customGuidelines}
+                  onChange={(e) => setCustomGuidelines(e.target.value)}
+                  placeholder="Ex: Sempre colocar números de faturação em tabelas. Ignorar os primeiros 5 minutos de conversas informais. Formatar as ações futuras com data limite explícita."
+                  rows={3}
+                  className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg placeholder:text-app-fg/20 resize-none"
+                />
+                <p className="text-[10px] text-app-fg/40">Instruções ou regras específicas que o modelo de IA seguirá estritamente para compilar o resumo e as notas.</p>
               </div>
             </div>
           </section>
