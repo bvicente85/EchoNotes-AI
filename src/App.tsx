@@ -1429,8 +1429,9 @@ export default function App() {
                             </div>
                             
                             {editingId === item.id ? (
-                              <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
+                              <div key={`sidebar-edit-container-${item.id}`} className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
                                 <input 
+                                  key={`sidebar-title-input-${item.id}`}
                                   autoFocus
                                   value={editingTitle}
                                   onChange={e => setEditingTitle(e.target.value)}

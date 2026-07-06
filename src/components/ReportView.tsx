@@ -46,6 +46,13 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
   });
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const isEditingTitleRef = useRef(isEditingTitle);
+  const currentTitleRef = useRef(data.title);
+
+  useEffect(() => {
+    isEditingTitleRef.current = isEditingTitle;
+    currentTitleRef.current = data.title;
+  }, [isEditingTitle, data.title]);
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [editingSpeakerIndex, setEditingSpeakerIndex] = useState<number | null>(null);
   const [editingSpeakerValue, setEditingSpeakerValue] = useState('');
@@ -237,7 +244,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
       transcript: report.transcript,
       clientName: report.clientName || '',
       meetingDate: report.meetingDate || new Date().toISOString().slice(0, 16),
-      title: initialTitle || 'Meeting Intelligence Report',
+      title: isEditingTitleRef.current ? currentTitleRef.current : (initialTitle || 'Meeting Intelligence Report'),
       isQuickDraft: report.isQuickDraft || false,
       quickDraft: report.quickDraft || {
         formattedNotes: '',
@@ -811,6 +818,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
             </div>
             {isEditingTitle ? (
               <input
+                key="report-view-title-input"
                 autoFocus
                 value={data.title}
                 onChange={(e) => updateData({ ...data, title: e.target.value })}
@@ -826,6 +834,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
               />
             ) : (
               <h1 
+                key="report-view-title-display"
                 onClick={() => setIsEditingTitle(true)}
                 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white cursor-pointer hover:text-slate-600 dark:hover:text-amber-500 transition-colors leading-tight tracking-tight break-words"
               >
