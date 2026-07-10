@@ -16,6 +16,7 @@ import { cn } from './lib/utils';
 import { useLanguage } from './contexts/LanguageContext';
 import { getBackup, clearBackup, saveChunk, saveMetadata, BackupMetadata } from './services/dbBackup';
 import { saveAudio, deleteAudio, clearAllAudios, cleanExpiredAudios } from './services/audioStorage';
+import { PendingRecording, savePendingRecording, getPendingRecordings, deletePendingRecording, getPendingRecording } from './services/pendingRecordings';
 
 const base64ToBlob = (base64: string, mimeType: string): Blob => {
   const byteCharacters = atob(base64);
@@ -66,6 +67,28 @@ export default function App() {
   const [sessionType, setSessionType] = useState<'meeting' | 'quick_draft'>('meeting');
   const [manualNotes, setManualNotes] = useState('');
   const [template, setTemplate] = useState('standard');
+
+  // Pending recordings state variables
+  const [pendingRecordings, setPendingRecordings] = useState<Omit<PendingRecording, 'audioBlob'>[]>([]);
+  const [sidebarTab, setSidebarTab] = useState<'history' | 'pending'>('history');
+  const [selectedPendingId, setSelectedPendingId] = useState<string | null>(null);
+  const [pendingRecordingToSave, setPendingRecordingToSave] = useState<{ blob: Blob; duration: number } | null>(null);
+  const [pendingTitleInput, setPendingTitleInput] = useState('');
+  const [isProcessingPendingId, setIsProcessingPendingId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [pendingAudioUrl, setPendingAudioUrl] = useState<string | null>(null);
+  
+  // State variables for interactive pending recording configurations
+  const [pendingTitle, setPendingTitle] = useState('');
+  const [pendingSessionType, setPendingSessionType] = useState<'meeting' | 'quick_draft'>('meeting');
+  const [pendingTemplate, setPendingTemplate] = useState('standard');
+  const [pendingTone, setPendingTone] = useState('professional');
+  const [pendingModel, setPendingModel] = useState('gemini-3.5-flash');
+  const [pendingExpectedSpeakers, setPendingExpectedSpeakers] = useState('');
+  const [pendingManualNotes, setPendingManualNotes] = useState('');
+  const [pendingCustomGuidelines, setPendingCustomGuidelines] = useState('');
+  const [pendingCustomTerms, setPendingCustomTerms] = useState('');
+  const [pendingLanguageSetting, setPendingLanguageSetting] = useState('portuguese');
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -166,6 +189,15 @@ export default function App() {
     }
   }, [showHistory]);
 
+  const fetchPendingRecordings = async () => {
+    try {
+      const data = await getPendingRecordings();
+      setPendingRecordings(data);
+    } catch (err) {
+      console.error("Error loading pending recordings:", err);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       const fetchHistory = async () => {
@@ -177,6 +209,7 @@ export default function App() {
         
         const data = await getHistory(user.id);
         setHistory(data);
+        await fetchPendingRecordings();
       };
       fetchHistory();
     }
@@ -197,6 +230,55 @@ export default function App() {
       checkBackups();
     }
   }, [user]);
+
+  useEffect(() => {
+    let activeUrl: string | null = null;
+    if (selectedPendingId && sidebarTab === 'pending') {
+      getPendingRecording(selectedPendingId).then(item => {
+        if (item) {
+          const url = URL.createObjectURL(item.audioBlob);
+          setPendingAudioUrl(url);
+          activeUrl = url;
+          
+          // Populate interactive configuration states
+          setPendingTitle(item.title || '');
+          setPendingSessionType(item.sessionType === 'quick_draft' ? 'quick_draft' : 'meeting');
+          setPendingTemplate(item.template || 'standard');
+          setPendingTone(item.meetingTone || 'professional');
+          setPendingModel(item.aiModel || 'gemini-3.5-flash');
+          setPendingExpectedSpeakers(item.expectedSpeakers || '');
+          setPendingManualNotes(item.manualNotes || '');
+          setPendingCustomGuidelines(item.customGuidelines || '');
+          setPendingCustomTerms(item.customTerms || '');
+          setPendingLanguageSetting(item.languageSetting || 'portuguese');
+        } else {
+          setPendingAudioUrl(null);
+        }
+      });
+    } else {
+      setPendingAudioUrl(null);
+    }
+    return () => {
+      if (activeUrl) {
+        URL.revokeObjectURL(activeUrl);
+      }
+    };
+  }, [selectedPendingId, sidebarTab]);
+
+  const handleUpdatePendingField = async (field: string, value: any) => {
+    if (!selectedPendingId) return;
+    const pendingItem = await getPendingRecording(selectedPendingId);
+    if (!pendingItem) return;
+    
+    const updated = {
+      ...pendingItem,
+      [field]: value
+    };
+    await savePendingRecording(updated);
+    
+    // Update local state list to show immediate changes in titles or descriptions
+    setPendingRecordings(prev => prev.map(p => p.id === selectedPendingId ? { ...p, [field]: value } : p));
+  };
 
   const handleRecoverBackup = async () => {
     if (!activeBackup || !user) return;
@@ -553,66 +635,10 @@ export default function App() {
           (stream as any)._originalStreams.forEach((s: MediaStream) => s.getTracks().forEach(t => t.stop()));
         }
 
-        setIsProcessing(true);
-        try {
-          const reader = new FileReader();
-          reader.readAsDataURL(audioBlob);
-          reader.onloadend = async () => {
-            const base64Audio = (reader.result as string).split(',')[1];
-            const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
-            const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
-            
-            const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
-            const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
-            const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
-            const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
-            try {
-              // Extract expected speakers array
-              const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
-              const res = await generateMeetingReport(
-                base64Audio, 
-                audioBlob.type, 
-                detailLevel, 
-                languageSetting, 
-                false, 
-                speakersArray, 
-                sessionType === 'quick_draft', 
-                manualNotes, 
-                template, 
-                customTerms,
-                aiModel,
-                meetingTone,
-                customGuidelines
-              );
-              const newItem = await saveToHistory(res, user!.id);
-              if (newItem) {
-                setCurrentHistoryId(newItem.id);
-                try {
-                  await saveAudio(newItem.id, audioBlob);
-                } catch (err) {
-                  console.error("Failed to store recorded audio locally:", err);
-                }
-                setHistory(prev => [newItem, ...prev]);
-              }
-              setReport(res);
-              // Clear backup since processing succeeded and was saved to history
-              await clearBackup();
-            } catch (err) {
-              console.error("Processing failed:", err);
-              if (err instanceof MeetingAnalysisError) {
-                setError(err.message);
-              } else {
-                setError("O serviço de IA está temporariamente indisponível. Por favor, tente novamente em alguns instantes.");
-              }
-              setLastFailedAudio({ base64: base64Audio, mimeType: audioBlob.type });
-            } finally {
-              setIsProcessing(false);
-            }
-          };
-        } catch (err) {
-          console.error("Recording stop handling failed:", err);
-          setIsProcessing(false);
-        }
+        // Set state to show the post-recording options modal
+        setPendingRecordingToSave({ blob: audioBlob, duration: duration });
+        setPendingTitleInput('');
+        setIsRecording(false);
       };
 
       // Emit slices every 5 seconds to back up chunks sequentially to minimize potential data loss
@@ -703,6 +729,218 @@ export default function App() {
         handleGoHome();
       }
       setIsClearingAll(false);
+    }
+  };
+
+  const handleSaveAsPending = async (customTitle?: string) => {
+    if (!pendingRecordingToSave || !user) return;
+    
+    const { blob, duration } = pendingRecordingToSave;
+    const title = customTitle?.trim() || t('defaultPendingTitle').replace('{date}', new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    
+    const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
+    const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+    const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
+    const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
+    const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
+    const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
+    
+    const pendingItem: PendingRecording = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+      title,
+      audioBlob: blob,
+      timestamp: Date.now(),
+      duration,
+      sessionType: sessionType,
+      expectedSpeakers: expectedSpeakers,
+      manualNotes: manualNotes,
+      template: template,
+      meetingTone,
+      languageSetting,
+      aiModel,
+      customTerms,
+      customGuidelines
+    };
+    
+    try {
+      await savePendingRecording(pendingItem);
+      await fetchPendingRecordings();
+      setSuccessMessage(t('saveAsPendingSuccess'));
+      setTimeout(() => setSuccessMessage(null), 5000);
+      await clearBackup();
+    } catch (err) {
+      console.error("Failed to save pending recording:", err);
+      setError("Erro ao guardar a gravação pendente.");
+    } finally {
+      setPendingRecordingToSave(null);
+      setPendingTitleInput('');
+      setReport(null);
+      setCurrentHistoryId(null);
+    }
+  };
+
+  const handleProcessRecordingNow = async (blob: Blob, customTitle?: string) => {
+    if (!user) return;
+    
+    setError(null);
+    setIsProcessing(true);
+    setPendingRecordingToSave(null);
+    
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
+        const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+        
+        const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
+        const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
+        const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
+        const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
+        
+        try {
+          const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
+          const res = await generateMeetingReport(
+            base64Audio, 
+            blob.type, 
+            detailLevel, 
+            languageSetting, 
+            false, 
+            speakersArray, 
+            sessionType === 'quick_draft', 
+            manualNotes, 
+            template, 
+            customTerms,
+            aiModel,
+            meetingTone,
+            customGuidelines
+          );
+          
+          if (customTitle && customTitle.trim()) {
+            res.title = customTitle.trim();
+          }
+          
+          const newItem = await saveToHistory(res, user.id);
+          if (newItem) {
+            setCurrentHistoryId(newItem.id);
+            try {
+              await saveAudio(newItem.id, blob);
+            } catch (err) {
+              console.error("Failed to store recorded audio locally:", err);
+            }
+            setHistory(prev => [newItem, ...prev]);
+          }
+          setReport(res);
+          await clearBackup();
+        } catch (err) {
+          console.error("Processing failed:", err);
+          if (err instanceof MeetingAnalysisError) {
+            setError(err.message);
+          } else {
+            setError("O serviço de IA está temporariamente indisponível. Por favor, tente novamente em alguns instantes.");
+          }
+          setLastFailedAudio({ base64: base64Audio, mimeType: blob.type });
+        } finally {
+          setIsProcessing(false);
+          setPendingTitleInput('');
+        }
+      };
+    } catch (err) {
+      console.error("Recording stop handling failed:", err);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleProcessPending = async (pendingId: string) => {
+    if (!user) return;
+    
+    const pendingItem = await getPendingRecording(pendingId);
+    if (!pendingItem) {
+      setError("Gravação pendente não encontrada.");
+      return;
+    }
+    
+    setError(null);
+    setIsProcessingPendingId(pendingId);
+    setIsProcessing(true);
+    
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(pendingItem.audioBlob);
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        
+        try {
+          const speakersArray = pendingExpectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
+          const res = await generateMeetingReport(
+            base64Audio, 
+            pendingItem.audioBlob.type, 
+            localStorage.getItem('echonotes_summary_detail') || 'detailed', 
+            pendingLanguageSetting || localStorage.getItem('echonotes_language') || 'portuguese', 
+            false, 
+            speakersArray, 
+            pendingSessionType === 'quick_draft', 
+            pendingManualNotes, 
+            pendingTemplate, 
+            pendingCustomTerms,
+            pendingModel,
+            pendingTone,
+            pendingCustomGuidelines
+          );
+          
+          res.title = pendingTitle || pendingItem.title;
+          
+          const newItem = await saveToHistory(res, user.id);
+          if (newItem) {
+            setCurrentHistoryId(newItem.id);
+            try {
+              await saveAudio(newItem.id, pendingItem.audioBlob);
+            } catch (err) {
+              console.error("Failed to store audio locally:", err);
+            }
+            setHistory(prev => [newItem, ...prev]);
+            setSelectedPreviewSessionId(newItem.id);
+          }
+          setReport(res);
+          
+          await deletePendingRecording(pendingId);
+          await fetchPendingRecordings();
+          
+          setSidebarTab('history');
+          setShowHistory(false);
+          
+          setSuccessMessage(t('pendingRecordingSuccess'));
+          setTimeout(() => setSuccessMessage(null), 5000);
+        } catch (err) {
+          console.error("Processing pending failed:", err);
+          if (err instanceof MeetingAnalysisError) {
+            setError(err.message);
+          } else {
+            setError("O serviço de IA está temporariamente indisponível. Por favor, tente novamente em alguns instantes.");
+          }
+        } finally {
+          setIsProcessingPendingId(null);
+          setIsProcessing(false);
+        }
+      };
+    } catch (err) {
+      console.error("Failed to read pending recording blob:", err);
+      setError("Erro ao ler dados da gravação pendente.");
+      setIsProcessingPendingId(null);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeletePending = async (pendingId: string) => {
+    try {
+      await deletePendingRecording(pendingId);
+      await fetchPendingRecordings();
+      if (selectedPendingId === pendingId) {
+        setSelectedPendingId(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete pending recording:", err);
     }
   };
 
@@ -1369,20 +1607,145 @@ export default function App() {
                     </button>
                   </div>
                 </div>
+
+                {/* Tabs for History vs. Pending */}
+                <div className="flex items-center gap-2 mt-4 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-xl w-fit border border-slate-200/40 dark:border-white/5">
+                  <button 
+                    onClick={() => setSidebarTab('history')}
+                    className={cn(
+                      "flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                      sidebarTab === 'history'
+                        ? "bg-white dark:bg-slate-850 text-slate-850 dark:text-white shadow-xs border border-slate-200/50 dark:border-white/5"
+                        : "text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-white"
+                    )}
+                  >
+                    <History size={13} />
+                    {language === 'portuguese' ? 'Relatórios Processados' : 'Processed Reports'}
+                    <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-650 dark:text-slate-300 px-1.5 py-0.5 rounded-md font-bold">
+                      {sortedHistory.length}
+                    </span>
+                  </button>
+                  <button 
+                    onClick={() => setSidebarTab('pending')}
+                    className={cn(
+                      "flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer relative",
+                      sidebarTab === 'pending'
+                        ? "bg-white dark:bg-slate-850 text-slate-850 dark:text-white shadow-xs border border-slate-200/50 dark:border-white/5"
+                        : "text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-white"
+                    )}
+                  >
+                    <Clock size={13} />
+                    {t('pendingRecordings')}
+                    {pendingRecordings.length > 0 && (
+                      <span className="flex h-2 w-2 absolute top-1 right-1">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-app-accent opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-app-accent"></span>
+                      </span>
+                    )}
+                    <span className="text-[10px] bg-app-accent/10 text-app-accent px-1.5 py-0.5 rounded-md font-bold">
+                      {pendingRecordings.length}
+                    </span>
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12">
                 {/* Left Column - Master Sessions List */}
                 <div className="col-span-1 lg:col-span-4 border-r border-slate-200/60 dark:border-white/5 overflow-y-auto p-4 space-y-3 bg-white dark:bg-slate-900/40 custom-scrollbar">
-                  {history.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                      <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-200/40 dark:border-white/5">
-                        <History size={24} />
+                  {sidebarTab === 'pending' ? (
+                    pendingRecordings.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-200/40 dark:border-white/5">
+                          <Clock size={24} />
+                        </div>
+                        <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200 mb-1">{t('noPendingRecordings')}</h3>
+                        <p className="text-xs text-slate-400">{t('pendingRecordingsDesc')}</p>
                       </div>
-                      <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200 mb-1">{t('noSessionsYet')}</h3>
-                      <p className="text-xs text-slate-400">{t('startRecordingToBegin')}</p>
-                    </div>
-                  ) : (() => {
+                    ) : (
+                      pendingRecordings.map((item) => {
+                        const isSelected = item.id === (selectedPendingId || pendingRecordings[0]?.id);
+                        const isProcessingItem = isProcessingPendingId === item.id;
+                        return (
+                          <div 
+                            key={item.id}
+                            onClick={() => {
+                              setSelectedPendingId(item.id);
+                            }}
+                            className={cn(
+                              "group flex flex-col p-4 border rounded-xl cursor-pointer transition-all relative overflow-hidden",
+                              isSelected 
+                                ? "bg-slate-50 dark:bg-slate-800/80 border-app-accent dark:border-white/25 shadow-xs" 
+                                : "bg-white dark:bg-slate-800/40 border-slate-200/60 dark:border-white/5 hover:border-app-accent/60 hover:shadow-xs"
+                            )}
+                          >
+                            {isSelected && (
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-app-accent dark:bg-white" />
+                            )}
+                            
+                            <div className="flex flex-col flex-1 mr-2 overflow-hidden">
+                              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                <span className="text-[9px] font-mono text-slate-400 dark:text-slate-455 uppercase tracking-wider">
+                                  {new Date(item.timestamp).toLocaleDateString()} • {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className="text-[8px] font-bold text-app-accent dark:text-slate-300 uppercase tracking-wider bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
+                                  {formatDuration(item.duration)}
+                                </span>
+                              </div>
+                              
+                              <span className="text-slate-800 dark:text-zinc-200 font-semibold text-sm line-clamp-1">
+                                {item.title}
+                              </span>
+                              
+                              <p className="text-[11px] text-slate-450 dark:text-slate-400 line-clamp-1 mt-1 font-normal leading-relaxed">
+                                {item.sessionType === 'quick_draft' ? t('sessionTypeQuickDraft') : t('sessionTypeMeeting')}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 dark:border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleProcessPending(item.id);
+                                }}
+                                disabled={isProcessing}
+                                className="text-[10px] font-bold text-app-accent dark:text-slate-300 hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                              >
+                                {isProcessingItem ? (
+                                  <Loader2 size={10} className="animate-spin" />
+                                ) : (
+                                  <Sparkles size={10} />
+                                )}
+                                {isProcessingItem ? t('lowVolumeAlertButton') : t('processRecording')}
+                              </button>
+                              
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm(language === 'portuguese' ? 'Deseja mesmo eliminar esta gravação pendente?' : 'Are you sure you want to delete this pending recording?')) {
+                                    handleDeletePending(item.id);
+                                  }
+                                }}
+                                disabled={isProcessing}
+                                className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all rounded disabled:opacity-50"
+                                title={t('delete')}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )
+                  ) : (
+                    history.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-200/40 dark:border-white/5">
+                          <History size={24} />
+                        </div>
+                        <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200 mb-1">{t('noSessionsYet')}</h3>
+                        <p className="text-xs text-slate-400">{t('startRecordingToBegin')}</p>
+                      </div>
+                    ) : (() => {
                     if (sortedHistory.length === 0) {
                       return (
                         <div className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -1505,12 +1868,241 @@ export default function App() {
                         </div>
                       );
                     });
-                  })()}
+                  })())}
                 </div>
 
                 {/* Right Column - Detail Session Preview */}
                 <div className="hidden lg:block lg:col-span-8 overflow-y-auto bg-slate-50/50 dark:bg-slate-950/20 custom-scrollbar relative">
-                  {(() => {
+                  {sidebarTab === 'pending' ? (() => {
+                    const previewPending = pendingRecordings.find(p => p.id === (selectedPendingId || pendingRecordings[0]?.id));
+                    if (!previewPending) {
+                      return (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
+                          <Clock size={32} className="mb-2 opacity-50" />
+                          <p className="text-sm font-semibold">{language === 'portuguese' ? 'Selecione uma gravação para visualizar' : 'Select a recording to view'}</p>
+                        </div>
+                      );
+                    }
+                    const isProcessingItem = isProcessingPendingId === previewPending.id;
+                    return (
+                      <div className="p-6 space-y-6">
+                        {/* Summary Header Card */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-sm">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold text-app-accent bg-app-accent/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                {language === 'portuguese' ? 'Gravação Pendente' : 'Pending Recording'}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {new Date(previewPending.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                            <input
+                              type="text"
+                              value={pendingTitle}
+                              onChange={(e) => {
+                                setPendingTitle(e.target.value);
+                                handleUpdatePendingField('title', e.target.value);
+                              }}
+                              className="text-lg font-bold text-slate-800 dark:text-white mt-1 leading-tight bg-transparent border-b border-dashed border-slate-300 dark:border-white/20 focus:border-app-accent focus:outline-none w-full"
+                              placeholder={language === 'portuguese' ? 'Título da Gravação' : 'Recording Title'}
+                            />
+                          </div>
+                          
+                          <button
+                            onClick={() => handleProcessPending(previewPending.id)}
+                            disabled={isProcessing}
+                            className="px-5 py-2.5 bg-app-accent text-white font-bold rounded-xl text-xs flex items-center gap-2 hover:opacity-90 transition-all cursor-pointer disabled:opacity-50 shadow-md shadow-app-accent/20 shrink-0"
+                          >
+                            {isProcessingItem ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Sparkles size={14} />
+                            )}
+                            {isProcessingItem ? t('lowVolumeAlertButton') : t('processRecording')}
+                          </button>
+                        </div>
+
+                        {/* Audio Player Card */}
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-sm space-y-3">
+                          <h4 className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <Headphones size={14} className="text-app-accent" />
+                            {language === 'portuguese' ? 'Ficheiro de Áudio' : 'Audio File'}
+                          </h4>
+                          <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/40 dark:border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-zinc-300 rounded-lg flex items-center justify-center font-bold text-xs font-mono">
+                                wav
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-slate-700 dark:text-zinc-200">{pendingTitle || previewPending.title}.wav</p>
+                                <p className="text-[10px] text-slate-450 dark:text-slate-400 font-mono">{t('durationLabel')}: {formatDuration(previewPending.duration)}</p>
+                              </div>
+                            </div>
+                            
+                            {pendingAudioUrl ? (
+                              <audio 
+                                src={pendingAudioUrl} 
+                                controls 
+                                className="w-full md:max-w-xs h-9 accent-app-accent text-xs"
+                              />
+                            ) : (
+                              <span className="text-xs text-slate-400 font-mono italic">Carregando ficheiro de áudio...</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Configurations Card */}
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-sm space-y-4">
+                          <h4 className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <Sliders size={14} className="text-app-accent" />
+                            {language === 'portuguese' ? 'Configurar Formato & Parâmetros de Análise' : 'Configure Format & Analysis Settings'}
+                          </h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div className="p-3 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1">
+                              <label className="text-slate-450 font-semibold block">{t('sessionTypeTitle')}:</label>
+                              <select
+                                value={pendingSessionType}
+                                onChange={(e) => {
+                                  const val = e.target.value as 'meeting' | 'quick_draft';
+                                  setPendingSessionType(val);
+                                  handleUpdatePendingField('sessionType', val);
+                                }}
+                                className="w-full bg-transparent border-none p-0 font-bold text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 cursor-pointer text-xs"
+                              >
+                                <option value="meeting" className="dark:bg-slate-900">{t('sessionTypeMeeting')}</option>
+                                <option value="quick_draft" className="dark:bg-slate-900">{t('sessionTypeQuickDraft')}</option>
+                              </select>
+                            </div>
+
+                            <div className="p-3 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1">
+                              <label className="text-slate-450 font-semibold block">{language === 'portuguese' ? 'Template de Ata / Saída' : 'Minutes Template / Output'}:</label>
+                              <select
+                                value={pendingTemplate}
+                                onChange={(e) => {
+                                  setPendingTemplate(e.target.value);
+                                  handleUpdatePendingField('template', e.target.value);
+                                }}
+                                className="w-full bg-transparent border-none p-0 font-bold text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 cursor-pointer text-xs"
+                              >
+                                <option value="standard" className="dark:bg-slate-900">{language === 'portuguese' ? 'Padrão Completo' : 'Full Standard'}</option>
+                                <option value="client_meeting" className="dark:bg-slate-900">{language === 'portuguese' ? 'Reunião com Cliente' : 'Client Meeting'}</option>
+                                <option value="internal_meeting" className="dark:bg-slate-900">{language === 'portuguese' ? 'Reunião Interna / Ata' : 'Internal Meeting / Minutes'}</option>
+                                <option value="brainstorming" className="dark:bg-slate-900">{language === 'portuguese' ? 'Brainstorming' : 'Brainstorming'}</option>
+                              </select>
+                            </div>
+
+                            <div className="p-3 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1">
+                              <label className="text-slate-450 font-semibold block">{language === 'portuguese' ? 'Modelo de IA' : 'AI Model'}:</label>
+                              <select
+                                value={pendingModel}
+                                onChange={(e) => {
+                                  setPendingModel(e.target.value);
+                                  handleUpdatePendingField('aiModel', e.target.value);
+                                }}
+                                className="w-full bg-transparent border-none p-0 font-bold text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 cursor-pointer text-xs"
+                              >
+                                <option value="gemini-3.5-flash" className="dark:bg-slate-900">Gemini 3.5 Flash</option>
+                                <option value="gemini-2.5-pro" className="dark:bg-slate-900">Gemini 2.5 Pro</option>
+                              </select>
+                            </div>
+
+                            <div className="p-3 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1">
+                              <label className="text-slate-450 font-semibold block">{language === 'portuguese' ? 'Tom de Escrita' : 'Writing Tone'}:</label>
+                              <select
+                                value={pendingTone}
+                                onChange={(e) => {
+                                  setPendingTone(e.target.value);
+                                  handleUpdatePendingField('meetingTone', e.target.value);
+                                }}
+                                className="w-full bg-transparent border-none p-0 font-bold text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 cursor-pointer text-xs"
+                              >
+                                <option value="professional" className="dark:bg-slate-900">{language === 'portuguese' ? 'Profissional & Formal' : 'Professional & Formal'}</option>
+                                <option value="technical" className="dark:bg-slate-900">{language === 'portuguese' ? 'Técnico & Preciso' : 'Technical & Precise'}</option>
+                                <option value="casual" className="dark:bg-slate-900">{language === 'portuguese' ? 'Conversacional & Descontraído' : 'Conversational & Casual'}</option>
+                                <option value="action_oriented" className="dark:bg-slate-900">{language === 'portuguese' ? 'Focado em Ações & Resultados' : 'Action-oriented'}</option>
+                              </select>
+                            </div>
+
+                            <div className="p-3 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1 col-span-1 md:col-span-2">
+                              <label className="text-slate-450 font-semibold block">{t('outputLanguage')}:</label>
+                              <select
+                                value={pendingLanguageSetting}
+                                onChange={(e) => {
+                                  setPendingLanguageSetting(e.target.value);
+                                  handleUpdatePendingField('languageSetting', e.target.value);
+                                }}
+                                className="w-full bg-transparent border-none p-0 font-bold text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 cursor-pointer text-xs"
+                              >
+                                <option value="english" className="dark:bg-slate-900">English</option>
+                                <option value="portuguese" className="dark:bg-slate-900">Português (Europeu)</option>
+                                <option value="spanish" className="dark:bg-slate-900">Spanish</option>
+                                <option value="french" className="dark:bg-slate-900">French</option>
+                                <option value="german" className="dark:bg-slate-900">German</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="p-3.5 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1 text-xs">
+                            <span className="text-slate-450 font-semibold">{t('expectedSpeakersLabel')}:</span>
+                            <input
+                              type="text"
+                              value={pendingExpectedSpeakers}
+                              onChange={(e) => {
+                                setPendingExpectedSpeakers(e.target.value);
+                                handleUpdatePendingField('expectedSpeakers', e.target.value);
+                              }}
+                              placeholder={t('expectedSpeakersPlaceholder')}
+                              className="w-full bg-transparent border-none p-0 font-medium text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 text-xs mt-1"
+                            />
+                          </div>
+
+                          <div className="p-3.5 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1 text-xs">
+                            <span className="text-slate-450 font-semibold">{language === 'portuguese' ? 'Dicionário Pessoal (Termos Customizados)' : 'Personal Dictionary (Custom Terms)'}:</span>
+                            <input
+                              type="text"
+                              value={pendingCustomTerms}
+                              onChange={(e) => {
+                                setPendingCustomTerms(e.target.value);
+                                handleUpdatePendingField('customTerms', e.target.value);
+                              }}
+                              placeholder="Ex: Skolae, EchoNotes, Projeto X, Ana Silva"
+                              className="w-full bg-transparent border-none p-0 font-medium text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 text-xs mt-1"
+                            />
+                          </div>
+
+                          <div className="p-3.5 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1 text-xs">
+                            <span className="text-slate-450 font-semibold">{language === 'portuguese' ? 'Anotações em Tempo Real' : 'Real-time Notes'}:</span>
+                            <textarea
+                              value={pendingManualNotes}
+                              onChange={(e) => {
+                                setPendingManualNotes(e.target.value);
+                                handleUpdatePendingField('manualNotes', e.target.value);
+                              }}
+                              placeholder={language === 'portuguese' ? 'Anotações rápidas tomadas durante a gravação...' : 'Quick notes taken during the recording...'}
+                              rows={3}
+                              className="w-full bg-transparent border-none p-0 text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 text-xs mt-1 resize-none whitespace-pre-wrap leading-relaxed"
+                            />
+                          </div>
+
+                          <div className="p-3.5 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1 text-xs">
+                            <span className="text-slate-450 font-semibold">{language === 'portuguese' ? 'Instruções / Diretrizes de IA Customizadas' : 'Custom AI Instructions / Guidelines'}:</span>
+                            <textarea
+                              value={pendingCustomGuidelines}
+                              onChange={(e) => {
+                                setPendingCustomGuidelines(e.target.value);
+                                handleUpdatePendingField('customGuidelines', e.target.value);
+                              }}
+                              placeholder="Ex: Focar nas decisões de negócio e listar tarefas com prazos."
+                              rows={3}
+                              className="w-full bg-transparent border-none p-0 text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 text-xs mt-1 font-mono text-[10px] resize-none leading-relaxed"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })() : (() => {
                     const previewItem = sortedHistory.find(h => h.id === (selectedPreviewSessionId || sortedHistory[0]?.id));
                     if (!previewItem) {
                       return (
@@ -1684,6 +2276,116 @@ export default function App() {
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Post-recording options modal */}
+      <AnimatePresence>
+        {pendingRecordingToSave && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl p-6 border border-slate-200/80 dark:border-white/5 relative overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-app-accent" />
+              
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-app-accent/10 text-app-accent rounded-xl flex items-center justify-center">
+                  <Headphones size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
+                    {language === 'portuguese' ? 'Gravação Concluída!' : 'Recording Completed!'}
+                  </h3>
+                  <p className="text-xs text-slate-450 dark:text-slate-400">
+                    {language === 'portuguese' ? 'Escolha como deseja proceder com esta gravação:' : 'Choose how you would like to proceed:'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Metadata badge */}
+              <div className="mb-5 p-3.5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-450 font-medium">{language === 'portuguese' ? 'Duração' : 'Duration'}:</span>
+                  <span className="font-mono font-bold text-slate-800 dark:text-white">{formatDuration(pendingRecordingToSave.duration)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-450 font-medium">{language === 'portuguese' ? 'Tipo' : 'Type'}:</span>
+                  <span className="font-bold text-app-accent">{sessionType === 'quick_draft' ? t('sessionTypeQuickDraft') : t('sessionTypeMeeting')}</span>
+                </div>
+              </div>
+
+              {/* Title input */}
+              <div className="mb-6">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                  {t('enterRecordingTitle')}
+                </label>
+                <input 
+                  type="text"
+                  value={pendingTitleInput}
+                  onChange={e => setPendingTitleInput(e.target.value)}
+                  placeholder={t('defaultPendingTitle').replace('{date}', new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-white/5 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-app-accent/10 focus:border-app-accent transition-all text-slate-800 dark:text-white font-medium"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col gap-2.5">
+                <button 
+                  onClick={() => handleProcessRecordingNow(pendingRecordingToSave.blob, pendingTitleInput)}
+                  className="w-full py-3 bg-app-accent hover:opacity-90 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-app-accent/20 transition-all cursor-pointer"
+                >
+                  <Sparkles size={14} />
+                  {t('processNow')}
+                </button>
+                
+                <button 
+                  onClick={() => handleSaveAsPending(pendingTitleInput)}
+                  className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-705 text-slate-700 dark:text-zinc-200 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all border border-slate-200/50 dark:border-transparent cursor-pointer"
+                >
+                  <Clock size={14} />
+                  {t('saveToPending')}
+                </button>
+
+                <button 
+                  onClick={() => {
+                    if (confirm(language === 'portuguese' ? 'Tem a certeza que deseja descartar esta gravação?' : 'Are you sure you want to discard this recording?')) {
+                      setPendingRecordingToSave(null);
+                      setPendingTitleInput('');
+                      clearBackup();
+                    }
+                  }}
+                  className="w-full py-2.5 bg-transparent hover:bg-red-500/5 text-red-500 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer mt-1"
+                >
+                  <Trash2 size={13} />
+                  {language === 'portuguese' ? 'Descartar Gravação' : 'Discard Recording'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Success Message */}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-[120] bg-emerald-500 text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 border border-emerald-400/30 font-medium"
+          >
+            <CheckSquare size={18} />
+            <span className="text-xs font-bold leading-none">{successMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>

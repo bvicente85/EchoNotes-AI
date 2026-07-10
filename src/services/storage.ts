@@ -18,7 +18,7 @@ export const saveToHistory = async (report: MeetingReport, userId: string): Prom
       .from('meetings')
       .insert([
         {
-          title: report.summary.slice(0, 50) + (report.summary.length > 50 ? '...' : ''),
+          title: report.title || report.summary.slice(0, 50) + (report.summary.length > 50 ? '...' : ''),
           report,
           user_id: userId
         }

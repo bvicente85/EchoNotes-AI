@@ -198,6 +198,23 @@ export interface TranslationKeys {
   quickDraftTasks: string;
   quickDraftEmail: string;
   quickDraftCopy: string;
+  // pending recordings
+  pendingRecordings: string;
+  pendingRecordingsDesc: string;
+  saveToPending: string;
+  processNow: string;
+  processLaterDesc: string;
+  pendingRecordingsCount: string;
+  noPendingRecordings: string;
+  processRecording: string;
+  deleteRecording: string;
+  pendingRecordingSuccess: string;
+  whatToDoWithRecording: string;
+  saveAsPendingSuccess: string;
+  durationLabel: string;
+  audioFile: string;
+  enterRecordingTitle: string;
+  defaultPendingTitle: string;
 }
 
 export const translations: Record<'portuguese' | 'english' | string, TranslationKeys> = {
@@ -391,7 +408,24 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     quickDraftDraft: "Bloco de Notas Limpo",
     quickDraftTasks: "Lista de Tarefas",
     quickDraftEmail: "Rascunho de E-mail",
-    quickDraftCopy: "Copiar Bloco"
+    quickDraftCopy: "Copiar Bloco",
+    // pending recordings
+    pendingRecordings: "Gravações Pendentes",
+    pendingRecordingsDesc: "Grave reuniões de seguida e guarde-as aqui para as processar com IA quando tiver disponibilidade.",
+    saveToPending: "Analisar Mais Tarde",
+    processNow: "Analisar Agora",
+    processLaterDesc: "Esta gravação foi guardada nas suas gravações pendentes. Pode processá-la a qualquer momento no seu histórico.",
+    pendingRecordingsCount: "pendentes",
+    noPendingRecordings: "Nenhuma gravação pendente.",
+    processRecording: "Analisar e Gerar Relatório",
+    deleteRecording: "Eliminar Gravação",
+    pendingRecordingSuccess: "Gravação processada com sucesso!",
+    whatToDoWithRecording: "O que deseja fazer com esta gravação?",
+    saveAsPendingSuccess: "Gravação guardada na fila de gravações pendentes!",
+    durationLabel: "Duração",
+    audioFile: "Ficheiro de Áudio",
+    enterRecordingTitle: "Dê um título a esta reunião (opcional):",
+    defaultPendingTitle: "Reunião de {date}"
   },
   english: {
     welcomeBack: "Welcome Back",
@@ -583,6 +617,23 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     quickDraftDraft: "Clean Scratchpad",
     quickDraftTasks: "Task Checklist",
     quickDraftEmail: "Email Draft",
-    quickDraftCopy: "Copy Section"
+    quickDraftCopy: "Copy Section",
+    // pending recordings
+    pendingRecordings: "Pending Recordings",
+    pendingRecordingsDesc: "Record meetings back-to-back and save them here to process with AI when you are ready.",
+    saveToPending: "Analyze Later",
+    processNow: "Analyze Now",
+    processLaterDesc: "This recording has been saved to your pending recordings. You can process it at any time in your history.",
+    pendingRecordingsCount: "pending",
+    noPendingRecordings: "No pending recordings.",
+    processRecording: "Analyze and Generate Report",
+    deleteRecording: "Delete Recording",
+    pendingRecordingSuccess: "Recording processed successfully!",
+    whatToDoWithRecording: "What would you like to do with this recording?",
+    saveAsPendingSuccess: "Recording saved to pending recordings queue!",
+    durationLabel: "Duration",
+    audioFile: "Audio File",
+    enterRecordingTitle: "Give this meeting a title (optional):",
+    defaultPendingTitle: "Meeting of {date}"
   }
 };

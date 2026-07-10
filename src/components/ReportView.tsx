@@ -299,14 +299,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
     }
   }, [data.summary, data.highlights, data.nextActions, data.transcript, data.clientName, data.meetingDate, onUpdate, report]);
 
-  useEffect(() => {
-    if (onUpdateTitle && data.title !== initialTitle) {
-      const timer = setTimeout(() => {
-        onUpdateTitle(data.title);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [data.title, onUpdateTitle, initialTitle]);
+  // Title update is handled on blur or enter keypress to prevent focus issues during typing.
 
   const getReportText = () => {
     let text = `
@@ -822,9 +815,19 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                 autoFocus
                 value={data.title}
                 onChange={(e) => updateData({ ...data, title: e.target.value })}
-                onBlur={() => setIsEditingTitle(false)}
+                onBlur={() => {
+                  setIsEditingTitle(false);
+                  if (onUpdateTitle && data.title !== initialTitle) {
+                    onUpdateTitle(data.title);
+                  }
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') setIsEditingTitle(false);
+                  if (e.key === 'Enter') {
+                    setIsEditingTitle(false);
+                    if (onUpdateTitle && data.title !== initialTitle) {
+                      onUpdateTitle(data.title);
+                    }
+                  }
                   if (e.key === 'Escape') {
                     updateData({ ...data, title: initialTitle || t('intelligenceReport') });
                     setIsEditingTitle(false);

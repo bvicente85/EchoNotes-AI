@@ -11,6 +11,7 @@ export interface MeetingReport {
   transcript: { speaker: string; text: string; timestamp: string }[];
   clientName?: string;
   meetingDate?: string;
+  title?: string;
   isQuickDraft?: boolean;
   quickDraft?: {
     formattedNotes: string;
