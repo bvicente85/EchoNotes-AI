@@ -218,6 +218,18 @@ export interface TranslationKeys {
   audioFile: string;
   enterRecordingTitle: string;
   defaultPendingTitle: string;
+  // user approval keys
+  pendingApprovalTitle: string;
+  pendingApprovalDesc: string;
+  waitingApproval: string;
+  approve: string;
+  reject: string;
+  approved: string;
+  pending: string;
+  userManagement: string;
+  meetings: string;
+  userApprovedSuccess: string;
+  userRejectedSuccess: string;
 }
 
 export const translations: Record<'portuguese' | 'english' | string, TranslationKeys> = {
@@ -431,7 +443,19 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     durationLabel: "Duração",
     audioFile: "Ficheiro de Áudio",
     enterRecordingTitle: "Dê um título a esta reunião (opcional):",
-    defaultPendingTitle: "Reunião de {date}"
+    defaultPendingTitle: "Reunião de {date}",
+    // user approval keys
+    pendingApprovalTitle: "Acesso Pendente de Aprovação",
+    pendingApprovalDesc: "O seu registo foi efetuado com sucesso! No entanto, para garantir a segurança da plataforma, o administrador precisa de aprovar a sua conta antes de poder aceder.",
+    waitingApproval: "A aguardar aprovação",
+    approve: "Aprovar",
+    reject: "Rejeitar",
+    approved: "Aprovado",
+    pending: "Pendente",
+    userManagement: "Gestão de Utilizadores",
+    meetings: "Reuniões",
+    userApprovedSuccess: "Utilizador aprovado com sucesso!",
+    userRejectedSuccess: "Utilizador rejeitado/removido!"
   },
   english: {
     welcomeBack: "Welcome Back",
@@ -643,6 +667,18 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     durationLabel: "Duration",
     audioFile: "Audio File",
     enterRecordingTitle: "Give this meeting a title (optional):",
-    defaultPendingTitle: "Meeting of {date}"
+    defaultPendingTitle: "Meeting of {date}",
+    // user approval keys
+    pendingApprovalTitle: "Access Pending Approval",
+    pendingApprovalDesc: "Your account was successfully registered! However, for security purposes, an administrator needs to approve your account before you can access the platform.",
+    waitingApproval: "Awaiting approval",
+    approve: "Approve",
+    reject: "Reject",
+    approved: "Approved",
+    pending: "Pending",
+    userManagement: "User Management",
+    meetings: "Meetings",
+    userApprovedSuccess: "User approved successfully!",
+    userRejectedSuccess: "User rejected/removed!"
   }
 };

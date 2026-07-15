@@ -31,7 +31,8 @@ export function LoginPage() {
         });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({
+        const isHardcodedAdmin = email.trim().toLowerCase() === 'brunnofilipe@gmail.com';
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -41,10 +42,35 @@ export function LoginPage() {
           }
         });
         if (error) throw error;
-        setMessage(t('creatingAccountSuccess'));
+
+        // Immediately upsert profile with approved: false for regular users
+        if (data?.user) {
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            display_name: email.split('@')[0],
+            approved: isHardcodedAdmin,
+            role: isHardcodedAdmin ? 'admin' : 'user',
+            email: email,
+            theme: 'light',
+            language: language,
+            updated_at: new Date().toISOString()
+          });
+        }
+
+        setMessage(
+          language === 'portuguese'
+            ? 'Registo efetuado com sucesso! Aguarde a aprovação do administrador para poder utilizar a plataforma.'
+            : 'Registration successful! Please wait for admin approval before using the platform.'
+        );
       }
     } catch (err: any) {
-      setError(err.message || t('loginError'));
+      let errorMsg = err.message || t('loginError');
+      if (errorMsg.toLowerCase().includes('email rate limit') || errorMsg.toLowerCase().includes('rate limit exceeded')) {
+        errorMsg = language === 'portuguese'
+          ? 'Limite de envio de e-mails do Supabase excedido para esta hora. Como administrador, pode desativar a confirmação de e-mail no painel do Supabase (Authentication -> Provider Settings -> Email -> Desativar "Confirm email") para permitir registos imediatos e ilimitados sem este limite.'
+          : 'Supabase email rate limit exceeded. As the administrator, you can disable email confirmation in the Supabase Dashboard (Authentication -> Provider Settings -> Email -> Disable "Confirm email") to allow unlimited, immediate registrations.';
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

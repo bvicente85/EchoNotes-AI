@@ -31,6 +31,7 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
 };
 
 export default function App() {
+  const supabase = getSupabase();
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
@@ -58,6 +59,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [hideDownloaded, setHideDownloaded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isApproved, setIsApproved] = useState<boolean | null>(null);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -140,6 +142,8 @@ export default function App() {
       if (session?.user) {
         setUser(session.user);
         loadUserSettings(session.user);
+      } else {
+        setIsApproved(null);
       }
       setAuthLoading(false);
     });
@@ -155,6 +159,7 @@ export default function App() {
         // Clear theme on logout
         document.documentElement.classList.remove('dark');
         setIsAdmin(false);
+        setIsApproved(null);
         setShowAdminDashboard(false);
       }
       
@@ -163,8 +168,10 @@ export default function App() {
 
     const loadUserSettings = async (currentUser: User) => {
       // Check if admin by email
-      if (currentUser.email === 'brunnofilipe@gmail.com') {
+      const isHardcodedAdmin = currentUser.email === 'brunnofilipe@gmail.com';
+      if (isHardcodedAdmin) {
         setIsAdmin(true);
+        setIsApproved(true);
       }
 
       // Load settings from Supabase profiles table
@@ -175,35 +182,72 @@ export default function App() {
           .eq('id', currentUser.id)
           .single();
 
-        if (profile && !error) {
-          if (profile.role === 'admin') {
+        let activeProfile = profile;
+
+        if (error || !profile) {
+          // If profile doesn't exist, create one automatically
+          const defaultApproved = isHardcodedAdmin; // Admins are auto-approved
+          const { data: newProfile, error: insertError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: currentUser.id,
+              display_name: currentUser.email?.split('@')[0] || 'User',
+              role: isHardcodedAdmin ? 'admin' : 'user',
+              approved: defaultApproved,
+              email: currentUser.email,
+              theme: 'light',
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+          if (!insertError && newProfile) {
+            activeProfile = newProfile;
+          }
+        }
+
+        if (activeProfile) {
+          const isUserAdmin = activeProfile.role === 'admin' || isHardcodedAdmin;
+          if (isUserAdmin) {
             setIsAdmin(true);
           }
-          if (profile.display_name) {
-            setDisplayName(profile.display_name);
-            localStorage.setItem('echonotes_display_name', profile.display_name);
+          
+          // Set approval state based on the field
+          // If approved property is missing/not present, we treat as true to avoid breaking existing users unless explicitly false
+          if (activeProfile.approved === false && !isUserAdmin) {
+            setIsApproved(false);
+          } else {
+            setIsApproved(true);
           }
-          if (profile.theme) {
-            setTheme(profile.theme as 'light' | 'dark');
-            if (profile.theme === 'dark') {
+
+          if (activeProfile.display_name) {
+            setDisplayName(activeProfile.display_name);
+            localStorage.setItem('echonotes_display_name', activeProfile.display_name);
+          }
+          if (activeProfile.theme) {
+            setTheme(activeProfile.theme as 'light' | 'dark');
+            if (activeProfile.theme === 'dark') {
               document.documentElement.classList.add('dark');
             } else {
               document.documentElement.classList.remove('dark');
             }
           }
-          if (profile.recording_mode) {
-             setRecordingMode(profile.recording_mode as 'mic' | 'system');
+          if (activeProfile.recording_mode) {
+             setRecordingMode(activeProfile.recording_mode as 'mic' | 'system');
           }
-          if (profile.language && profile.language !== language) {
-            setLanguage(profile.language);
+          if (activeProfile.language && activeProfile.language !== language) {
+            setLanguage(activeProfile.language);
           }
-          if (profile.summary_detail) {
-            setSummaryDetail(profile.summary_detail);
-            localStorage.setItem('echonotes_summary_detail', profile.summary_detail);
+          if (activeProfile.summary_detail) {
+            setSummaryDetail(activeProfile.summary_detail);
+            localStorage.setItem('echonotes_summary_detail', activeProfile.summary_detail);
           }
+        } else {
+          setIsApproved(true);
         }
       } catch (err) {
         console.error("Error loading user settings:", err);
+        setIsApproved(true);
       }
     };
 
@@ -1448,6 +1492,66 @@ export default function App() {
 
   if (!user) {
     return <LoginPage />;
+  }
+
+  if (isApproved === false) {
+    return (
+      <div className="min-h-screen bg-app-bg text-app-fg flex items-center justify-center p-4 transition-colors duration-700 relative overflow-hidden">
+        {/* Decorative background similar to login page */}
+        <div className="absolute inset-0 bg-[#070a11] z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[65%] h-[65%] rounded-full bg-app-accent/15 blur-[130px] animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-app-accent/5 blur-[120px] animate-pulse" />
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="bg-app-card w-full max-w-md p-8 md:p-10 rounded-[2.5rem] shadow-2xl border border-app-border relative z-10 text-center space-y-6"
+        >
+          {/* EchoNotes Branding */}
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <span className="text-2xl font-display font-black tracking-tight text-slate-950 dark:text-white select-none">
+              Echo<span className="text-app-accent">Notes</span>
+            </span>
+            <span className="h-2 w-2 rounded-full bg-app-accent animate-pulse" />
+          </div>
+
+          {/* Icon indicator */}
+          <div className="w-20 h-20 bg-app-accent/10 text-app-accent rounded-full flex items-center justify-center mx-auto border border-app-accent/20 animate-pulse">
+            <Clock size={36} />
+          </div>
+
+          <div className="space-y-3">
+            <h1 className="text-xl sm:text-2xl font-display font-black tracking-tight text-slate-950 dark:text-white">
+              {t('pendingApprovalTitle')}
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium leading-relaxed">
+              {t('pendingApprovalDesc')}
+            </p>
+          </div>
+
+          {/* User Email Indicator */}
+          <div className="bg-white/50 dark:bg-slate-900/30 px-4 py-2.5 rounded-xl border border-app-border/50 text-xs font-mono inline-block text-slate-500 dark:text-slate-400">
+            {user.email}
+          </div>
+
+          <div className="pt-4 border-t border-app-border flex flex-col gap-3">
+            <div className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-app-accent">
+              <span className="h-1.5 w-1.5 rounded-full bg-app-accent animate-ping" />
+              <span>{t('waitingApproval')}</span>
+            </div>
+
+            <button 
+              onClick={() => supabase.auth.signOut()}
+              className="mt-2 w-full h-11 border border-app-border hover:bg-app-border text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer"
+            >
+              <LogOut size={14} />
+              <span>{language === 'portuguese' ? 'Sair da Conta' : 'Sign Out'}</span>
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
