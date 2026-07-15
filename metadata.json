@@ -1,9 +1,11 @@
 {
-  "name": "EchoNote - AI",
+  "name": "Econotes",
   "description": "A voice-first meeting assistant that captures conversations, separates speakers, and generates comprehensive business reports with summaries and action items.",
   "requestFramePermissions": [
     "microphone",
     "display-capture"
   ],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

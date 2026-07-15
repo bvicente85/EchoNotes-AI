@@ -1,16 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink, Calendar, Clock, BarChart3, PieChart, TrendingUp, Menu, ArrowRight, Sliders, Volume2, CheckSquare } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink, Calendar, Clock, BarChart3, PieChart, TrendingUp, Menu, ArrowRight, Sliders, Volume2, CheckSquare, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateMeetingReport, MeetingReport, MeetingAnalysisError } from './services/gemini';
 import { AudioFileUpload } from './components/AudioFileUpload';
 import { getSupabase } from './supabase';
 import { User } from '@supabase/supabase-js';
-import { ReportView } from './components/ReportView';
 import { AskGemini } from './components/AskGemini';
 import { LoginPage } from './components/LoginPage';
-import { SettingsView } from './components/SettingsView';
-import { AdminDashboard } from './components/AdminDashboard';
-import { EchoNotesLogo } from './components/EchoNotesLogo';
+import { EchoNotesLogo, EchoNotesLogoIcon } from './components/EchoNotesLogo';
+import { DashboardBentoView } from './components/DashboardBentoView';
+
+const ReportView = React.lazy(() => import('./components/ReportView').then(m => ({ default: m.ReportView })));
+const SettingsView = React.lazy(() => import('./components/SettingsView').then(m => ({ default: m.SettingsView })));
+const AdminDashboard = React.lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 import { saveToHistory, getHistory, deleteFromHistory, updateHistoryItem, clearHistory, HistoryItem, migrateFromLocalStorage } from './services/storage';
 import { cn } from './lib/utils';
 import { useLanguage } from './contexts/LanguageContext';
@@ -45,6 +47,7 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [selectedPreviewSessionId, setSelectedPreviewSessionId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('echonotes_sidebar_collapsed') === 'true');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [sortField, setSortField] = useState<'date' | 'title'>('date');
   const [displayName, setDisplayName] = useState(localStorage.getItem('echonotes_display_name') || '');
@@ -68,6 +71,24 @@ export default function App() {
   const [manualNotes, setManualNotes] = useState('');
   const [template, setTemplate] = useState('standard');
 
+  // Interactive dashboard checklist tasks state matching "My Tasks"
+  const [tasks, setTasks] = useState<{ id: string; text: string; done: boolean; category: string }[]>(() => {
+    const saved = localStorage.getItem('echonotes_dashboard_tasks');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: '1', text: 'Revisar transcrição com Arthur Taylor', done: false, category: 'Meeting' },
+      { id: '2', text: 'Exportar ata executiva para PDF oficial', done: true, category: 'Atas' },
+      { id: '3', text: 'Configurar novos templates de reunião customizados', done: false, category: 'UI/UX' },
+      { id: '4', text: 'Validar áudio do sistema na chamada de equipa', done: true, category: 'Geral' }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('echonotes_dashboard_tasks', JSON.stringify(tasks));
+  }, [tasks]);
+
   // Pending recordings state variables
   const [pendingRecordings, setPendingRecordings] = useState<Omit<PendingRecording, 'audioBlob'>[]>([]);
   const [sidebarTab, setSidebarTab] = useState<'history' | 'pending'>('history');
@@ -77,6 +98,11 @@ export default function App() {
   const [isProcessingPendingId, setIsProcessingPendingId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [pendingAudioUrl, setPendingAudioUrl] = useState<string | null>(null);
+
+  const handleOpenHistory = (tab: 'history' | 'pending' = 'history') => {
+    setSidebarTab(tab);
+    setShowHistory(true);
+  };
   
   // State variables for interactive pending recording configurations
   const [pendingTitle, setPendingTitle] = useState('');
@@ -101,6 +127,9 @@ export default function App() {
 
   useEffect(() => {
     const supabase = getSupabase();
+    
+    // Fetch pending recordings on mount
+    fetchPendingRecordings();
     
     // Automatically clean up local audios older than 30 days
     cleanExpiredAudios(30).catch(console.error);
@@ -669,6 +698,14 @@ export default function App() {
     setCurrentHistoryId(null);
   };
 
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('echonotes_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
   const handleUpdateReport = async (updatedReport: MeetingReport, customId?: string) => {
     const idToUpdate = customId || currentHistoryId;
     if (idToUpdate && user) {
@@ -969,22 +1006,24 @@ export default function App() {
     await supabase.auth.signOut();
   };
 
-  const sortedHistory = [...history]
-    .filter(item => 
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      item.report.summary.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortField === 'date') {
-        return sortOrder === 'desc' 
-          ? new Date(b.date).getTime() - new Date(a.date).getTime()
-          : new Date(a.date).getTime() - new Date(b.date).getTime();
-      } else {
-        return sortOrder === 'desc'
-          ? b.title.localeCompare(a.title)
-          : a.title.localeCompare(b.title);
-      }
-    });
+  const sortedHistory = useMemo(() => {
+    return [...history]
+      .filter(item => 
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        item.report.summary.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .sort((a, b) => {
+        if (sortField === 'date') {
+          return sortOrder === 'desc' 
+            ? new Date(b.date).getTime() - new Date(a.date).getTime()
+            : new Date(a.date).getTime() - new Date(b.date).getTime();
+        } else {
+          return sortOrder === 'desc'
+            ? b.title.localeCompare(a.title)
+            : a.title.localeCompare(b.title);
+        }
+      });
+  }, [history, searchQuery, sortField, sortOrder]);
 
   const renderRecordingUI = () => {
     return (
@@ -1412,44 +1451,323 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-app-bg text-app-fg transition-colors duration-300 font-sans ${theme === 'dark' ? 'dark' : ''}`}>
-      <div className="flex flex-col min-h-screen">
-        {/* Zen Header */}
-        <header className="h-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between sticky top-0 z-40 backdrop-blur-md bg-transparent border-none">
-          {/* Logo */}
-          <div className="cursor-pointer" onClick={handleGoHome}>
-            <EchoNotesLogo />
-          </div>
+    <div className={`min-h-screen bg-app-bg text-app-fg transition-colors duration-300 font-sans p-3 sm:p-6 lg:p-8 flex flex-col justify-center ${theme === 'dark' ? 'dark' : ''}`}>
+      <div className="w-full max-w-7xl mx-auto rounded-[32px] bg-white/60 dark:bg-[#0c101b]/80 backdrop-blur-2xl border border-white/50 dark:border-white/5 shadow-2xl flex flex-row overflow-hidden min-h-[85vh] lg:h-[90vh] transition-all relative">
+        
+        {/* Left Sidebar - Premium TeamTrack Dashboard Navigation */}
+        <aside className={cn(
+          "shrink-0 border-r border-app-border bg-white/45 dark:bg-slate-950/20 backdrop-blur-lg flex flex-col justify-between hidden lg:flex transition-all duration-300 ease-in-out",
+          sidebarCollapsed ? "w-[84px] p-4" : "w-64 p-6"
+        )}>
+          {sidebarCollapsed ? (
+            /* COLLAPSED SIDEBAR VIEW */
+            <div className="flex flex-col items-center justify-between h-full w-full">
+              <div className="flex flex-col items-center gap-8 w-full">
+                {/* Branding Logo (Collapsed) */}
+                <div className="flex flex-col items-center gap-4">
+                  <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleGoHome} title="Econotes">
+                    <EchoNotesLogoIcon className="w-9 h-9 text-slate-700 dark:text-slate-300" />
+                  </div>
+                  <button 
+                    onClick={handleToggleSidebar}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    title="Expand Sidebar"
+                  >
+                    <PanelLeftOpen size={16} />
+                  </button>
+                </div>
 
-          {/* Minimal Navigation Pills */}
-          <div className="hidden sm:flex items-center gap-1.5 bg-slate-100/60 dark:bg-slate-800/40 p-1 rounded-xl border border-slate-200/40 dark:border-white/5">
-            <button 
-              onClick={handleGoHome}
-              className={cn(
-                "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-98",
-                !report 
-                  ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs border border-slate-200/50 dark:border-white/5" 
-                  : "text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-white"
-              )}
-            >
-              <LayoutGrid size={14} />
-              {t('dashboard')}
-            </button>
-            <button 
-              onClick={() => setShowHistory(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all active:scale-98"
-            >
-              <History size={14} />
-              {t('sessionsNav')}
-            </button>
-          </div>
+                {/* Navigation links (Collapsed) */}
+                <div className="space-y-6 flex flex-col items-center w-full">
+                  <div className="w-full">
+                    <nav className="space-y-2 flex flex-col items-center w-full">
+                      <button
+                        onClick={handleGoHome}
+                        title={t('dashboard')}
+                        className={cn(
+                          "flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold transition-all active:scale-98 cursor-pointer",
+                          !report && !showHistory && !showSettings
+                            ? "bg-app-accent/15 text-app-accent border-b-2 border-app-accent"
+                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                        )}
+                      >
+                        <LayoutGrid size={18} />
+                      </button>
 
-          {/* Action Controls */}
-          <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          if (pendingRecordings.length > 0 && history.length === 0) {
+                            handleOpenHistory('pending');
+                          } else {
+                            handleOpenHistory('history');
+                          }
+                        }}
+                        title={t('sessionsNav')}
+                        className={cn(
+                          "flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold transition-all active:scale-98 relative cursor-pointer",
+                          showHistory
+                            ? "bg-app-accent/15 text-app-accent border-b-2 border-app-accent"
+                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                        )}
+                      >
+                        <History size={18} />
+                        {pendingRecordings.length > 0 && (
+                          <span className="flex h-1.5 w-1.5 absolute top-2.5 right-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                          </span>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowSettings(true);
+                        }}
+                        title={t('settings')}
+                        className={cn(
+                          "flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold transition-all active:scale-98 cursor-pointer",
+                          showSettings
+                            ? "bg-app-accent/15 text-app-accent border-b-2 border-app-accent"
+                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                        )}
+                      >
+                        <Settings size={18} />
+                      </button>
+                    </nav>
+                  </div>
+
+                  <div className="w-full border-t border-slate-200/20 dark:border-white/5 pt-4">
+                    <nav className="space-y-2 flex flex-col items-center w-full">
+                      <button
+                        onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                        title={theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                        className="flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white transition-all cursor-pointer"
+                      >
+                        {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                      </button>
+
+                      <button
+                        onClick={() => setLanguage(language === 'portuguese' ? 'english' : 'portuguese')}
+                        title={language === 'portuguese' ? 'English' : 'Português'}
+                        className="flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white transition-all cursor-pointer"
+                      >
+                        <Sliders size={18} />
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom user profile information (Collapsed) */}
+              <div className="border-t border-app-border pt-4 mt-auto flex flex-col items-center gap-3 w-full">
+                <div className="w-9 h-9 rounded-xl bg-app-accent/10 flex items-center justify-center overflow-hidden shrink-0 border border-app-accent/20" title={user.email || ''}>
+                  {user.user_metadata?.avatar_url ? (
+                    <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-app-accent">
+                      {(displayName || user.email || 'U')[0].toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <button 
+                  onClick={handleSignOut}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/5 transition-colors cursor-pointer"
+                  title={t('signOut')}
+                >
+                  <LogOut size={15} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* EXPANDED SIDEBAR VIEW */
+            <div className="flex flex-col justify-between h-full w-full">
+              <div className="space-y-8">
+                {/* Branding Logo & Collapse Trigger */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="cursor-pointer transition-transform hover:scale-101" onClick={handleGoHome}>
+                    <EchoNotesLogo />
+                  </div>
+                  <button 
+                    onClick={handleToggleSidebar}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    title="Collapse Sidebar"
+                  >
+                    <PanelLeftClose size={16} />
+                  </button>
+                </div>
+
+                {/* Navigation links */}
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2.5 text-left">Main</p>
+                    <nav className="space-y-1">
+                      <button
+                        onClick={handleGoHome}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-98 text-left cursor-pointer",
+                          !report && !showHistory && !showSettings
+                            ? "bg-app-accent/15 text-app-accent border-l-4 border-app-accent pl-2"
+                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                        )}
+                      >
+                        <LayoutGrid size={16} />
+                        {t('dashboard')}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (pendingRecordings.length > 0 && history.length === 0) {
+                            handleOpenHistory('pending');
+                          } else {
+                            handleOpenHistory('history');
+                          }
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-98 text-left relative cursor-pointer",
+                          showHistory
+                            ? "bg-app-accent/15 text-app-accent border-l-4 border-app-accent pl-2"
+                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                        )}
+                      >
+                        <History size={16} />
+                        {t('sessionsNav')}
+                        {pendingRecordings.length > 0 && (
+                          <span className="flex h-1.5 w-1.5 absolute top-3 right-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                          </span>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowSettings(true);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-98 text-left cursor-pointer",
+                          showSettings
+                            ? "bg-app-accent/15 text-app-accent border-l-4 border-app-accent pl-2"
+                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                        )}
+                      >
+                        <Settings size={16} />
+                        {t('settings')}
+                      </button>
+                    </nav>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2.5 text-left">Preferences</p>
+                    <div className="space-y-1">
+                      <button
+                        onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white transition-all text-left cursor-pointer"
+                      >
+                        <span className="flex items-center gap-3">
+                          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                          {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                        </span>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-850 px-1.5 py-0.5 rounded text-slate-450">
+                          {theme === 'light' ? 'OFF' : 'ON'}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => setLanguage(language === 'portuguese' ? 'english' : 'portuguese')}
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white transition-all text-left cursor-pointer"
+                      >
+                        <span className="flex items-center gap-3">
+                          <Sliders size={16} />
+                          {language === 'portuguese' ? 'Português' : 'English'}
+                        </span>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-850 px-1.5 py-0.5 rounded text-slate-450">
+                          {language === 'portuguese' ? 'PT' : 'EN'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom user profile information */}
+              <div className="border-t border-app-border pt-4 mt-auto">
+                <div className="flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-app-accent/10 flex items-center justify-center overflow-hidden shrink-0 border border-app-accent/20">
+                      {user.user_metadata?.avatar_url ? (
+                        <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-bold text-app-accent">
+                          {(displayName || user.email || 'U')[0].toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-left min-w-0">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">
+                        {displayName || user.email?.split('@')[0]}
+                      </p>
+                      <p className="text-[9px] text-slate-400 truncate leading-none mt-0.5">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={handleSignOut}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/5 transition-colors cursor-pointer"
+                    title={t('signOut')}
+                  >
+                    <LogOut size={15} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </aside>
+
+        {/* Right Main Content Panel */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+          {/* Zen Header - Compact Adaptive Dashboard Header */}
+          <header className="h-20 px-6 sm:px-8 w-full flex items-center justify-between sticky top-0 z-40 bg-white/30 dark:bg-slate-950/20 backdrop-blur-md border-b border-app-border shrink-0">
+            {/* Left Header Area: Mobile Menu Trigger / App Title Greeting */}
+            <div className="flex items-center gap-3">
+              <div className="lg:hidden cursor-pointer" onClick={handleGoHome}>
+                <EchoNotesLogo />
+              </div>
+              
+              <div className="hidden lg:block text-left">
+                <h1 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  {language === 'portuguese' ? 'Bem-vindo ao Econotes' : 'Welcome to Econotes'} 🌿
+                </h1>
+                <p className="text-[10px] font-medium text-slate-400">
+                  {language === 'portuguese' ? 'Inteligência e Atas de Reuniões com Inteligência Artificial' : 'AI-Driven Meeting Intelligence & Audio Capture'}
+                </p>
+              </div>
+            </div>
+
+            {/* Right Action Controls */}
+            <div className="flex items-center gap-2">
+              {/* Language toggler for Mobile */}
+              <button 
+                onClick={() => setLanguage(language === 'portuguese' ? 'english' : 'portuguese')}
+                className="lg:hidden p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent transition-all"
+                title="Change language"
+              >
+                <span className="text-xs font-bold font-mono">{language === 'portuguese' ? 'PT' : 'EN'}</span>
+              </button>
+
+              {/* Theme switcher for Mobile */}
+              <button 
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                className="lg:hidden p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent transition-all"
+                title={t('changeTheme')}
+              >
+                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+              </button>
             {/* Theme switcher */}
             <button 
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className="p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/40 dark:hover:border-white/5 transition-all"
+              className="hidden lg:block p-2.5 rounded-xl text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/40 dark:hover:border-white/5 transition-all"
               title={t('changeTheme')}
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
@@ -1535,7 +1853,7 @@ export default function App() {
         </header>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-h-screen">
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
 
       <AnimatePresence>
         {showHistory && (
@@ -1551,7 +1869,7 @@ export default function App() {
               animate={{ x: 0, scale: 1 }}
               exit={{ x: '100%', scale: 0.95 }}
               transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-              className="w-full h-full lg:max-w-7xl lg:h-[85vh] lg:rounded-3xl bg-slate-50 dark:bg-slate-900 lg:border border-slate-200/80 dark:border-white/5 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+              className="w-full h-full lg:max-w-7xl lg:h-[85vh] lg:rounded-3xl bg-slate-50 dark:bg-slate-900 lg:border border-slate-200/80 dark:border-white/5 shadow-2xl flex flex-col overflow-hidden"
               onClick={e => e.stopPropagation()}
             >
               <div className="p-6 border-b border-slate-200/85 dark:border-white/5 bg-white dark:bg-slate-800 shrink-0">
@@ -2067,7 +2385,7 @@ export default function App() {
                                 setPendingCustomTerms(e.target.value);
                                 handleUpdatePendingField('customTerms', e.target.value);
                               }}
-                              placeholder="Ex: Skolae, EchoNotes, Projeto X, Ana Silva"
+                              placeholder="Ex: Skolae, Econotes, Projeto X, Ana Silva"
                               className="w-full bg-transparent border-none p-0 font-medium text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 text-xs mt-1"
                             />
                           </div>
@@ -2132,16 +2450,25 @@ export default function App() {
                           </button>
                         </div>
                         
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-3xl p-6 shadow-sm">
-                          <ReportView 
-                            key={previewItem.id}
-                            report={previewItem.report}
-                            title={previewItem.title}
-                            meetingId={previewItem.id}
-                            onReset={() => {}}
-                            onUpdate={(updatedReport) => handleUpdateReport(updatedReport, previewItem.id)}
-                            onUpdateTitle={(updatedTitle) => handleUpdateTitle(updatedTitle, previewItem.id)}
-                          />
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-3xl p-6 shadow-sm min-h-[250px] flex flex-col justify-center">
+                          <Suspense fallback={
+                            <div className="flex flex-col items-center justify-center py-12 w-full">
+                              <Loader2 className="w-6 h-6 animate-spin text-app-accent mb-2" />
+                              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                                {language === 'portuguese' ? 'Carregando relatório...' : 'Loading report...'}
+                              </span>
+                            </div>
+                          }>
+                            <ReportView 
+                              key={previewItem.id}
+                              report={previewItem.report}
+                              title={previewItem.title}
+                              meetingId={previewItem.id}
+                              onReset={() => {}}
+                              onUpdate={(updatedReport) => handleUpdateReport(updatedReport, previewItem.id)}
+                              onUpdateTitle={(updatedTitle) => handleUpdateTitle(updatedTitle, previewItem.id)}
+                            />
+                          </Suspense>
                         </div>
                       </div>
                     );
@@ -2155,36 +2482,58 @@ export default function App() {
 
       <AnimatePresence>
         {showSettings && (
-          <SettingsView 
-            onClose={() => setShowSettings(false)} 
-            userEmail={user.email || ''} 
-            userId={user.id}
-            onSignOut={handleSignOut}
-            initialDisplayName={displayName}
-            initialTheme={theme}
-            initialMode={recordingMode === 'upload' ? 'mic' : recordingMode}
-            initialLanguage={language}
-            initialSummaryDetail={summaryDetail}
-            onSettingsUpdate={(newDisplayName, newTheme, newMode, newLanguage, newSummaryDetail) => {
-              setDisplayName(newDisplayName);
-              setTheme(newTheme as 'light' | 'dark');
-              if (newMode !== 'upload') setRecordingMode(newMode as 'mic' | 'system');
-              setLanguage(newLanguage);
-              setSummaryDetail(newSummaryDetail);
-            }}
-          />
+          <Suspense fallback={
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[80] bg-slate-900/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center"
+            >
+              <Loader2 className="w-8 h-8 animate-spin text-app-accent" />
+            </motion.div>
+          }>
+            <SettingsView 
+              onClose={() => setShowSettings(false)} 
+              userEmail={user.email || ''} 
+              userId={user.id}
+              onSignOut={handleSignOut}
+              initialDisplayName={displayName}
+              initialTheme={theme}
+              initialMode={recordingMode === 'upload' ? 'mic' : recordingMode}
+              initialLanguage={language}
+              initialSummaryDetail={summaryDetail}
+              onSettingsUpdate={(newDisplayName, newTheme, newMode, newLanguage, newSummaryDetail) => {
+                setDisplayName(newDisplayName);
+                setTheme(newTheme as 'light' | 'dark');
+                if (newMode !== 'upload') setRecordingMode(newMode as 'mic' | 'system');
+                setLanguage(newLanguage);
+                setSummaryDetail(newSummaryDetail);
+              }}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
       <AnimatePresence>
         {showAdminDashboard && (
-          <AdminDashboard 
-            onClose={() => setShowAdminDashboard(false)}
-            onSelectMeeting={(item) => {
-              handleSelectHistory(item);
-              setShowAdminDashboard(false);
-            }}
-          />
+          <Suspense fallback={
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-app-bg/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-8"
+            >
+              <Loader2 className="w-8 h-8 animate-spin text-app-accent" />
+            </motion.div>
+          }>
+            <AdminDashboard 
+              onClose={() => setShowAdminDashboard(false)}
+              onSelectMeeting={(item) => {
+                handleSelectHistory(item);
+                setShowAdminDashboard(false);
+              }}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
@@ -2391,16 +2740,25 @@ export default function App() {
       </AnimatePresence>
 
       {report ? (
-        <ReportView 
-          report={report} 
-          title={history.find(h => h.id === currentHistoryId)?.title}
-          meetingId={currentHistoryId || undefined}
-          onReset={handleGoHome} 
-          onUpdate={handleUpdateReport}
-          onUpdateTitle={handleUpdateTitle}
-        />
+        <Suspense fallback={
+          <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] w-full">
+            <Loader2 className="w-8 h-8 animate-spin text-app-accent mb-3" />
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+              {language === 'portuguese' ? 'Carregando análise...' : 'Loading analysis...'}
+            </p>
+          </div>
+        }>
+          <ReportView 
+            report={report} 
+            title={history.find(h => h.id === currentHistoryId)?.title}
+            meetingId={currentHistoryId || undefined}
+            onReset={handleGoHome} 
+            onUpdate={handleUpdateReport}
+            onUpdateTitle={handleUpdateTitle}
+          />
+        </Suspense>
       ) : (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+        <main className="px-6 sm:px-8 py-6 flex-1 w-full flex flex-col">
           <AnimatePresence mode="wait">
             {!isProcessing ? (
               isRecording ? (
@@ -2410,7 +2768,7 @@ export default function App() {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 1.02 }}
-                  className="w-full max-w-2xl mx-auto bg-white dark:bg-[#1b1c20] border border-app-border rounded-[32px] p-8 md:p-12 shadow-2xl flex flex-col items-center gap-8 mt-6"
+                  className="w-full max-w-2xl mx-auto bg-white dark:bg-app-card border border-app-border rounded-[32px] p-8 md:p-12 shadow-2xl flex flex-col items-center gap-8 mt-6"
                 >
                   <div className="flex items-center gap-2 bg-app-accent/5 px-4 py-1.5 rounded-full border border-app-accent/20 shadow-xs">
                     <span className="relative flex h-2.5 w-2.5">
@@ -2525,10 +2883,44 @@ export default function App() {
                   exit={{ opacity: 0, y: -10 }}
                   className="w-full flex flex-col gap-6"
                 >
+                  {/* Pending Recordings Alert Banner */}
+                  {pendingRecordings.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="w-full bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 dark:border-amber-500/10 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left shadow-xs"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                          <Clock size={20} className="animate-pulse" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-amber-800 dark:text-amber-400">
+                            {language === 'portuguese' 
+                              ? `Tens ${pendingRecordings.length} ${pendingRecordings.length === 1 ? 'gravação pendente' : 'gravações pendentes'}` 
+                              : `You have ${pendingRecordings.length} pending ${pendingRecordings.length === 1 ? 'recording' : 'recordings'}`}
+                          </h4>
+                          <p className="text-[11px] text-amber-700/80 dark:text-amber-400/70 font-medium">
+                            {language === 'portuguese'
+                              ? 'Estas gravações foram guardadas para analisar mais tarde e estão prontas para serem processadas pela IA.'
+                              : 'These recordings were saved to analyze later and are ready to be processed by AI.'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleOpenHistory('pending')}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white dark:text-slate-900 dark:bg-amber-400 dark:hover:bg-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                      >
+                        {language === 'portuguese' ? 'Analisar Agora' : 'Analyze Now'}
+                        <ArrowRight size={13} />
+                      </button>
+                    </motion.div>
+                  )}
+
                   {/* Row 1: Welcome Bubble & Calendar Card */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
                     {/* Calendar Card (Matches '19 Tue December') */}
-                    <div className="col-span-12 lg:col-span-4 bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex items-center justify-between gap-4">
+                    <div className="col-span-12 lg:col-span-4 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
                         {/* Dynamic day number circle */}
                         <div className="w-20 h-20 rounded-full border border-app-accent/15 bg-app-accent/5 flex flex-col items-center justify-center shrink-0">
@@ -2555,7 +2947,7 @@ export default function App() {
                     </div>
 
                     {/* Welcome Card (Matches 'Hey, Need Help? Just ask me anything!') */}
-                    <div className="col-span-12 lg:col-span-8 bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div className="col-span-12 lg:col-span-8 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                       <div className="space-y-1 text-left">
                         <h2 className="text-2xl font-display font-bold text-slate-800 dark:text-white flex items-center gap-2">
                           {language === 'portuguese' ? 'Olá! Qual é o plano de hoje?' : 'Hey, Need help?'}
@@ -2588,7 +2980,7 @@ export default function App() {
                     <div className="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                       
                       {/* Card 1: Primary Recording Suite (Stretches full width) */}
-                      <div id="audio-recorder-section" className="col-span-1 md:col-span-2 bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-6">
+                      <div id="audio-recorder-section" className="col-span-1 md:col-span-2 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-6">
                         <div className="flex items-center justify-between">
                           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                             <Sliders size={14} className="text-app-accent" />
@@ -2707,207 +3099,116 @@ export default function App() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             <Sparkles size={12} className="text-app-green" />
-                            <span>AI Diarization Active</span>
+                            <span>AI Active</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Card 2: Parâmetros da Sessão (Expected Speakers & Template & Ring Gauge) */}
-                      <div className="bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between h-full min-h-[350px]">
-                        <div className="space-y-4">
-                          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <Sliders size={12} className="text-app-accent" />
-                            {language === 'portuguese' ? 'Configuração e Filtros' : 'Session Parameters'}
-                          </h3>
+                      <div className="col-span-1 md:col-span-2 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-6 text-left">
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <Sliders size={12} className="text-app-accent" />
+                          {language === 'portuguese' ? 'Configuração e Filtros' : 'Session Parameters'}
+                        </h3>
 
-                          {/* Segmented control for sessionType */}
-                          <div className="grid grid-cols-2 gap-2 bg-slate-100/50 dark:bg-slate-900/40 p-1 rounded-xl border border-slate-200/40 dark:border-white/5">
-                            <button
-                              type="button"
-                              onClick={() => setSessionType('meeting')}
-                              className={cn(
-                                "py-1.5 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer",
-                                sessionType === 'meeting'
-                                  ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs"
-                                  : "text-slate-400 hover:text-slate-700"
-                              )}
-                            >
-                              {t('sessionTypeMeeting')}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setSessionType('quick_draft')}
-                              className={cn(
-                                "py-1.5 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer",
-                                sessionType === 'quick_draft'
-                                  ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs"
-                                  : "text-slate-400 hover:text-slate-700"
-                              )}
-                            >
-                              {t('sessionTypeQuickDraft')}
-                            </button>
-                          </div>
-
-                          <div className="space-y-2 text-left">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              {t('expectedSpeakersLabel')}
-                            </label>
-                            <input
-                              type="text"
-                              value={expectedSpeakers}
-                              onChange={(e) => setExpectedSpeakers(e.target.value)}
-                              placeholder={t('expectedSpeakersPlaceholder')}
-                              className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20"
-                            />
-                          </div>
-
-                          <div className="space-y-2 text-left">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              Template de IA
-                            </label>
-                            <select
-                              value={template}
-                              onChange={(e) => setTemplate(e.target.value)}
-                              className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20"
-                            >
-                              <option value="standard">Padrão (Executive)</option>
-                              <option value="client_meeting">Reunião com Cliente</option>
-                              <option value="internal_meeting">Reunião Interna / Ata</option>
-                              <option value="brainstorming">Brainstorming & Ideias</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* High-tech ring gauge matching System Lock styling */}
-                        <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between mt-4">
-                          <div className="text-left">
-                            <p className="text-[10px] font-bold text-slate-800 dark:text-white uppercase tracking-widest">Qualidade IA</p>
-                            <p className="text-[9px] text-slate-400">Precisão da diariamento ativo</p>
-                          </div>
-                          
-                          <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
-                            <svg className="w-full h-full transform -rotate-90">
-                              <circle cx="28" cy="28" r="22" stroke="rgba(206,111,85,0.08)" strokeWidth="3" fill="transparent" />
-                              <motion.circle 
-                                cx="28" cy="28" r="22" 
-                                stroke="#ce6f55" strokeWidth="3" fill="transparent" 
-                                strokeDasharray={138}
-                                initial={{ strokeDashoffset: 138 }}
-                                animate={{ strokeDashoffset: 138 - (138 * 0.98) }}
-                                transition={{ duration: 1.5 }}
-                              />
-                            </svg>
-                            <span className="absolute text-[10px] font-mono font-bold text-app-accent">98%</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card 3: Distribuição por Categoria (Matches Annual Profits Concentric Onion-Ring chart) */}
-                      <div className="bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between h-full min-h-[350px]">
-                        <div className="space-y-1 text-left">
-                          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <PieChart size={12} className="text-app-accent" />
-                            Distribuição de Reuniões
-                          </h3>
-                          <p className="text-[9px] text-slate-400">Distribuição com base nas tuas atas</p>
-                        </div>
-
-                        {/* Custom Concentric Onion Rings */}
-                        <div className="relative flex items-center justify-center h-44 my-2 shrink-0">
-                          <svg className="w-40 h-40 transform -rotate-90">
-                            {/* Staggered concentric ring paths */}
-                            {/* Standard Ring */}
-                            <circle cx="80" cy="80" r="65" stroke="rgba(229,154,84,0.1)" strokeWidth="8" fill="transparent" />
-                            <motion.circle cx="80" cy="80" r="65" stroke="#e59a54" strokeWidth="8" strokeDasharray={408} initial={{ strokeDashoffset: 408 }} animate={{ strokeDashoffset: 408 - (408 * 0.85) }} transition={{ duration: 1 }} fill="transparent" />
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                          {/* Left Inputs side */}
+                          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-5">
                             
-                            {/* Client Ring */}
-                            <circle cx="80" cy="80" r="50" stroke="rgba(206,111,85,0.1)" strokeWidth="8" fill="transparent" />
-                            <motion.circle cx="80" cy="80" r="50" stroke="#ce6f55" strokeWidth="8" strokeDasharray={314} initial={{ strokeDashoffset: 314 }} animate={{ strokeDashoffset: 314 - (314 * 0.65) }} transition={{ duration: 1, delay: 0.2 }} fill="transparent" />
-                            
-                            {/* Internal Ring */}
-                            <circle cx="80" cy="80" r="35" stroke="rgba(92,77,68,0.1)" strokeWidth="8" fill="transparent" />
-                            <motion.circle cx="80" cy="80" r="35" stroke="#5c4d44" strokeWidth="8" strokeDasharray={220} initial={{ strokeDashoffset: 220 }} animate={{ strokeDashoffset: 220 - (220 * 0.45) }} transition={{ duration: 1, delay: 0.4 }} fill="transparent" />
-                            
-                            {/* Brainstorm Ring */}
-                            <circle cx="80" cy="80" r="20" stroke="rgba(74,139,113,0.1)" strokeWidth="8" fill="transparent" />
-                            <motion.circle cx="80" cy="80" r="20" stroke="#4a8b71" strokeWidth="8" strokeDasharray={125} initial={{ strokeDashoffset: 125 }} animate={{ strokeDashoffset: 125 - (125 * 0.35) }} transition={{ duration: 1, delay: 0.6 }} fill="transparent" />
-                          </svg>
-
-                          <div className="absolute flex flex-col items-center">
-                            <span className="text-xs font-mono font-bold text-slate-800 dark:text-white">
-                              {history.length > 0 ? `${history.length}` : '33'}
-                            </span>
-                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Sessões</span>
-                          </div>
-                        </div>
-
-                        {/* Horizontal Legend list */}
-                        <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold text-left">
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-[#e59a54] shrink-0" />
-                            <span className="text-slate-500 truncate">Padrão ({history.filter(h => h.report.template === 'standard' || !h.report.template).length || 14})</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-[#ce6f55] shrink-0" />
-                            <span className="text-slate-500 truncate">Cliente ({history.filter(h => h.report.template === 'client_meeting').length || 9})</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-[#5c4d44] shrink-0" />
-                            <span className="text-slate-500 truncate">Interna ({history.filter(h => h.report.template === 'internal_meeting').length || 6})</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-[#4a8b71] shrink-0" />
-                            <span className="text-slate-500 truncate">Brainstorm ({history.filter(h => h.report.template === 'brainstorming').length || 4})</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card 4: Activity manager duration bars (Matches visual bar chart in Activity Manager) */}
-                      <div className="col-span-1 md:col-span-2 bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="text-left">
-                            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                              <BarChart3 size={12} className="text-app-accent" />
-                              Frequência de Uso
-                            </h3>
-                            <p className="text-[9px] text-slate-400">Atividade de gravação (últimas semanas)</p>
-                          </div>
-                          <div className="flex gap-1">
-                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-900 text-[8px] font-bold uppercase rounded text-slate-500">Equipa</span>
-                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-900 text-[8px] font-bold uppercase rounded text-slate-500">Hoje</span>
-                          </div>
-                        </div>
-
-                        {/* Beautiful Terracotta-colored bar charts */}
-                        <div className="h-28 flex items-end justify-between gap-3 px-2 pt-4">
-                          {[35, 45, 60, 25, 40, 80, 50, 65, 95, 40, 55, 75].map((height, idx) => (
-                            <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
-                              <div className="relative w-full h-full flex items-end justify-center">
-                                {/* Bar pillar */}
-                                <motion.div 
+                            {/* Segmented control for sessionType */}
+                            <div className="space-y-2">
+                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                {language === 'portuguese' ? 'Tipo de Sessão' : 'Session Type'}
+                              </label>
+                              <div className="grid grid-cols-2 gap-2 bg-slate-100/50 dark:bg-slate-900/40 p-1 rounded-xl border border-slate-200/40 dark:border-white/5">
+                                <button
+                                  type="button"
+                                  onClick={() => setSessionType('meeting')}
                                   className={cn(
-                                    "w-full rounded-t-lg transition-all duration-300",
-                                    idx === 8 ? "bg-app-accent" : "bg-app-accent/20 group-hover:bg-app-accent/40"
+                                    "py-2 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer",
+                                    sessionType === 'meeting'
+                                      ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs"
+                                      : "text-slate-400 hover:text-slate-700"
                                   )}
-                                  initial={{ height: 0 }}
-                                  animate={{ height: `${height}%` }}
-                                  transition={{ duration: 0.8, delay: idx * 0.05 }}
-                                />
-                                {/* Label popover on hover */}
-                                <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[8px] font-bold px-1.5 py-0.5 rounded transition-opacity pointer-events-none whitespace-nowrap font-mono z-10">
-                                  {Math.round(height * 0.6)} min
-                                </div>
+                                >
+                                  {t('sessionTypeMeeting')}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setSessionType('quick_draft')}
+                                  className={cn(
+                                    "py-2 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer",
+                                    sessionType === 'quick_draft'
+                                      ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs"
+                                      : "text-slate-400 hover:text-slate-700"
+                                  )}
+                                >
+                                  {t('sessionTypeQuickDraft')}
+                                </button>
                               </div>
-                              <span className="text-[8px] font-mono text-slate-400 uppercase">{['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][idx]}</span>
                             </div>
-                          ))}
+
+                            {/* Template dropdown */}
+                            <div className="space-y-2">
+                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                Template de IA
+                              </label>
+                              <select
+                                value={template}
+                                onChange={(e) => setTemplate(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2 h-11 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20 font-medium cursor-pointer"
+                              >
+                                <option value="standard">Padrão (Executive)</option>
+                                <option value="client_meeting">Reunião com Cliente</option>
+                                <option value="internal_meeting">Reunião Interna / Ata</option>
+                                <option value="brainstorming">Brainstorming & Ideias</option>
+                              </select>
+                            </div>
+
+                            {/* Speakers input */}
+                            <div className="space-y-2 sm:col-span-2">
+                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                {t('expectedSpeakersLabel')}
+                              </label>
+                              <input
+                                type="text"
+                                value={expectedSpeakers}
+                                onChange={(e) => setExpectedSpeakers(e.target.value)}
+                                placeholder={t('expectedSpeakersPlaceholder')}
+                                className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2 h-11 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20 font-medium"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Right side - Ring gauge */}
+                          <div className="md:col-span-4 lg:col-span-3 flex items-center justify-between md:justify-end gap-4 md:border-l md:border-slate-100 md:dark:border-white/5 md:pl-6 w-full pt-4 md:pt-0">
+                            <div className="text-left">
+                              <p className="text-[10px] font-bold text-slate-800 dark:text-white uppercase tracking-widest">Qualidade IA</p>
+                              <p className="text-[9px] text-slate-400">Precisão da diariamento ativo</p>
+                            </div>
+                            
+                            <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
+                              <svg className="w-full h-full transform -rotate-90">
+                                <circle cx="28" cy="28" r="22" stroke="rgba(129,140,248,0.08)" strokeWidth="3" fill="transparent" />
+                                <motion.circle 
+                                  cx="28" cy="28" r="22" 
+                                  stroke="var(--app-accent)" strokeWidth="3" fill="transparent" 
+                                  strokeDasharray={138}
+                                  initial={{ strokeDashoffset: 138 }}
+                                  animate={{ strokeDashoffset: 138 - (138 * 0.98) }}
+                                  transition={{ duration: 1.5 }}
+                                />
+                              </svg>
+                              <span className="absolute text-[10px] font-mono font-bold text-app-accent">98%</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
                     </div>
 
                     {/* Right column sidebar / Recent Sessions (occupies col-span-4 on desktop) */}
-                    <div className="col-span-12 lg:col-span-4 bg-white dark:bg-[#1b1c20] border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-5 h-full">
+                    <div className="col-span-12 lg:col-span-4 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-5 h-full">
                       <div className="flex items-center justify-between">
                         <h3 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
                           <History size={14} className="text-app-accent" />
@@ -2973,7 +3274,7 @@ export default function App() {
                                   <path 
                                     d={`M 0 14 Q 12 4, 24 16 T 48 10`} 
                                     fill="none" 
-                                    stroke="#ce6f55" 
+                                    stroke="var(--app-accent)" 
                                     strokeWidth="1.5" 
                                   />
                                 </svg>
@@ -3039,6 +3340,7 @@ export default function App() {
 
         </div>
       </div>
+    </div>
       
       <AskGemini report={report} historyItems={history} />
     </div>

@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @variant dark (&:where(.dark, .dark *));
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   --color-app-bg: var(--app-bg);
@@ -25,104 +25,56 @@
   --color-apricot: #cf6123;
   --color-citrus: #f3c363;
   --color-apple-core: #f1e9bb;
-
-  /* Redefine system colors to map exclusively to the 5-color palette */
-  --color-slate-50: #faf7e6;
-  --color-slate-100: #f1e9bb;
-  --color-slate-200: #e3dab0;
-  --color-slate-300: #f3c363;
-  --color-slate-400: #cf6123;
-  --color-slate-500: #5c483a;
-  --color-slate-600: #5c483a;
-  --color-slate-700: #5c483a;
-  --color-slate-800: #5c483a;
-  --color-slate-900: #5c483a;
-  --color-slate-950: #44352a;
-
-  --color-zinc-50: #faf7e6;
-  --color-zinc-100: #f1e9bb;
-  --color-zinc-200: #e3dab0;
-  --color-zinc-300: #f3c363;
-  --color-zinc-400: #cf6123;
-  --color-zinc-500: #5c483a;
-  --color-zinc-600: #5c483a;
-  --color-zinc-700: #5c483a;
-  --color-zinc-800: #5c483a;
-  --color-zinc-900: #5c483a;
-  --color-zinc-950: #44352a;
-
-  --color-gray-50: #faf7e6;
-  --color-gray-100: #f1e9bb;
-  --color-gray-200: #e3dab0;
-  --color-gray-300: #f3c363;
-  --color-gray-400: #cf6123;
-  --color-gray-500: #5c483a;
-  --color-gray-600: #5c483a;
-  --color-gray-700: #5c483a;
-  --color-gray-800: #5c483a;
-  --color-gray-900: #5c483a;
-  --color-gray-950: #44352a;
-
-  --color-emerald-50: #faf7e6;
-  --color-emerald-100: #f1e9bb;
-  --color-emerald-500: #cf6123;
-  --color-emerald-600: #c92c2c;
-  --color-emerald-700: #c92c2c;
-
-  --color-green-500: #cf6123;
-  --color-green-600: #c92c2c;
-
-  --color-rose-500: #c92c2c;
-  --color-rose-600: #c92c2c;
 }
 
 @layer base {
   :root {
-    /* Base Colors - Terracotta Bento minimal luxury design */
-    --app-bg: #f5f4f0;  /* Premium soft neutral warm gray */
-    --app-fg: #111215;  /* Deep off-black / charcoal */
+    /* Base Colors - Noira/TeamTrack Premium Soft Nature Design */
+    --app-bg: #f2f5f1;  /* Soft moss-tinted light cream */
+    --app-fg: #131b26;  /* High-contrast deep slate text */
     
-    --app-accent: #ce6f55; /* Warm terracotta / burnt sienna */
+    --app-accent: #378e6b; /* Gorgeous Sage/Mint Green */
     --app-card: #ffffff;   /* Crisp white cards */
-    --app-border: rgba(17, 18, 21, 0.08); /* Clean thin borders */
+    --app-border: rgba(19, 27, 38, 0.05); /* Ultra-crisp thin borders */
     
-    --app-green: #4a8b71; /* Elegant sage green */
-    --app-dark-green: #376854;
-    --app-gold: #e59a54;  /* Warm ochre gold */
-    --app-light-gold: #fcfbf9;
-    --app-brown: #5c4d44;  
-    --app-cream: #faf9f7;  
-
-    --glass-bg: rgba(255, 255, 255, 0.85);
-    --glass-border: rgba(17, 18, 21, 0.06);
+    --app-green: #378e6b; /* Sage Mint green */
+    --app-dark-green: #25664c;
+    --app-gold: #f59e0b;  /* Golden highlights */
+    --app-light-gold: rgba(245, 158, 11, 0.08);
+    --app-brown: #6366f1;  /* Deep Indigo accents */
+    --app-cream: #fafbf9;  
+    
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.4);
   }
 
   .dark {
-    /* Base Colors Dark - High-end studio dark theme */
-    --app-bg: #121316; /* Sophisticated deep charcoal */
-    --app-fg: #eae9e6; /* Elegant warm off-white */
-    --app-accent: #e2836b; /* Soft warm terracotta */
-    --app-card: #1b1c20;   /* Deep gray-black cards */
-    --app-border: rgba(234, 233, 230, 0.08);
+    /* Base Colors Dark - Bio-luminescent Midnight Jungle theme */
+    --app-bg: #0b0f17; /* Deep midnight obsidian */
+    --app-fg: #f1f5f9; /* Arctic ice white text */
+    --app-accent: #52c496; /* Glowing luminous mint green */
+    --app-card: #121824;   /* Deep charcoal slate cards */
+    --app-border: rgba(255, 255, 255, 0.05);
     
-    --app-green: #5ca883; 
-    --app-dark-green: #458264; 
-    --app-gold: #f2ac6c;  
-    --app-light-gold: rgba(242, 172, 108, 0.15);
-    --app-brown: #eae9e6;  
-    --app-cream: #121316;  
+    --app-green: #52c496; /* Luminous mint */
+    --app-dark-green: #3ea57d; 
+    --app-gold: #fbbf24;  
+    --app-light-gold: rgba(251, 191, 36, 0.12);
+    --app-brown: #818cf8;  
+    --app-cream: #0c101a;  
 
-    --glass-bg: rgba(27, 28, 32, 0.85);
-    --glass-border: rgba(234, 233, 230, 0.06);
+    --glass-bg: rgba(18, 24, 36, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.05);
   }
 
   body {
     background-color: var(--app-bg);
     color: var(--app-fg);
     background-image: 
-      radial-gradient(at 0% 0%, rgba(206, 111, 85, 0.04) 0px, transparent 40%),
-      radial-gradient(at 100% 0%, rgba(74, 139, 113, 0.03) 0px, transparent 45%),
-      radial-gradient(at 50% 50%, rgba(17, 18, 21, 0.02) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgba(55, 142, 107, 0.16) 0px, transparent 40%),
+      radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.1) 0px, transparent 45%),
+      radial-gradient(at 80% 80%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+      radial-gradient(at 30% 70%, rgba(55, 142, 107, 0.12) 0px, transparent 60%);
     background-attachment: fixed;
     transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }

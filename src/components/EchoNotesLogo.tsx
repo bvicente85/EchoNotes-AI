@@ -72,7 +72,7 @@ export function EchoNotesLogo({ className = "flex items-center gap-3", iconClass
         <EchoNotesLogoIcon className={iconClassName} />
       </div>
       <div>
-        <h1 className="text-lg font-sans font-semibold tracking-tight leading-none text-slate-800 dark:text-white">EchoNotes</h1>
+        <h1 className="text-lg font-sans font-semibold tracking-tight leading-none text-slate-800 dark:text-white">Econotes</h1>
         <span className="text-[8px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">INTELLIGENCE</span>
       </div>
     </div>
