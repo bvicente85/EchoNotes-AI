@@ -156,7 +156,7 @@ export function SettingsView({
         <div className="p-8 border-b border-app-border flex justify-between items-center glass">
           <div>
             <h2 className="text-3xl font-display font-black tracking-tight text-app-fg">{t('settings')}</h2>
-            <p className="text-app-fg/40 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Personalize Econotes</p>
+            <p className="text-app-fg/40 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Personalize EchoNotes</p>
           </div>
           <button 
             onClick={onClose}
@@ -334,7 +334,7 @@ export function SettingsView({
                   type="text"
                   value={customTerms}
                   onChange={(e) => setCustomTerms(e.target.value)}
-                  placeholder="Ex: Skolae, Econotes, Projeto X, Ana Silva"
+                  placeholder="Ex: Skolae, EchoNotes, Projeto X, Ana Silva"
                   className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg placeholder:text-app-fg/20"
                 />
                 <p className="text-[10px] text-app-fg/40">Termos, marcas ou nomes separados por vírgula que a IA deve reconhecer sem autocorrigir.</p>
@@ -409,7 +409,7 @@ export function SettingsView({
                 <Sparkles size={22} />
               </div>
               <div>
-                <p className="text-sm font-black text-app-fg uppercase tracking-tight">Econotes v1.2.0</p>
+                <p className="text-sm font-black text-app-fg uppercase tracking-tight">EchoNotes v1.2.0</p>
                 <p className="text-[10px] text-app-fg/40 uppercase tracking-[0.2em] font-black mt-1">Powered by Gemini AI</p>
               </div>
             </div>

@@ -20,6 +20,8 @@ export interface MeetingReport {
   };
   manualNotes?: string;
   template?: string;
+  downloaded?: boolean;
+  downloadedFormats?: string[];
 }
 
 export class MeetingAnalysisError extends Error {
@@ -318,7 +320,7 @@ ${report.transcript.map(t => `[${t.timestamp}] ${t.speaker}: ${t.text}`).join('\
   }
 
   const systemInstruction = `
-    You are "Gemini", an AI business strategist for Econotes. You have access to the user's meeting archive.
+    You are "Gemini", an AI business strategist for EchoNotes. You have access to the user's meeting archive.
     
     CAPABILITIES:
     1. Cross-Meeting Analysis: Compare discussions or follow-up on topics across different dates.

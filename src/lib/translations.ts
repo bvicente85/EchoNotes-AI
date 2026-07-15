@@ -164,6 +164,9 @@ export interface TranslationKeys {
   adminDashboardNav: string;
   clearHistory: string;
   clickToEditTitle: string;
+  downloadedBadge: string;
+  downloadedTooltip: string;
+  downloadedFilterLabel: string;
   expectedSpeakersLabel: string;
   expectedSpeakersPlaceholder: string;
   recoveryTitle: string;
@@ -375,6 +378,9 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     adminDashboardNav: "Dashboard de Administrador",
     clearHistory: "Limpar histórico",
     clickToEditTitle: "Clique para editar o título",
+    downloadedBadge: "Descarregado",
+    downloadedTooltip: "Relatório/Transcrição já descarregado. Seguro apagar.",
+    downloadedFilterLabel: "Ocultar descarregados",
     expectedSpeakersLabel: "Participantes Esperados (opcional)",
     expectedSpeakersPlaceholder: "Ex: Bruno Filipe, Ana Santos (separados por vírgula)",
     recoveryTitle: "Sessão Interrompida Detetada",
@@ -584,6 +590,9 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     adminDashboardNav: "Admin Dashboard",
     clearHistory: "Clear history",
     clickToEditTitle: "Click to edit title",
+    downloadedBadge: "Downloaded",
+    downloadedTooltip: "Report/transcript downloaded. Safe to delete.",
+    downloadedFilterLabel: "Hide downloaded",
     expectedSpeakersLabel: "Expected Participants (optional)",
     expectedSpeakersPlaceholder: "e.g., Bruno Filipe, Ana Santos (comma-separated)",
     recoveryTitle: "Interrupted Session Detected",

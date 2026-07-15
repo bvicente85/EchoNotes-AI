@@ -3,6 +3,7 @@ import React from 'react';
 interface LogoProps {
   className?: string;
   iconClassName?: string;
+  isDarkBg?: boolean;
 }
 
 export function EchoNotesLogoIcon({ className = "w-10 h-10" }: { className?: string }) {
@@ -65,15 +66,15 @@ export function EchoNotesLogoIcon({ className = "w-10 h-10" }: { className?: str
   );
 }
 
-export function EchoNotesLogo({ className = "flex items-center gap-3", iconClassName = "w-9 h-9" }: LogoProps) {
+export function EchoNotesLogo({ className = "flex items-center gap-3", iconClassName = "w-9 h-9", isDarkBg = false }: LogoProps) {
   return (
     <div className={className}>
-      <div className="flex items-center justify-center text-slate-700 dark:text-slate-300 transition-transform hover:scale-105">
+      <div className={isDarkBg ? "flex items-center justify-center text-app-accent transition-transform hover:scale-105" : "flex items-center justify-center text-slate-700 dark:text-slate-300 transition-transform hover:scale-105"}>
         <EchoNotesLogoIcon className={iconClassName} />
       </div>
       <div>
-        <h1 className="text-lg font-sans font-semibold tracking-tight leading-none text-slate-800 dark:text-white">Econotes</h1>
-        <span className="text-[8px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">INTELLIGENCE</span>
+        <h1 className={isDarkBg ? "text-lg font-sans font-semibold tracking-tight leading-none text-white" : "text-lg font-sans font-semibold tracking-tight leading-none text-slate-800 dark:text-white"}>EchoNotes</h1>
+        <span className={isDarkBg ? "text-[8px] font-mono text-slate-400 uppercase tracking-[0.2em] font-bold" : "text-[8px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold"}>INTELLIGENCE</span>
       </div>
     </div>
   );

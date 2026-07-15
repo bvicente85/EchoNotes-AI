@@ -16,9 +16,10 @@ interface ReportViewProps {
   onReset: () => void;
   onUpdate?: (updatedReport: MeetingReport) => void;
   onUpdateTitle?: (newTitle: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTitle, meetingId, onReset, onUpdate, onUpdateTitle }) => {
+export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTitle, meetingId, onReset, onUpdate, onUpdateTitle, onDelete }) => {
   const { language, t } = useLanguage();
   const { 
     state: data, 
@@ -42,12 +43,25 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
       formattedNotes: '',
       taskList: [],
       emailDraft: ''
-    }
+    },
+    downloaded: report.downloaded || false,
+    downloadedFormats: report.downloadedFormats || []
   });
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const isEditingTitleRef = useRef(isEditingTitle);
   const currentTitleRef = useRef(data.title);
+
+  // Refs to stabilize callback handles and prevent perpetual auto-save loops
+  const onUpdateRef = useRef(onUpdate);
+  const reportRef = useRef(report);
+  const prevMeetingIdRef = useRef<string | undefined>(meetingId);
+  const prevReportRef = useRef<MeetingReport>(report);
+
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+    reportRef.current = report;
+  }, [onUpdate, report]);
 
   useEffect(() => {
     isEditingTitleRef.current = isEditingTitle;
@@ -236,23 +250,33 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
   };
 
   useEffect(() => {
-    reset({
-      summary: report.summary,
-      highlights: report.highlights,
-      keyDecisions: report.keyDecisions || [],
-      nextActions: report.nextActions,
-      transcript: report.transcript,
-      clientName: report.clientName || '',
-      meetingDate: report.meetingDate || new Date().toISOString().slice(0, 16),
-      title: isEditingTitleRef.current ? currentTitleRef.current : (initialTitle || 'Meeting Intelligence Report'),
-      isQuickDraft: report.isQuickDraft || false,
-      quickDraft: report.quickDraft || {
-        formattedNotes: '',
-        taskList: [],
-        emailDraft: ''
-      }
-    });
-  }, [report, initialTitle, reset]);
+    // Only reset if the meetingId changed, or if there is no meetingId and the report reference changed
+    const idChanged = meetingId !== prevMeetingIdRef.current;
+    const isNewReport = !meetingId && report !== prevReportRef.current;
+
+    if (idChanged || isNewReport) {
+      reset({
+        summary: report.summary,
+        highlights: report.highlights,
+        keyDecisions: report.keyDecisions || [],
+        nextActions: report.nextActions,
+        transcript: report.transcript,
+        clientName: report.clientName || '',
+        meetingDate: report.meetingDate || new Date().toISOString().slice(0, 16),
+        title: isEditingTitleRef.current ? currentTitleRef.current : (initialTitle || 'Meeting Intelligence Report'),
+        isQuickDraft: report.isQuickDraft || false,
+        quickDraft: report.quickDraft || {
+          formattedNotes: '',
+          taskList: [],
+          emailDraft: ''
+        },
+        downloaded: report.downloaded || false,
+        downloadedFormats: report.downloadedFormats || []
+      });
+      prevMeetingIdRef.current = meetingId;
+      prevReportRef.current = report;
+    }
+  }, [report, meetingId, initialTitle, reset]);
 
   // Auto-resize textareas on mount
   useEffect(() => {
@@ -281,25 +305,67 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
 
-  // Auto-save changes if onUpdate is provided
+  // Auto-save changes if onUpdate is provided and content actually changed (dirty check)
   useEffect(() => {
-    if (onUpdate) {
-      const timer = setTimeout(() => {
-        onUpdate({
-          ...report,
+    const currentOnUpdate = onUpdateRef.current;
+    if (!currentOnUpdate) return;
+
+    const currentReport = reportRef.current;
+    const isDirty = 
+      data.summary !== currentReport.summary ||
+      JSON.stringify(data.highlights) !== JSON.stringify(currentReport.highlights) ||
+      JSON.stringify(data.keyDecisions) !== JSON.stringify(currentReport.keyDecisions || []) ||
+      JSON.stringify(data.nextActions) !== JSON.stringify(currentReport.nextActions) ||
+      data.clientName !== (currentReport.clientName || '') ||
+      data.meetingDate !== (currentReport.meetingDate || '') ||
+      data.downloaded !== (currentReport.downloaded || false) ||
+      JSON.stringify(data.downloadedFormats) !== JSON.stringify(currentReport.downloadedFormats || []);
+
+    if (!isDirty) return;
+
+    const timer = setTimeout(() => {
+      if (onUpdateRef.current) {
+        onUpdateRef.current({
+          ...reportRef.current,
           summary: data.summary,
           highlights: data.highlights,
+          keyDecisions: data.keyDecisions,
           nextActions: data.nextActions,
           transcript: data.transcript,
           clientName: data.clientName,
-          meetingDate: data.meetingDate
+          meetingDate: data.meetingDate,
+          downloaded: data.downloaded,
+          downloadedFormats: data.downloadedFormats
         });
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [data.summary, data.highlights, data.nextActions, data.transcript, data.clientName, data.meetingDate, onUpdate, report]);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [
+    data.summary, 
+    data.highlights, 
+    data.keyDecisions,
+    data.nextActions, 
+    data.transcript, 
+    data.clientName, 
+    data.meetingDate, 
+    data.downloaded, 
+    data.downloadedFormats
+  ]);
 
   // Title update is handled on blur or enter keypress to prevent focus issues during typing.
+
+  const markAsDownloaded = (format: string) => {
+    const currentFormats = data.downloadedFormats || [];
+    const newFormats = currentFormats.includes(format)
+      ? currentFormats
+      : [...currentFormats, format];
+    
+    updateData({
+      ...data,
+      downloaded: true,
+      downloadedFormats: newFormats
+    });
+  };
 
   const getReportText = () => {
     let text = `
@@ -527,6 +593,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    markAsDownloaded('markdown');
   };
 
   const downloadReport = () => {
@@ -542,6 +609,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    markAsDownloaded('txt');
   };
 
   const downloadPDF = () => {
@@ -647,6 +715,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
 
     const clientSuffix = data.clientName ? `-${data.clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}` : '';
     doc.save(`meeting-report${clientSuffix}-${new Date(data.meetingDate).toISOString().split('T')[0]}.pdf`);
+    markAsDownloaded('pdf');
   };
 
   const downloadWord = () => {
@@ -733,6 +802,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    markAsDownloaded('word');
   };
 
   const downloadJSON = () => {
@@ -756,6 +826,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    markAsDownloaded('json');
   };
 
   const downloadOnlyTranscript = () => {
@@ -770,6 +841,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    markAsDownloaded('transcript_txt');
   };
 
   const handleSpeakerClick = (index: number, currentName: string) => {
@@ -848,9 +920,15 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
           
           <div className="flex items-center gap-3 shrink-0">
             <button 
-              onClick={onReset}
+              onClick={() => {
+                if (onDelete && meetingId) {
+                  onDelete(meetingId);
+                } else {
+                  onReset();
+                }
+              }}
               className="p-3 border border-slate-200/80 dark:border-white/5 hover:bg-rose-500/10 hover:text-rose-600 text-slate-400 dark:text-slate-400 rounded-xl transition-colors bg-white dark:bg-slate-900"
-              title={t('discardReport')}
+              title={onDelete && meetingId ? t('delete') : t('discardReport')}
             >
               <Trash2 size={18} />
             </button>
@@ -858,7 +936,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
         </div>
 
         {/* Global Metadata Inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 bg-app-card border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-sm backdrop-blur-md">
           <div className="space-y-1">
             <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-550" />
@@ -888,7 +966,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
 
         {/* Audio Player Card */}
         {meetingId && (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-app-card border border-slate-200/60 dark:border-white/5 rounded-2xl p-5 shadow-sm space-y-4 backdrop-blur-md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-app-green" />
@@ -1154,7 +1232,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
               </div>
 
               {/* Tab Content Card */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm space-y-4">
+              <div className="bg-app-card border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm space-y-4 backdrop-blur-md">
                 {activeDraftTab === 'scratchpad' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
@@ -1374,7 +1452,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                   </button>
                 </div>
                 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm">
+                <div className="bg-app-card border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm backdrop-blur-md">
                   {isEditingSummary ? (
                     <textarea
                       autoFocus
@@ -1584,7 +1662,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
               </section>
 
               {/* Quick Copy Templates (Email, CRM) */}
-              <section className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4">
+              <section className="bg-app-card border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4 backdrop-blur-md">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   {t('copyTemplatesHeader')}
                 </span>
@@ -1643,7 +1721,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
         <aside className="lg:col-span-4 space-y-6 h-fit lg:sticky lg:top-28">
           
           {/* Action Panel - Exports & Backups */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4">
+          <div className="bg-app-card border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4 backdrop-blur-md">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('exportManagement')}</span>
               <div className="flex gap-1.5">

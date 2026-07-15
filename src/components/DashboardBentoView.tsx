@@ -246,7 +246,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         {/* Welcome Card */}
-        <div className="col-span-12 lg:col-span-8 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-left relative overflow-hidden group">
+        <div className="col-span-12 lg:col-span-8 bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-left relative overflow-hidden group backdrop-blur-md">
           <div className="absolute top-0 right-0 w-32 h-32 bg-app-accent/5 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-500" />
           
           <div className="space-y-1 z-10">
@@ -274,7 +274,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
         </div>
 
         {/* High-fidelity Interactive Weekly Calendar Widget (Matches 'Schedule' widget on TeamTrack Right panel) */}
-        <div className="col-span-12 lg:col-span-4 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+        <div className="col-span-12 lg:col-span-4 bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between backdrop-blur-md">
           <div className="flex items-center justify-between mb-3 text-left">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Schedule</p>
@@ -333,7 +333,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
         <div className="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Bento Card 1: Primary Recording Suite (Stretches full width) */}
-          <div id="audio-recorder-section" className="col-span-1 md:col-span-2 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-6 text-left">
+          <div id="audio-recorder-section" className="col-span-1 md:col-span-2 bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-6 text-left backdrop-blur-md">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h3 className="text-xs font-bold text-slate-450 uppercase tracking-widest flex items-center gap-2">
                 <Sliders size={14} className="text-app-accent" />
@@ -462,7 +462,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
           </div>
 
           {/* Bento Card 2: Configuration & Parameters */}
-          <div className="bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between h-full min-h-[350px] text-left">
+          <div className="bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between h-full min-h-[350px] text-left backdrop-blur-md">
             <div className="space-y-4">
               <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <Sliders size={12} className="text-app-accent" />
@@ -552,7 +552,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
           </div>
 
           {/* Bento Card 3: Concentric Onion Ring (Session Distribution) */}
-          <div className="bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between h-full min-h-[350px] text-left">
+          <div className="bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between h-full min-h-[350px] text-left backdrop-blur-md">
             <div className="space-y-1">
               <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <PieChart size={12} className="text-app-accent" />
@@ -611,7 +611,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
           </div>
 
           {/* Bento Card 4: Meeting Frequency Chart */}
-          <div className="col-span-1 md:col-span-2 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between text-left">
+          <div className="col-span-1 md:col-span-2 bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between text-left backdrop-blur-md">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -656,7 +656,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
           
           {/* Bento Card 5: My Tasks (Action items checker - Matches 'My Tasks' widget) */}
-          <div className="bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-4 text-left">
+          <div className="bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-4 text-left backdrop-blur-md">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
                 <CheckSquare size={14} className="text-app-accent" />
@@ -731,7 +731,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
           </div>
 
           {/* Bento Card 6: Recent Meetings & Sessions schedule (Matches 'Meetings' on TeamTrack Right panel) */}
-          <div className="bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-4 text-left">
+          <div className="bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-4 text-left backdrop-blur-md">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
                 <Clock size={14} className="text-app-accent" />

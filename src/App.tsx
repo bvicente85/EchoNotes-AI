@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
 import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink, Calendar, Clock, BarChart3, PieChart, TrendingUp, Menu, ArrowRight, Sliders, Volume2, CheckSquare, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateMeetingReport, MeetingReport, MeetingAnalysisError } from './services/gemini';
@@ -56,6 +56,7 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [hideDownloaded, setHideDownloaded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -693,20 +694,20 @@ export default function App() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleGoHome = () => {
+  const handleGoHome = useCallback(() => {
     setReport(null);
     setCurrentHistoryId(null);
-  };
+  }, []);
 
-  const handleToggleSidebar = () => {
+  const handleToggleSidebar = useCallback(() => {
     setSidebarCollapsed(prev => {
       const next = !prev;
       localStorage.setItem('echonotes_sidebar_collapsed', String(next));
       return next;
     });
-  };
+  }, []);
 
-  const handleUpdateReport = async (updatedReport: MeetingReport, customId?: string) => {
+  const handleUpdateReport = useCallback(async (updatedReport: MeetingReport, customId?: string) => {
     const idToUpdate = customId || currentHistoryId;
     if (idToUpdate && user) {
       await updateHistoryItem(idToUpdate, { report: updatedReport });
@@ -716,32 +717,29 @@ export default function App() {
       const updatedHistory = await getHistory(user.id);
       setHistory(updatedHistory);
     }
-  };
+  }, [currentHistoryId, user]);
 
-  const handleUpdateTitle = async (newTitle: string, customId?: string) => {
+  const handleUpdateTitle = useCallback(async (newTitle: string, customId?: string) => {
     const idToUpdate = customId || currentHistoryId;
     if (idToUpdate && user) {
       const success = await updateHistoryItem(idToUpdate, { title: newTitle });
       if (success) {
-        if (idToUpdate === currentHistoryId) {
-          // If the title of the active report changed, update state if necessary
-        }
         const updatedHistory = await getHistory(user.id);
         setHistory(updatedHistory);
       }
     }
-  };
+  }, [currentHistoryId, user]);
 
-  const handleSelectHistory = (item: HistoryItem) => {
+  const handleSelectHistory = useCallback((item: HistoryItem) => {
     setReport(item.report);
     setCurrentHistoryId(item.id);
     setShowHistory(false);
-  };
+  }, []);
 
-  const handleDeleteHistory = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteHistory = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setDeleteConfirmId(id);
-  };
+  }, []);
 
   const confirmDelete = async () => {
     if (deleteConfirmId && user) {
@@ -1008,10 +1006,12 @@ export default function App() {
 
   const sortedHistory = useMemo(() => {
     return [...history]
-      .filter(item => 
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        item.report.summary.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      .filter(item => {
+        const matchesQuery = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                             item.report.summary.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesDownloaded = !hideDownloaded || !item.report.downloaded;
+        return matchesQuery && matchesDownloaded;
+      })
       .sort((a, b) => {
         if (sortField === 'date') {
           return sortOrder === 'desc' 
@@ -1023,7 +1023,7 @@ export default function App() {
             : a.title.localeCompare(b.title);
         }
       });
-  }, [history, searchQuery, sortField, sortOrder]);
+  }, [history, searchQuery, hideDownloaded, sortField, sortOrder]);
 
   const renderRecordingUI = () => {
     return (
@@ -1451,26 +1451,33 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-app-bg text-app-fg transition-colors duration-300 font-sans p-3 sm:p-6 lg:p-8 flex flex-col justify-center ${theme === 'dark' ? 'dark' : ''}`}>
-      <div className="w-full max-w-7xl mx-auto rounded-[32px] bg-white/60 dark:bg-[#0c101b]/80 backdrop-blur-2xl border border-white/50 dark:border-white/5 shadow-2xl flex flex-row overflow-hidden min-h-[85vh] lg:h-[90vh] transition-all relative">
+    <div className={`h-screen w-screen bg-app-bg text-app-fg transition-colors duration-300 font-sans flex flex-col overflow-hidden ${theme === 'dark' ? 'dark' : ''}`}>
+      <div className="w-full h-full bg-transparent flex flex-row overflow-hidden transition-all relative">
         
-        {/* Left Sidebar - Premium TeamTrack Dashboard Navigation */}
+        {/* Left Sidebar - Premium TeamTrack Dashboard Navigation with Login screen aesthetic */}
         <aside className={cn(
-          "shrink-0 border-r border-app-border bg-white/45 dark:bg-slate-950/20 backdrop-blur-lg flex flex-col justify-between hidden lg:flex transition-all duration-300 ease-in-out",
+          "shrink-0 border-r border-slate-900 bg-[#070a11] text-white flex flex-col justify-between hidden lg:flex transition-all duration-300 ease-in-out relative overflow-hidden",
           sidebarCollapsed ? "w-[84px] p-4" : "w-64 p-6"
         )}>
+          {/* Decorative Background Mesh (Rich color flows from the login page) */}
+          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+            <div className="absolute top-[-10%] left-[-10%] w-[130%] h-[60%] rounded-full bg-app-accent/15 blur-[70px] animate-pulse" style={{ animationDuration: '10s' }} />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[130%] h-[60%] rounded-full bg-app-accent/5 blur-[80px] animate-pulse" style={{ animationDuration: '15s' }} />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:24px_24px] opacity-40" />
+          </div>
+
           {sidebarCollapsed ? (
             /* COLLAPSED SIDEBAR VIEW */
-            <div className="flex flex-col items-center justify-between h-full w-full">
+            <div className="flex flex-col items-center justify-between h-full w-full relative z-10">
               <div className="flex flex-col items-center gap-8 w-full">
                 {/* Branding Logo (Collapsed) */}
                 <div className="flex flex-col items-center gap-4">
-                  <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleGoHome} title="Econotes">
-                    <EchoNotesLogoIcon className="w-9 h-9 text-slate-700 dark:text-slate-300" />
+                  <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleGoHome} title="EchoNotes">
+                    <EchoNotesLogoIcon className="w-9 h-9 text-app-accent" />
                   </div>
                   <button 
                     onClick={handleToggleSidebar}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
                     title="Expand Sidebar"
                   >
                     <PanelLeftOpen size={16} />
@@ -1487,8 +1494,8 @@ export default function App() {
                         className={cn(
                           "flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold transition-all active:scale-98 cursor-pointer",
                           !report && !showHistory && !showSettings
-                            ? "bg-app-accent/15 text-app-accent border-b-2 border-app-accent"
-                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                            ? "bg-app-accent/20 text-white border-b-2 border-app-accent"
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
                         )}
                       >
                         <LayoutGrid size={18} />
@@ -1506,8 +1513,8 @@ export default function App() {
                         className={cn(
                           "flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold transition-all active:scale-98 relative cursor-pointer",
                           showHistory
-                            ? "bg-app-accent/15 text-app-accent border-b-2 border-app-accent"
-                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                            ? "bg-app-accent/20 text-white border-b-2 border-app-accent"
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
                         )}
                       >
                         <History size={18} />
@@ -1527,8 +1534,8 @@ export default function App() {
                         className={cn(
                           "flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold transition-all active:scale-98 cursor-pointer",
                           showSettings
-                            ? "bg-app-accent/15 text-app-accent border-b-2 border-app-accent"
-                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                            ? "bg-app-accent/20 text-white border-b-2 border-app-accent"
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
                         )}
                       >
                         <Settings size={18} />
@@ -1536,12 +1543,12 @@ export default function App() {
                     </nav>
                   </div>
 
-                  <div className="w-full border-t border-slate-200/20 dark:border-white/5 pt-4">
+                  <div className="w-full border-t border-white/5 pt-4">
                     <nav className="space-y-2 flex flex-col items-center w-full">
                       <button
                         onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                         title={theme === 'light' ? 'Dark Mode' : 'Light Mode'}
-                        className="flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white transition-all cursor-pointer"
+                        className="flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
                       >
                         {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                       </button>
@@ -1549,7 +1556,7 @@ export default function App() {
                       <button
                         onClick={() => setLanguage(language === 'portuguese' ? 'english' : 'portuguese')}
                         title={language === 'portuguese' ? 'English' : 'Português'}
-                        className="flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white transition-all cursor-pointer"
+                        className="flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
                       >
                         <Sliders size={18} />
                       </button>
@@ -1559,7 +1566,7 @@ export default function App() {
               </div>
 
               {/* Bottom user profile information (Collapsed) */}
-              <div className="border-t border-app-border pt-4 mt-auto flex flex-col items-center gap-3 w-full">
+              <div className="border-t border-white/5 pt-4 mt-auto flex flex-col items-center gap-3 w-full">
                 <div className="w-9 h-9 rounded-xl bg-app-accent/10 flex items-center justify-center overflow-hidden shrink-0 border border-app-accent/20" title={user.email || ''}>
                   {user.user_metadata?.avatar_url ? (
                     <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" />
@@ -1571,7 +1578,7 @@ export default function App() {
                 </div>
                 <button 
                   onClick={handleSignOut}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/5 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                   title={t('signOut')}
                 >
                   <LogOut size={15} />
@@ -1580,16 +1587,16 @@ export default function App() {
             </div>
           ) : (
             /* EXPANDED SIDEBAR VIEW */
-            <div className="flex flex-col justify-between h-full w-full">
+            <div className="flex flex-col justify-between h-full w-full relative z-10">
               <div className="space-y-8">
                 {/* Branding Logo & Collapse Trigger */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="cursor-pointer transition-transform hover:scale-101" onClick={handleGoHome}>
-                    <EchoNotesLogo />
+                    <EchoNotesLogo isDarkBg={true} />
                   </div>
                   <button 
                     onClick={handleToggleSidebar}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
                     title="Collapse Sidebar"
                   >
                     <PanelLeftClose size={16} />
@@ -1599,15 +1606,15 @@ export default function App() {
                 {/* Navigation links */}
                 <div className="space-y-6">
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2.5 text-left">Main</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2.5 text-left">Main</p>
                     <nav className="space-y-1">
                       <button
                         onClick={handleGoHome}
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-98 text-left cursor-pointer",
                           !report && !showHistory && !showSettings
-                            ? "bg-app-accent/15 text-app-accent border-l-4 border-app-accent pl-2"
-                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                            ? "bg-app-accent/20 text-white border-l-4 border-app-accent pl-2"
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
                         )}
                       >
                         <LayoutGrid size={16} />
@@ -1625,8 +1632,8 @@ export default function App() {
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-98 text-left relative cursor-pointer",
                           showHistory
-                            ? "bg-app-accent/15 text-app-accent border-l-4 border-app-accent pl-2"
-                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                            ? "bg-app-accent/20 text-white border-l-4 border-app-accent pl-2"
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
                         )}
                       >
                         <History size={16} />
@@ -1646,8 +1653,8 @@ export default function App() {
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-98 text-left cursor-pointer",
                           showSettings
-                            ? "bg-app-accent/15 text-app-accent border-l-4 border-app-accent pl-2"
-                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white"
+                            ? "bg-app-accent/20 text-white border-l-4 border-app-accent pl-2"
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
                         )}
                       >
                         <Settings size={16} />
@@ -1657,30 +1664,30 @@ export default function App() {
                   </div>
 
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2.5 text-left">Preferences</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2.5 text-left">Preferences</p>
                     <div className="space-y-1">
                       <button
                         onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white transition-all text-left cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-all text-left cursor-pointer"
                       >
                         <span className="flex items-center gap-3">
                           {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
                           {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
                         </span>
-                        <span className="text-[10px] bg-slate-100 dark:bg-slate-850 px-1.5 py-0.5 rounded text-slate-450">
+                        <span className="text-[10px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-slate-300">
                           {theme === 'light' ? 'OFF' : 'ON'}
                         </span>
                       </button>
 
                       <button
                         onClick={() => setLanguage(language === 'portuguese' ? 'english' : 'portuguese')}
-                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white transition-all text-left cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-all text-left cursor-pointer"
                       >
                         <span className="flex items-center gap-3">
                           <Sliders size={16} />
                           {language === 'portuguese' ? 'Português' : 'English'}
                         </span>
-                        <span className="text-[10px] bg-slate-100 dark:bg-slate-850 px-1.5 py-0.5 rounded text-slate-450">
+                        <span className="text-[10px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-slate-300">
                           {language === 'portuguese' ? 'PT' : 'EN'}
                         </span>
                       </button>
@@ -1690,7 +1697,7 @@ export default function App() {
               </div>
 
               {/* Bottom user profile information */}
-              <div className="border-t border-app-border pt-4 mt-auto">
+              <div className="border-t border-white/5 pt-4 mt-auto">
                 <div className="flex items-center justify-between gap-2.5">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-9 h-9 rounded-xl bg-app-accent/10 flex items-center justify-center overflow-hidden shrink-0 border border-app-accent/20">
@@ -1703,7 +1710,7 @@ export default function App() {
                       )}
                     </div>
                     <div className="text-left min-w-0">
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">
+                      <p className="text-xs font-bold text-slate-200 truncate leading-tight">
                         {displayName || user.email?.split('@')[0]}
                       </p>
                       <p className="text-[9px] text-slate-400 truncate leading-none mt-0.5">
@@ -1714,7 +1721,7 @@ export default function App() {
                   
                   <button 
                     onClick={handleSignOut}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/5 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                     title={t('signOut')}
                   >
                     <LogOut size={15} />
@@ -1737,7 +1744,7 @@ export default function App() {
               
               <div className="hidden lg:block text-left">
                 <h1 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                  {language === 'portuguese' ? 'Bem-vindo ao Econotes' : 'Welcome to Econotes'} 🌿
+                  {language === 'portuguese' ? 'Bem-vindo ao EchoNotes' : 'Welcome to EchoNotes'} 🌿
                 </h1>
                 <p className="text-[10px] font-medium text-slate-400">
                   {language === 'portuguese' ? 'Inteligência e Atas de Reuniões com Inteligência Artificial' : 'AI-Driven Meeting Intelligence & Audio Capture'}
@@ -1907,22 +1914,34 @@ export default function App() {
                     />
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <button 
-                      onClick={() => {
-                        setSortField(sortField === 'date' ? 'title' : 'date');
-                      }}
-                      className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-app-accent transition-colors cursor-pointer"
-                    >
-                      <ArrowUpDown size={11} />
-                      {t('sortBy')}: {sortField === 'date' ? t('date') : t('title')}
-                    </button>
-                    <button 
-                      onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                      className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-app-accent transition-colors cursor-pointer"
-                    >
-                      {sortOrder === 'desc' ? t('mostRecent') : t('leastRecent')}
-                    </button>
+                  <div className="flex items-center justify-between gap-4 flex-wrap mt-2">
+                    <div className="flex items-center gap-4">
+                      <button 
+                        onClick={() => {
+                          setSortField(sortField === 'date' ? 'title' : 'date');
+                        }}
+                        className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-app-accent transition-colors cursor-pointer"
+                      >
+                        <ArrowUpDown size={11} />
+                        {t('sortBy')}: {sortField === 'date' ? t('date') : t('title')}
+                      </button>
+                      <button 
+                        onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                        className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-app-accent transition-colors cursor-pointer"
+                      >
+                        {sortOrder === 'desc' ? t('mostRecent') : t('leastRecent')}
+                      </button>
+                    </div>
+
+                    <label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-app-accent transition-colors cursor-pointer select-none">
+                      <input 
+                        type="checkbox" 
+                        checked={hideDownloaded}
+                        onChange={e => setHideDownloaded(e.target.checked)}
+                        className="rounded border-slate-300 dark:border-white/10 text-app-accent focus:ring-app-accent/20 bg-slate-50 dark:bg-slate-900 cursor-pointer w-3 h-3"
+                      />
+                      {t('downloadedFilterLabel')}
+                    </label>
                   </div>
                 </div>
 
@@ -2105,6 +2124,15 @@ export default function App() {
                               {item.report.clientName && (
                                 <span className="text-[8px] font-bold text-app-accent dark:text-slate-300 uppercase tracking-wider bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
                                   {item.report.clientName}
+                                </span>
+                              )}
+                              {item.report.downloaded && (
+                                <span 
+                                  className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"
+                                  title={t('downloadedTooltip')}
+                                >
+                                  <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                                  {t('downloadedBadge')}
                                 </span>
                               )}
                             </div>
@@ -2385,7 +2413,7 @@ export default function App() {
                                 setPendingCustomTerms(e.target.value);
                                 handleUpdatePendingField('customTerms', e.target.value);
                               }}
-                              placeholder="Ex: Skolae, Econotes, Projeto X, Ana Silva"
+                              placeholder="Ex: Skolae, EchoNotes, Projeto X, Ana Silva"
                               className="w-full bg-transparent border-none p-0 font-medium text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 text-xs mt-1"
                             />
                           </div>
@@ -2467,6 +2495,10 @@ export default function App() {
                               onReset={() => {}}
                               onUpdate={(updatedReport) => handleUpdateReport(updatedReport, previewItem.id)}
                               onUpdateTitle={(updatedTitle) => handleUpdateTitle(updatedTitle, previewItem.id)}
+                              onDelete={(id) => {
+                                setDeleteConfirmId(id);
+                                setSelectedPreviewSessionId(null);
+                              }}
                             />
                           </Suspense>
                         </div>
@@ -2755,6 +2787,7 @@ export default function App() {
             onReset={handleGoHome} 
             onUpdate={handleUpdateReport}
             onUpdateTitle={handleUpdateTitle}
+            onDelete={setDeleteConfirmId}
           />
         </Suspense>
       ) : (
@@ -3257,6 +3290,15 @@ export default function App() {
                                   {item.report.clientName && (
                                     <span className="text-[8px] font-bold text-app-accent bg-app-accent/5 px-1.5 py-0.2 rounded uppercase">
                                       {item.report.clientName}
+                                    </span>
+                                  )}
+                                  {item.report.downloaded && (
+                                    <span 
+                                      className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/10 px-1.5 py-0.2 rounded uppercase flex items-center gap-0.5"
+                                      title={t('downloadedTooltip')}
+                                    >
+                                      <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
+                                      {t('downloadedBadge')}
                                     </span>
                                   )}
                                 </div>
