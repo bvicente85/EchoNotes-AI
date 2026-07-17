@@ -71,7 +71,15 @@ export async function generateMeetingReport(
     });
 
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
+      const responseText = await response.text().catch(() => "");
+      let errData: any = {};
+      try {
+        errData = JSON.parse(responseText);
+      } catch (e) {
+        // Not JSON - probably Vercel HTML error page
+        const htmlSnippet = responseText.slice(0, 180).replace(/<[^>]*>/g, ' ').trim();
+        errData.error = `HTTP error ${response.status}: ${htmlSnippet || 'Internal Server Error'}`;
+      }
       throw new MeetingAnalysisError(
         errData.type || 'API_ERROR', 
         errData.error || `HTTP error! status: ${response.status}`
