@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { HistoryItem } from "./storage";
+import type { HistoryItem } from "./storage";
 
 export interface MeetingReport {
   summary: string;
