@@ -427,6 +427,9 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
                         <span className="text-app-accent font-bold">Ative "Partilhar áudio do sistema"!</span>
                       </li>
                     </ul>
+                    <p className="text-[9px] text-amber-600 dark:text-amber-500/90 font-medium pt-1.5 leading-normal border-t border-slate-150 dark:border-white/5 mt-2">
+                      {t('minimizeStreamWarning')}
+                    </p>
                   </div>
                 ) : (
                   <div className="flex-1 text-left space-y-1 max-w-sm">

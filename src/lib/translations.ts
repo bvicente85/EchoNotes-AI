@@ -238,6 +238,7 @@ export interface TranslationKeys {
   aiQualityLabel: string;
   diarizationAccuracy: string;
   segmentationAccuracy: string;
+  minimizeStreamWarning: string;
 }
 
 export const translations: Record<'portuguese' | 'english' | string, TranslationKeys> = {
@@ -471,7 +472,8 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     templateBrainstorming: "Brainstorming & Ideias",
     aiQualityLabel: "Qualidade IA",
     diarizationAccuracy: "Precisão da diariamento ativo",
-    segmentationAccuracy: "Precisão da segmentação ativa"
+    segmentationAccuracy: "Precisão da segmentação ativa",
+    minimizeStreamWarning: "💡 Dica: Evite minimizar a janela da reunião para que a gravação não seja interrompida pelo navegador."
   },
   english: {
     welcomeBack: "Welcome Back",
@@ -703,6 +705,7 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     templateBrainstorming: "Brainstorming & Ideas",
     aiQualityLabel: "AI Quality",
     diarizationAccuracy: "Active diarization accuracy",
-    segmentationAccuracy: "Active segmentation accuracy"
+    segmentationAccuracy: "Active segmentation accuracy",
+    minimizeStreamWarning: "💡 Tip: Avoid minimizing the shared window to prevent the browser from stopping the recording."
   }
 };

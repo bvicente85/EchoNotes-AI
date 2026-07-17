@@ -1268,6 +1268,9 @@ export default function App() {
                           <span className="w-4 h-4 flex-shrink-0 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full flex items-center justify-center font-bold text-[9px]">3</span> 
                           <span>{language === 'portuguese' ? 'Selecione a opção "Partilhar áudio do sistema" no canto inferior.' : 'Check the "Share system audio" option in the bottom corner.'}</span>
                         </p>
+                        <p className="text-[9px] text-amber-600 dark:text-amber-500/90 font-medium pt-1.5 leading-normal border-t border-slate-150 dark:border-white/5 mt-2">
+                          {t('minimizeStreamWarning')}
+                        </p>
                       </div>
                     </motion.div>
                   )}
@@ -3206,6 +3209,9 @@ export default function App() {
                                     <span className="text-app-accent font-bold">Ative "Partilhar áudio do sistema"!</span>
                                   </li>
                                 </ul>
+                                <p className="text-[9px] text-amber-600 dark:text-amber-500/90 font-medium pt-1.5 leading-normal border-t border-slate-150 dark:border-white/5 mt-2">
+                                  {t('minimizeStreamWarning')}
+                                </p>
                               </div>
                             )}
                             {recordingMode === 'mic' && (
