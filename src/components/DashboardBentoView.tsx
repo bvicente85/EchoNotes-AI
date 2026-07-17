@@ -70,6 +70,13 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState('Meeting');
 
+  const oldPendingCount = useMemo(() => {
+    const fiveDaysMs = 5 * 24 * 60 * 60 * 1000;
+    return pendingRecordings.filter(rec => {
+      return rec.timestamp && (Date.now() - rec.timestamp > fiveDaysMs);
+    }).length;
+  }, [pendingRecordings]);
+
   // Calculate stats for the Total Overview bar
   const totalSessionsCount = history.length;
   
@@ -146,32 +153,51 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
     <div className="w-full flex flex-col gap-6 p-1">
       
       {/* Pending Recordings Alert Banner */}
-      {pendingRecordings.length > 0 && (
+      {pendingRecordings && pendingRecordings.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 dark:border-amber-500/10 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left shadow-xs"
+          className={cn(
+            "w-full border rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left shadow-xs",
+            oldPendingCount > 0
+              ? "bg-red-500/10 dark:bg-red-500/5 border-red-500/20 dark:border-red-500/10 text-red-800 dark:text-red-400"
+              : "bg-amber-500/10 dark:bg-amber-500/5 border-amber-500/20 dark:border-amber-500/10 text-amber-800 dark:text-amber-400"
+          )}
         >
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <div className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+              oldPendingCount > 0
+                ? "bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400"
+                : "bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
+            )}>
               <Clock size={20} className="animate-pulse" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-amber-800 dark:text-amber-400">
+              <h4 className={cn("text-xs font-bold", oldPendingCount > 0 ? "text-red-800 dark:text-red-455" : "text-amber-800 dark:text-amber-455")}>
                 {language === 'portuguese' 
                   ? `Tens ${pendingRecordings.length} ${pendingRecordings.length === 1 ? 'gravação pendente' : 'gravações pendentes'}` 
                   : `You have ${pendingRecordings.length} pending ${pendingRecordings.length === 1 ? 'recording' : 'recordings'}`}
               </h4>
-              <p className="text-[11px] text-amber-700/80 dark:text-amber-400/70 font-medium">
-                {language === 'portuguese'
-                  ? 'Estas gravações foram guardadas para analisar mais tarde e estão prontas para serem processadas pela IA.'
-                  : 'These recordings were saved to analyze later and are ready to be processed by AI.'}
+              <p className={cn("text-[11px] font-medium", oldPendingCount > 0 ? "text-red-700/80 dark:text-red-400/70" : "text-amber-700/80 dark:text-amber-400/70")}>
+                {oldPendingCount > 0 
+                  ? (language === 'portuguese'
+                    ? `⚠️ Atenção: Tens ${oldPendingCount} ${oldPendingCount === 1 ? 'gravação pendente há mais de 5 dias' : 'gravações pendentes há mais de 5 dias'}. Por favor, analisa-as ou elimina-as para libertar o armazenamento local.`
+                    : `⚠️ Warning: You have ${oldPendingCount} pending ${oldPendingCount === 1 ? 'recording' : 'recordings'} saved for more than 5 days. Please analyze or delete them to free up local storage space.`)
+                  : (language === 'portuguese'
+                    ? 'Estas gravações foram guardadas para analisar mais tarde e estão prontas para serem processadas pela IA.'
+                    : 'These recordings were saved to analyze later and are ready to be processed by AI.')}
               </p>
             </div>
           </div>
           <button
             onClick={() => handleOpenHistory('pending')}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white dark:text-slate-900 dark:bg-amber-400 dark:hover:bg-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+            className={cn(
+              "px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0",
+              oldPendingCount > 0
+                ? "bg-red-500 hover:bg-red-600 text-white dark:bg-red-650 dark:hover:bg-red-550"
+                : "bg-amber-500 hover:bg-amber-600 text-white dark:text-slate-900 dark:bg-amber-400 dark:hover:bg-amber-300"
+            )}
           >
             {language === 'portuguese' ? 'Analisar Agora' : 'Analyze Now'}
             <ArrowRight size={13} />
