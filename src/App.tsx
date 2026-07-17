@@ -365,6 +365,17 @@ export default function App() {
     };
   }, [selectedPendingId, sidebarTab]);
 
+  // Synchronize selectedPendingId with the current pendingRecordings list
+  useEffect(() => {
+    if (pendingRecordings.length > 0) {
+      if (!selectedPendingId || !pendingRecordings.some(p => p.id === selectedPendingId)) {
+        setSelectedPendingId(pendingRecordings[0].id);
+      }
+    } else {
+      setSelectedPendingId(null);
+    }
+  }, [pendingRecordings, selectedPendingId]);
+
   const handleUpdatePendingField = async (field: string, value: any) => {
     if (!selectedPendingId) return;
     const pendingItem = await getPendingRecording(selectedPendingId);
