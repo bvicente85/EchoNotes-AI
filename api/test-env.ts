@@ -6,6 +6,8 @@ export default async function handler(req: any, res: any) {
       keyLength: key ? key.length : 0,
       keyPrefix: key ? key.slice(0, 6) : 'none',
       nodeVersion: process.version,
+      vercelCommitMessage: process.env.VERCEL_GIT_COMMIT_MESSAGE,
+      vercelCommitSha: process.env.VERCEL_GIT_COMMIT_SHA,
       envKeys: Object.keys(process.env).filter(k => !k.includes('SECRET') && !k.includes('PASSWORD') && !k.includes('KEY'))
     });
   } catch (error: any) {
