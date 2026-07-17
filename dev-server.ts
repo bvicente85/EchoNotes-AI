@@ -9,6 +9,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 import analyzeHandler from './api/analyze';
 import chatHandler from './api/chat';
 import testEnvHandler from './api/test-env';
+import testImportHandler from './api/test-import';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -77,6 +78,7 @@ const mockVercel = (handler: any) => {
 app.post('/api/analyze', mockVercel(analyzeHandler));
 app.post('/api/chat', mockVercel(chatHandler));
 app.get('/api/test-env', mockVercel(testEnvHandler));
+app.get('/api/test-import', mockVercel(testImportHandler));
 
 app.listen(PORT, () => {
   console.log(`\n🚀 Secure Gemini API Dev Server started on http://localhost:${PORT}`);
