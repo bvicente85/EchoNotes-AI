@@ -1,3 +1,5 @@
+import { askGemini } from './services/geminiBackend';
+
 export default async function handler(req: any, res: any) {
   // Only allow POST requests
   if (req.method !== 'POST') {
@@ -6,7 +8,6 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { askGemini } = await import('./services/geminiBackend');
     const { query, report, historyItems, chatHistory, language } = req.body;
 
     if (!query) {
