@@ -45,7 +45,11 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
       emailDraft: ''
     },
     downloaded: report.downloaded || false,
-    downloadedFormats: report.downloadedFormats || []
+    downloadedFormats: report.downloadedFormats || [],
+    duration: report.duration,
+    startTime: report.startTime,
+    endTime: report.endTime,
+    analyzedAt: report.analyzedAt
   });
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -963,6 +967,52 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
             />
           </div>
         </div>
+
+        {/* Additional Technical Metadata */}
+        {(data.startTime || data.endTime || data.duration || data.analyzedAt) && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-slate-100/30 dark:bg-slate-900/10 border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-xs backdrop-blur-xs">
+            {data.startTime && (
+              <div className="space-y-1 text-left">
+                <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  {language === 'portuguese' ? 'Início da Gravação' : 'Recording Started'}
+                </p>
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {data.startTime}
+                </p>
+              </div>
+            )}
+            {data.endTime && (
+              <div className="space-y-1 text-left">
+                <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  {language === 'portuguese' ? 'Fim da Gravação' : 'Recording Ended'}
+                </p>
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {data.endTime}
+                </p>
+              </div>
+            )}
+            {data.duration !== undefined && (
+              <div className="space-y-1 text-left">
+                <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  {language === 'portuguese' ? 'Duração Total' : 'Total Duration'}
+                </p>
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {Math.floor(data.duration / 60)}m {data.duration % 60}s
+                </p>
+              </div>
+            )}
+            {data.analyzedAt && (
+              <div className="space-y-1 text-left col-span-2 md:col-span-1">
+                <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  {language === 'portuguese' ? 'Análise Realizada' : 'Analyzed by AI'}
+                </p>
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {new Date(data.analyzedAt).toLocaleDateString(language === 'portuguese' ? 'pt-PT' : 'en-US')} {new Date(data.analyzedAt).toLocaleTimeString(language === 'portuguese' ? 'pt-PT' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Audio Player Card */}
         {meetingId && (

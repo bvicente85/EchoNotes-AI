@@ -20,6 +20,10 @@ export interface MeetingReport {
   template?: string;
   downloaded?: boolean;
   downloadedFormats?: string[];
+  duration?: number;
+  startTime?: string;
+  endTime?: string;
+  analyzedAt?: string;
 }
 
 export class MeetingAnalysisError extends Error {

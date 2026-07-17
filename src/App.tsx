@@ -31,6 +31,21 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
   return new Blob([byteArray], { type: mimeType });
 };
 
+const enrichReport = (
+  report: MeetingReport, 
+  durationSec?: number, 
+  startMs?: number | null, 
+  endMs?: number | null
+): MeetingReport => {
+  return {
+    ...report,
+    duration: durationSec !== undefined ? durationSec : report.duration,
+    startTime: startMs ? new Date(startMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : report.startTime,
+    endTime: endMs ? new Date(endMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : report.endTime,
+    analyzedAt: new Date().toISOString()
+  };
+};
+
 export default function App() {
   const supabase = getSupabase();
   const [user, setUser] = useState<User | null>(null);
@@ -132,6 +147,8 @@ export default function App() {
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const processingTimerRef = useRef<number | null>(null);
+  const recordingStartTimeRef = useRef<number | null>(null);
+  const recordingEndTimeRef = useRef<number | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastNormalVolumeTimeRef = useRef<number>(Date.now());
@@ -404,14 +421,15 @@ export default function App() {
             customGuidelines
           );
           
-          const newItem = await saveToHistory(result, user.id);
+          const enriched = enrichReport(result, undefined, backup.metadata.timestamp, undefined);
+          const newItem = await saveToHistory(enriched, user.id);
           if (newItem) {
             setCurrentHistoryId(newItem.id);
             await saveAudio(newItem.id, audioBlob);
             const updatedHistory = await getHistory(user.id);
             setHistory(updatedHistory);
           }
-          setReport(result);
+          setReport(enriched);
           await clearBackup();
         } catch (err) {
           console.error("Recover processing failed:", err);
@@ -497,14 +515,15 @@ export default function App() {
       
       const reportBlob = base64ToBlob(lastFailedAudio.base64, lastFailedAudio.mimeType);
       setLastFailedAudio(null);
-      const newItem = await saveToHistory(result, user.id);
+      const enriched = enrichReport(result, undefined, undefined, undefined);
+      const newItem = await saveToHistory(enriched, user.id);
       if (newItem) {
         setCurrentHistoryId(newItem.id);
         await saveAudio(newItem.id, reportBlob);
         const updatedHistory = await getHistory(user.id);
         setHistory(updatedHistory);
       }
-      setReport(result);
+      setReport(enriched);
     } catch (err) {
       console.error("Retry failed:", err);
       if (err instanceof MeetingAnalysisError) {
@@ -548,7 +567,8 @@ export default function App() {
         customGuidelines
       );
       
-      const newItem = await saveToHistory(result, user.id);
+      const enriched = enrichReport(result, undefined, undefined, undefined);
+      const newItem = await saveToHistory(enriched, user.id);
       if (newItem) {
         setCurrentHistoryId(newItem.id);
         try {
@@ -560,7 +580,7 @@ export default function App() {
         const updatedHistory = await getHistory(user.id);
         setHistory(updatedHistory);
       }
-      setReport(result);
+      setReport(enriched);
     } catch (err) {
       console.error("Upload processing failed:", err);
       if (err instanceof MeetingAnalysisError) {
@@ -576,6 +596,7 @@ export default function App() {
 
   const startRecording = async () => {
     setError(null);
+    recordingStartTimeRef.current = Date.now();
     try {
       let stream: MediaStream;
       
@@ -736,6 +757,7 @@ export default function App() {
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
+      recordingEndTimeRef.current = Date.now();
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
@@ -910,7 +932,13 @@ export default function App() {
             res.title = customTitle.trim();
           }
           
-          const newItem = await saveToHistory(res, user.id);
+          const enriched = enrichReport(
+            res, 
+            duration, 
+            recordingStartTimeRef.current, 
+            recordingEndTimeRef.current
+          );
+          const newItem = await saveToHistory(enriched, user.id);
           if (newItem) {
             setCurrentHistoryId(newItem.id);
             try {
@@ -920,7 +948,7 @@ export default function App() {
             }
             setHistory(prev => [newItem, ...prev]);
           }
-          setReport(res);
+          setReport(enriched);
           await clearBackup();
         } catch (err) {
           console.error("Processing failed:", err);
@@ -980,7 +1008,15 @@ export default function App() {
           
           res.title = pendingTitle || pendingItem.title;
           
-          const newItem = await saveToHistory(res, user.id);
+          const startMs = pendingItem.timestamp;
+          const endMs = startMs + (pendingItem.duration * 1000);
+          const enriched = enrichReport(
+            res, 
+            pendingItem.duration, 
+            startMs, 
+            endMs
+          );
+          const newItem = await saveToHistory(enriched, user.id);
           if (newItem) {
             setCurrentHistoryId(newItem.id);
             try {
@@ -991,7 +1027,7 @@ export default function App() {
             setHistory(prev => [newItem, ...prev]);
             setSelectedPreviewSessionId(newItem.id);
           }
-          setReport(res);
+          setReport(enriched);
           
           await deletePendingRecording(pendingId);
           await fetchPendingRecordings();
