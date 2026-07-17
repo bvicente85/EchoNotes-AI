@@ -1,4 +1,4 @@
-import { generateMeetingReport } from './services/geminiBackend';
+import { generateMeetingReport } from './geminiBackend';
 
 export default async function handler(req: any, res: any) {
   // Only allow POST requests
