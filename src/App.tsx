@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
-import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink, Calendar, Clock, BarChart3, PieChart, TrendingUp, Menu, ArrowRight, Sliders, Volume2, CheckSquare, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink, Calendar, Clock, BarChart3, PieChart, TrendingUp, Menu, ArrowRight, Sliders, HelpCircle, Volume2, CheckSquare, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateMeetingReport, MeetingReport, MeetingAnalysisError } from './services/gemini';
 import { AudioFileUpload } from './components/AudioFileUpload';
@@ -13,6 +13,7 @@ import { DashboardBentoView } from './components/DashboardBentoView';
 const ReportView = React.lazy(() => import('./components/ReportView').then(m => ({ default: m.ReportView })));
 const SettingsView = React.lazy(() => import('./components/SettingsView').then(m => ({ default: m.SettingsView })));
 const AdminDashboard = React.lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const UserGuideModal = React.lazy(() => import('./components/UserGuideModal').then(m => ({ default: m.UserGuideModal })));
 import { saveToHistory, getHistory, deleteFromHistory, updateHistoryItem, clearHistory, HistoryItem, migrateFromLocalStorage } from './services/storage';
 import { cn } from './lib/utils';
 import { useLanguage } from './contexts/LanguageContext';
@@ -48,6 +49,7 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [selectedPreviewSessionId, setSelectedPreviewSessionId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showUserGuide, setShowUserGuide] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('echonotes_sidebar_collapsed') === 'true');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [sortField, setSortField] = useState<'date' | 'title'>('date');
@@ -105,6 +107,7 @@ export default function App() {
   const handleOpenHistory = (tab: 'history' | 'pending' = 'history') => {
     setSidebarTab(tab);
     setShowHistory(true);
+    setShowUserGuide(false);
   };
   
   // State variables for interactive pending recording configurations
@@ -741,6 +744,7 @@ export default function App() {
   const handleGoHome = useCallback(() => {
     setReport(null);
     setCurrentHistoryId(null);
+    setShowUserGuide(false);
   }, []);
 
   const handleToggleSidebar = useCallback(() => {
@@ -1636,6 +1640,7 @@ export default function App() {
                       <button
                         onClick={() => {
                           setShowSettings(true);
+                          setShowUserGuide(false);
                         }}
                         title={t('settings')}
                         className={cn(
@@ -1646,6 +1651,24 @@ export default function App() {
                         )}
                       >
                         <Settings size={18} />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowUserGuide(true);
+                          setShowSettings(false);
+                          setShowHistory(false);
+                          setReport(null);
+                        }}
+                        title={language === 'portuguese' ? 'Guia do Utilizador' : 'User Guide'}
+                        className={cn(
+                          "flex items-center justify-center w-11 h-11 rounded-xl text-xs font-bold transition-all active:scale-98 cursor-pointer",
+                          showUserGuide
+                            ? "bg-app-accent/20 text-white border-b-2 border-app-accent"
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
+                        )}
+                      >
+                        <HelpCircle size={18} />
                       </button>
                     </nav>
                   </div>
@@ -1756,6 +1779,7 @@ export default function App() {
                       <button
                         onClick={() => {
                           setShowSettings(true);
+                          setShowUserGuide(false);
                         }}
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-98 text-left cursor-pointer",
@@ -1766,6 +1790,24 @@ export default function App() {
                       >
                         <Settings size={16} />
                         {t('settings')}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowUserGuide(true);
+                          setShowSettings(false);
+                          setShowHistory(false);
+                          setReport(null);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-98 text-left cursor-pointer",
+                          showUserGuide
+                            ? "bg-app-accent/20 text-white border-l-4 border-app-accent pl-2"
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
+                        )}
+                      >
+                        <HelpCircle size={16} />
+                        {language === 'portuguese' ? 'Guia do Utilizador' : 'User Guide'}
                       </button>
                     </nav>
                   </div>
@@ -2616,6 +2658,26 @@ export default function App() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showUserGuide && (
+          <Suspense fallback={
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[80] bg-slate-900/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center"
+            >
+              <Loader2 className="w-8 h-8 animate-spin text-app-accent" />
+            </motion.div>
+          }>
+            <UserGuideModal 
+              onClose={() => setShowUserGuide(false)} 
+              language={language}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
