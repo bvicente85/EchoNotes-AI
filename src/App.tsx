@@ -434,9 +434,8 @@ export default function App() {
         } catch (err) {
           console.error("Recover processing failed:", err);
           if (err instanceof MeetingAnalysisError) {
-            setError(err.message);
           } else {
-            setError("Não foi possível processar a gravação recuperada.");
+            setError(t('recoveryFailed'));
           }
           setLastFailedAudio({ base64: base64Audio, mimeType: audioBlob.type });
         } finally {
@@ -445,7 +444,7 @@ export default function App() {
       };
     } catch (err) {
       console.error("Failed to read reconstructed blob:", err);
-      setError("Erro ao ler dados da gravação recuperada.");
+      setError(t('recoveryReadError'));
       setIsProcessing(false);
     }
   };
@@ -750,7 +749,7 @@ export default function App() {
       setIsRecording(true);
     } catch (err) {
       console.error("Start recording failed:", err);
-      setError("Não foi possível aceder ao microfone. Por favor, verifique as permissões do seu navegador.");
+      setError(t('micUnavailable'));
       setIsRecording(false);
     }
   };
@@ -881,7 +880,7 @@ export default function App() {
       await clearBackup();
     } catch (err) {
       console.error("Failed to save pending recording:", err);
-      setError("Erro ao guardar a gravação pendente.");
+      setError(t('savePendingError'));
     } finally {
       setPendingRecordingToSave(null);
       setPendingTitleInput('');
@@ -955,7 +954,7 @@ export default function App() {
           if (err instanceof MeetingAnalysisError) {
             setError(err.message);
           } else {
-            setError("O serviço de IA está temporariamente indisponível. Por favor, tente novamente em alguns instantes.");
+            setError(t('aiServiceUnavailable'));
           }
           setLastFailedAudio({ base64: base64Audio, mimeType: blob.type });
         } finally {
@@ -974,7 +973,7 @@ export default function App() {
     
     const pendingItem = await getPendingRecording(pendingId);
     if (!pendingItem) {
-      setError("Gravação pendente não encontrada.");
+      setError(t('pendingNotFoundError'));
       return;
     }
     
@@ -1042,7 +1041,7 @@ export default function App() {
           if (err instanceof MeetingAnalysisError) {
             setError(err.message);
           } else {
-            setError("O serviço de IA está temporariamente indisponível. Por favor, tente novamente em alguns instantes.");
+            setError(t('aiServiceUnavailable'));
           }
         } finally {
           setIsProcessingPendingId(null);
@@ -1051,7 +1050,7 @@ export default function App() {
       };
     } catch (err) {
       console.error("Failed to read pending recording blob:", err);
-      setError("Erro ao ler dados da gravação pendente.");
+      setError(t('pendingReadError'));
       setIsProcessingPendingId(null);
       setIsProcessing(false);
     }
@@ -3320,16 +3319,16 @@ export default function App() {
                               <div className="flex-1 text-left space-y-2.5 max-w-sm">
                                 <p className="text-[10px] text-app-accent font-bold uppercase tracking-widest flex items-center gap-1.5">
                                   <Monitor size={12} />
-                                  Configuração Virtual
+                                  {t('virtualSetupTitle')}
                                 </p>
                                 <ul className="text-[11px] text-slate-500 dark:text-slate-400 space-y-1.5 leading-snug">
                                   <li className="flex gap-2">
                                     <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-[8px] text-slate-500 shrink-0">1</span>
-                                    <span>Partilhe o seu ecrã inteiro ou separador.</span>
+                                    <span>{t('virtualSetupStep1')}</span>
                                   </li>
                                   <li className="flex gap-2">
                                     <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-[8px] text-slate-500 shrink-0">2</span>
-                                    <span className="text-app-accent font-bold">Ative "Partilhar áudio do sistema"!</span>
+                                    <span className="text-app-accent font-bold">{t('virtualSetupStep2')}</span>
                                   </li>
                                 </ul>
                                 <p className="text-[9px] text-amber-600 dark:text-amber-500/90 font-medium pt-1.5 leading-normal border-t border-slate-150 dark:border-white/5 mt-2">

@@ -239,6 +239,15 @@ export interface TranslationKeys {
   diarizationAccuracy: string;
   segmentationAccuracy: string;
   minimizeStreamWarning: string;
+  virtualSetupTitle: string;
+  virtualSetupStep1: string;
+  virtualSetupStep2: string;
+  recoveryFailed: string;
+  recoveryReadError: string;
+  savePendingError: string;
+  pendingNotFoundError: string;
+  pendingReadError: string;
+  aiServiceUnavailable: string;
 }
 
 export const translations: Record<'portuguese' | 'english' | string, TranslationKeys> = {
@@ -473,7 +482,16 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     aiQualityLabel: "Qualidade IA",
     diarizationAccuracy: "Precisão da diariamento ativo",
     segmentationAccuracy: "Precisão da segmentação ativa",
-    minimizeStreamWarning: "💡 Dica: Evite minimizar a janela da reunião para que a gravação não seja interrompida pelo navegador."
+    minimizeStreamWarning: "💡 Dica: Evite minimizar a janela da reunião para que a gravação não seja interrompida pelo navegador.",
+    virtualSetupTitle: "Configuração Virtual",
+    virtualSetupStep1: "Partilhe o seu ecrã inteiro ou separador.",
+    virtualSetupStep2: "Ative \"Partilhar áudio do sistema\"!",
+    recoveryFailed: "Não foi possível processar a gravação recuperada.",
+    recoveryReadError: "Erro ao ler dados da gravação recuperada.",
+    savePendingError: "Erro ao guardar a gravação pendente.",
+    pendingNotFoundError: "Gravação pendente não encontrada.",
+    pendingReadError: "Erro ao ler dados da gravação pendente.",
+    aiServiceUnavailable: "O serviço de IA está temporariamente indisponível. Por favor, tente novamente em alguns instantes."
   },
   english: {
     welcomeBack: "Welcome Back",
@@ -706,6 +724,15 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     aiQualityLabel: "AI Quality",
     diarizationAccuracy: "Active diarization accuracy",
     segmentationAccuracy: "Active segmentation accuracy",
-    minimizeStreamWarning: "💡 Tip: Avoid minimizing the shared window to prevent the browser from stopping the recording."
+    minimizeStreamWarning: "💡 Tip: Avoid minimizing the shared window to prevent the browser from stopping the recording.",
+    virtualSetupTitle: "Virtual Setup",
+    virtualSetupStep1: "Share your entire screen or browser tab.",
+    virtualSetupStep2: "Check \"Share system audio\"!",
+    recoveryFailed: "Could not process the recovered recording.",
+    recoveryReadError: "Error reading recovered recording data.",
+    savePendingError: "Error saving pending recording.",
+    pendingNotFoundError: "Pending recording not found.",
+    pendingReadError: "Error reading pending recording data.",
+    aiServiceUnavailable: "AI service temporarily unavailable. Please try again in a few moments."
   }
 };
