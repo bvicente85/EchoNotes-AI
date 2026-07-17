@@ -1,4 +1,4 @@
-import { askGemini } from './geminiBackend';
+import { askGemini } from './geminiBackend.js';
 
 export default async function handler(req: any, res: any) {
   // Only allow POST requests
