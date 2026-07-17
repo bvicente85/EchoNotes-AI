@@ -140,10 +140,15 @@ export async function generateMeetingReport(
     - CRITICAL: Use correct UTF-8 encoding for Portuguese characters (ã, á, é, ç, í, ó, etc.). 
      - Ensure all accents (agudo, circunflexo, til, grave) are correctly applied. Do NOT use escape sequences. 
      - VOCABULARY: Use "planeamento" (not planejamento), "equipa" (not equipe), "utilizador" (not usuário).
+    - SPELLING & QUALITY: Pay extreme attention to spelling, technical terms, grammar, and typos. Ensure names and custom terms are spelled correctly in the transcript and summary. Output a polished, final, print-ready document directly.
     - The transcript remains in the original language spoken.
   `;
 
-  let modelName = modelOverride || "gemini-3.5-flash";
+  // Map user-friendly model strings to actual Google Gemini model IDs
+  let modelName = modelOverride || "gemini-2.5-flash";
+  if (modelName === "gemini-3.5-flash") {
+    modelName = "gemini-2.5-flash";
+  }
   try {
     let retries = 0;
     const maxRetries = 3;
@@ -216,14 +221,9 @@ export async function generateMeetingReport(
         }
 
         const parsed = JSON.parse(textToParse) as MeetingReport;
-        try {
-          console.log("Automatically running post-process step to clean spelling errors and typos...");
-          const corrected = await postProcessReport(parsed, language);
-          return corrected;
-        } catch (postErr) {
-          console.error("Auto post-processing encountered an error, returning original parsed report.", postErr);
-          return parsed;
-        }
+        // Return the parsed report directly. We instruct the model in the main prompt
+        // to do correct spelling in the first pass to fit Vercel's strict 10s execution limits.
+        return parsed;
 
       } catch (err: any) {
         const isQuotaOrServerFail = 
