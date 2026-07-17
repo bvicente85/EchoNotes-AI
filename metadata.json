@@ -1,5 +1,5 @@
 {
-  "name": "Econotes",
+  "name": "SUMA",
   "description": "A voice-first meeting assistant that captures conversations, separates speakers, and generates comprehensive business reports with summaries and action items.",
   "requestFramePermissions": [
     "microphone",

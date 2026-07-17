@@ -7,7 +7,7 @@ import { getSupabase } from './supabase';
 import { User } from '@supabase/supabase-js';
 import { AskGemini } from './components/AskGemini';
 import { LoginPage } from './components/LoginPage';
-import { EchoNotesLogo, EchoNotesLogoIcon } from './components/EchoNotesLogo';
+import { SumaLogo, SumaLogoIcon } from './components/SumaLogo';
 import { DashboardBentoView } from './components/DashboardBentoView';
 
 const ReportView = React.lazy(() => import('./components/ReportView').then(m => ({ default: m.ReportView })));
@@ -1576,8 +1576,8 @@ export default function App() {
               <div className="flex flex-col items-center gap-8 w-full">
                 {/* Branding Logo (Collapsed) */}
                 <div className="flex flex-col items-center gap-4">
-                  <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleGoHome} title="EchoNotes">
-                    <EchoNotesLogoIcon className="w-9 h-9 text-app-accent" />
+                  <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleGoHome} title="SUMA">
+                    <SumaLogoIcon className="w-9 h-9 text-app-accent" />
                   </div>
                   <button 
                     onClick={handleToggleSidebar}
@@ -1696,7 +1696,7 @@ export default function App() {
                 {/* Branding Logo & Collapse Trigger */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="cursor-pointer transition-transform hover:scale-101" onClick={handleGoHome}>
-                    <EchoNotesLogo isDarkBg={true} />
+                    <SumaLogo isDarkBg={true} />
                   </div>
                   <button 
                     onClick={handleToggleSidebar}
@@ -1843,12 +1843,12 @@ export default function App() {
             {/* Left Header Area: Mobile Menu Trigger / App Title Greeting */}
             <div className="flex items-center gap-3">
               <div className="lg:hidden cursor-pointer" onClick={handleGoHome}>
-                <EchoNotesLogo />
+                <SumaLogo />
               </div>
               
               <div className="hidden lg:block text-left">
                 <h1 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                  {language === 'portuguese' ? 'Bem-vindo ao EchoNotes' : 'Welcome to EchoNotes'} 🌿
+                  {language === 'portuguese' ? 'Bem-vindo ao SUMA' : 'Welcome to SUMA'} 🌿
                 </h1>
                 <p className="text-[10px] font-medium text-slate-400">
                   {language === 'portuguese' ? 'Inteligência e Atas de Reuniões com Inteligência Artificial' : 'AI-Driven Meeting Intelligence & Audio Capture'}
@@ -2517,7 +2517,7 @@ export default function App() {
                                 setPendingCustomTerms(e.target.value);
                                 handleUpdatePendingField('customTerms', e.target.value);
                               }}
-                              placeholder="Ex: Skolae, EchoNotes, Projeto X, Ana Silva"
+                              placeholder="Ex: Skolae, SUMA, Projeto X, Ana Silva"
                               className="w-full bg-transparent border-none p-0 font-medium text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 text-xs mt-1"
                             />
                           </div>

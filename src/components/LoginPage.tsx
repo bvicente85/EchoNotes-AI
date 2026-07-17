@@ -4,6 +4,7 @@ import { Sparkles, Loader2, Mail, Lock, ArrowRight, AlertCircle, Sliders, CheckC
 import { getSupabase } from '../supabase';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/LanguageContext';
+import { LegalModal } from './LegalModals';
 
 export function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,13 +13,32 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [activeModal, setActiveModal] = useState<'privacy' | 'terms' | null>(null);
+  const [consent, setConsent] = useState(false);
 
   const { language, setLanguage, t } = useLanguage();
+
+  const handleToggleMode = () => {
+    setIsLogin(!isLogin);
+    setError(null);
+    setMessage(null);
+    setConsent(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setMessage(null);
+
+    if (!isLogin && !consent) {
+      setError(
+        language === 'portuguese'
+          ? 'Tem de aceitar os Termos de Serviço e a Política de Privacidade para prosseguir.'
+          : 'You must accept the Terms of Service and Privacy Policy to proceed.'
+      );
+      return;
+    }
+
     setLoading(true);
 
     const supabase = getSupabase();
@@ -121,7 +141,7 @@ export function LoginPage() {
           {/* Frameless Fluid logo integrated elegantly */}
           <div className="flex items-center gap-2">
             <span className="text-xl font-display font-black tracking-tight text-slate-950 dark:text-white select-none">
-              Echo<span className="text-app-accent">Notes</span>
+              SU<span className="text-app-accent">MA</span>
             </span>
             <span className="h-1.5 w-1.5 rounded-full bg-app-accent animate-pulse shrink-0" />
           </div>
@@ -199,6 +219,63 @@ export function LoginPage() {
               </div>
             </div>
 
+            {!isLogin && (
+              <div className="flex items-start gap-2.5 text-left py-1.5 select-none">
+                <input 
+                  type="checkbox"
+                  id="consent-checkbox"
+                  required
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded-md border-app-border bg-white dark:bg-app-card text-app-accent focus:ring-app-accent/25 focus:ring-2 focus:ring-offset-0 transition-all cursor-pointer accent-app-accent"
+                />
+                <label 
+                  htmlFor="consent-checkbox" 
+                  className="text-[10.5px] sm:text-xs text-slate-505 dark:text-slate-400 font-medium leading-tight cursor-pointer"
+                >
+                  {language === 'portuguese' ? (
+                    <>
+                      Aceito e dou o meu consentimento para o processamento de áudio e dados nos termos descritos nos{' '}
+                      <button 
+                        type="button" 
+                        onClick={() => setActiveModal('terms')} 
+                        className="text-app-accent hover:underline font-bold bg-transparent border-none p-0 inline hover:text-app-dark-green transition-colors"
+                      >
+                        Termos de Serviço
+                      </button>{' '}
+                      e na{' '}
+                      <button 
+                        type="button" 
+                        onClick={() => setActiveModal('privacy')} 
+                        className="text-app-accent hover:underline font-bold bg-transparent border-none p-0 inline hover:text-app-dark-green transition-colors"
+                      >
+                        Política de Privacidade
+                      </button>.
+                    </>
+                  ) : (
+                    <>
+                      I accept and consent to the processing of audio and data under the terms described in the{' '}
+                      <button 
+                        type="button" 
+                        onClick={() => setActiveModal('terms')} 
+                        className="text-app-accent hover:underline font-bold bg-transparent border-none p-0 inline hover:text-app-dark-green transition-colors"
+                      >
+                        Terms of Service
+                      </button>{' '}
+                      and{' '}
+                      <button 
+                        type="button" 
+                        onClick={() => setActiveModal('privacy')} 
+                        className="text-app-accent hover:underline font-bold bg-transparent border-none p-0 inline hover:text-app-dark-green transition-colors"
+                      >
+                        Privacy Policy
+                      </button>.
+                    </>
+                  )}
+                </label>
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
               {error && (
                 <motion.div 
@@ -240,11 +317,11 @@ export function LoginPage() {
             </button>
           </form>
 
-          <div className="text-left pl-1">
+          <div className="text-left pl-1 space-y-3">
             <button 
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-xs sm:text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors duration-300 cursor-pointer font-medium"
+              onClick={handleToggleMode}
+              className="text-xs sm:text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors duration-300 cursor-pointer font-medium animate-none"
             >
               {isLogin ? (
                 <>{t('dontHaveAccount')} <span className="font-bold text-app-accent hover:text-app-dark-green transition-colors duration-300 underline decoration-2 underline-offset-4">{t('createOne')}</span></>
@@ -252,6 +329,48 @@ export function LoginPage() {
                 <>{t('alreadyHaveAccount')} <span className="font-bold text-app-accent hover:text-app-dark-green transition-colors duration-300 underline decoration-2 underline-offset-4">{t('signIn')}</span></>
               )}
             </button>
+
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 leading-normal font-normal">
+              {language === 'portuguese' ? (
+                <>
+                  Ao continuar, confirma que leu e concorda com os nossos{' '}
+                  <button 
+                    type="button"
+                    onClick={() => setActiveModal('terms')} 
+                    className="text-app-accent hover:underline hover:text-app-dark-green font-bold cursor-pointer inline bg-transparent border-none p-0"
+                  >
+                    Termos de Serviço
+                  </button>{' '}
+                  e a nossa{' '}
+                  <button 
+                    type="button"
+                    onClick={() => setActiveModal('privacy')} 
+                    className="text-app-accent hover:underline hover:text-app-dark-green font-bold cursor-pointer inline bg-transparent border-none p-0"
+                  >
+                    Política de Privacidade
+                  </button>.
+                </>
+              ) : (
+                <>
+                  By continuing, you confirm you have read and agree to our{' '}
+                  <button 
+                    type="button"
+                    onClick={() => setActiveModal('terms')} 
+                    className="text-app-accent hover:underline hover:text-app-dark-green font-bold cursor-pointer inline bg-transparent border-none p-0"
+                  >
+                    Terms of Service
+                  </button>{' '}
+                  and{' '}
+                  <button 
+                    type="button"
+                    onClick={() => setActiveModal('privacy')} 
+                    className="text-app-accent hover:underline hover:text-app-dark-green font-bold cursor-pointer inline bg-transparent border-none p-0"
+                  >
+                    Privacy Policy
+                  </button>.
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -281,7 +400,7 @@ export function LoginPage() {
           <div className="space-y-4 text-left">
             <div className="inline-flex items-center gap-2 bg-app-accent/10 text-app-accent px-3.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-app-accent/20 shadow-inner">
               <Sparkles size={11} className="animate-pulse" />
-              <span>EchoNotes AI Platform</span>
+              <span>SUMA AI Platform</span>
             </div>
             <h2 className="text-3xl xl:text-4xl 2xl:text-5xl font-display font-black tracking-tight text-white leading-[1.15] [text-shadow:0_4px_12px_rgba(0,0,0,0.15)]">
               {language === 'portuguese' 
@@ -346,11 +465,21 @@ export function LoginPage() {
 
         {/* Left Footer */}
         <div className="relative z-10 flex items-center justify-between text-slate-500 text-[10px] border-t border-white/5 pt-4 shrink-0">
-          <span className="font-mono tracking-wider uppercase">EchoNotes Inc. &copy; 2026</span>
+          <span className="font-mono tracking-wider uppercase">SUMA Inc. &copy; 2026</span>
           <span className="text-slate-400 font-medium">Powered by Gemini AI</span>
         </div>
       </div>
 
+      <AnimatePresence>
+        {activeModal && (
+          <LegalModal
+            isOpen={activeModal !== null}
+            onClose={() => setActiveModal(null)}
+            type={activeModal}
+            language={language}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

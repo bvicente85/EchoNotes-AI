@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Mic, Monitor, Moon, Sun, Sparkles, Info, Save, Check, LogOut, HardDrive, Trash2 } from 'lucide-react';
+import { X, User, Mic, Monitor, Moon, Sun, Sparkles, Info, Save, Check, LogOut, HardDrive, Trash2, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { getSupabase } from '../supabase';
@@ -42,6 +42,8 @@ export function SettingsView({
   const [meetingTone, setMeetingTone] = useState(localStorage.getItem('echonotes_meeting_tone') || 'professional');
   const [customGuidelines, setCustomGuidelines] = useState(localStorage.getItem('echonotes_custom_guidelines') || '');
   const [isSaved, setIsSaved] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Raw local storage tracking state for audio records
   const [storageBytes, setStorageBytes] = useState<number | null>(null);
@@ -86,6 +88,59 @@ export function SettingsView({
       console.error("Error clearing local audios:", err);
     } finally {
       setIsClearingStorage(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      const supabase = getSupabase();
+      
+      // 1. Clear local IndexedDB audio recordings
+      await clearAllAudios();
+
+      // 2. Clear meeting records from the "meetings" table
+      const { error: meetingsError } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('user_id', userId);
+      if (meetingsError) console.error("Error deleting meetings during account wipe:", meetingsError);
+
+      // 3. Delete user profile from "profiles" table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+      if (profileError) throw profileError;
+
+      // 4. Wipe local storage keys
+      const keysToWipe = [
+        'echonotes_display_name',
+        'echonotes_default_mode',
+        'echonotes_theme',
+        'echonotes_language',
+        'echonotes_summary_detail',
+        'echonotes_custom_terms',
+        'echonotes_ai_model',
+        'echonotes_meeting_tone',
+        'echonotes_custom_guidelines',
+        'echonotes_dashboard_tasks',
+        'echonotes_sidebar_collapsed'
+      ];
+      keysToWipe.forEach(key => localStorage.removeItem(key));
+
+      // 5. Trigger sign out (which logs out from auth and updates parent state)
+      onSignOut();
+      onClose();
+    } catch (err: any) {
+      console.error("Failed to delete account:", err);
+      alert(language === 'portuguese' 
+        ? "Erro ao eliminar conta: " + err.message 
+        : "Failed to delete account: " + err.message
+      );
+    } finally {
+      setIsDeletingAccount(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -156,7 +211,7 @@ export function SettingsView({
         <div className="p-8 border-b border-app-border flex justify-between items-center glass">
           <div>
             <h2 className="text-3xl font-display font-black tracking-tight text-app-fg">{t('settings')}</h2>
-            <p className="text-app-fg/40 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Personalize EchoNotes</p>
+            <p className="text-app-fg/40 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Personalize SUMA</p>
           </div>
           <button 
             onClick={onClose}
@@ -334,7 +389,7 @@ export function SettingsView({
                   type="text"
                   value={customTerms}
                   onChange={(e) => setCustomTerms(e.target.value)}
-                  placeholder="Ex: Skolae, EchoNotes, Projeto X, Ana Silva"
+                  placeholder="Ex: Skolae, SUMA, Projeto X, Ana Silva"
                   className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg placeholder:text-app-fg/20"
                 />
                 <p className="text-[10px] text-app-fg/40">Termos, marcas ou nomes separados por vírgula que a IA deve reconhecer sem autocorrigir.</p>
@@ -402,6 +457,62 @@ export function SettingsView({
             </div>
           </section>
 
+          {/* Danger Zone section */}
+          <section className="space-y-4 pt-6 border-t border-red-500/10">
+            <div className="flex items-center gap-2 text-red-500">
+              <Trash2 size={16} />
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                {language === 'portuguese' ? 'Zona de Perigo' : 'Danger Zone'}
+              </span>
+            </div>
+            <div className="p-6 bg-red-500/5 border border-red-500/10 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1 text-left">
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                  {language === 'portuguese' ? 'Eliminar Conta Permanentemente' : 'Permanently Delete Account'}
+                </p>
+                <p className="text-[11px] text-app-fg/40 leading-relaxed">
+                  {language === 'portuguese' 
+                    ? 'Esta ação irá apagar permanentemente a sua conta, perfil, atas, históricos e gravações de áudio. Esta ação é irreversível.'
+                    : 'This action will permanently delete your account, profile, transcripts, histories, and audio files. This cannot be undone.'}
+                </p>
+              </div>
+              
+              {!showDeleteConfirm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shrink-0 cursor-pointer shadow-xs active:scale-[0.98]"
+                >
+                  {language === 'portuguese' ? 'Eliminar Conta' : 'Delete Account'}
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    disabled={isDeletingAccount}
+                    className="px-3 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-app-fg rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    {language === 'portuguese' ? 'Cancelar' : 'Cancel'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteAccount}
+                    disabled={isDeletingAccount}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                  >
+                    {isDeletingAccount ? (
+                      <Loader2 className="animate-spin" size={14} />
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
+                    {language === 'portuguese' ? 'Confirmar Eliminação' : 'Confirm Delete'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* About Section */}
           <section className="pt-8 border-t border-app-border flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -409,7 +520,7 @@ export function SettingsView({
                 <Sparkles size={22} />
               </div>
               <div>
-                <p className="text-sm font-black text-app-fg uppercase tracking-tight">EchoNotes v1.2.0</p>
+                <p className="text-sm font-black text-app-fg uppercase tracking-tight">SUMA v1.2.0</p>
                 <p className="text-[10px] text-app-fg/40 uppercase tracking-[0.2em] font-black mt-1">Powered by Gemini AI</p>
               </div>
             </div>
