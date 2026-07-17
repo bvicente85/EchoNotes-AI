@@ -5,6 +5,7 @@ import { getSupabase } from '../supabase';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LegalModal } from './LegalModals';
+import sumaLogoIcon from './suma_logo_icon.png';
 
 export function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -139,7 +140,8 @@ export function LoginPage() {
         {/* Navigation / Language Panel */}
         <div className="flex items-center justify-between w-full shrink-0">
           {/* Frameless Fluid logo integrated elegantly */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <img src={sumaLogoIcon} alt="SUMA Logo" className="w-8 h-8 object-contain shrink-0" />
             <span className="text-xl font-display font-black tracking-tight text-slate-950 dark:text-white select-none">
               SU<span className="text-app-accent">MA</span>
             </span>
