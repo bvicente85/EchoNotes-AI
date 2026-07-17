@@ -6,7 +6,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { askGemini } = await import('../src/services/geminiBackend');
+    const { askGemini } = await import('./services/geminiBackend');
     const { query, report, historyItems, chatHistory, language } = req.body;
 
     if (!query) {

@@ -6,7 +6,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { generateMeetingReport } = await import('../src/services/geminiBackend');
+    const { generateMeetingReport } = await import('./services/geminiBackend');
     const { 
       audioBase64, 
       mimeType, 
