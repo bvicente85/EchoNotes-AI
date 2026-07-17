@@ -3288,17 +3288,17 @@ export default function App() {
                             {/* Template dropdown */}
                             <div className="space-y-2">
                               <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                Template de IA
+                                {t('aiTemplateLabel')}
                               </label>
                               <select
                                 value={template}
                                 onChange={(e) => setTemplate(e.target.value)}
                                 className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2 h-11 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20 font-medium cursor-pointer"
                               >
-                                <option value="standard">Padrão (Executive)</option>
-                                <option value="client_meeting">Reunião com Cliente</option>
-                                <option value="internal_meeting">Reunião Interna / Ata</option>
-                                <option value="brainstorming">Brainstorming & Ideias</option>
+                                <option value="standard">{t('templateStandard')}</option>
+                                <option value="client_meeting">{t('templateClient')}</option>
+                                <option value="internal_meeting">{t('templateInternal')}</option>
+                                <option value="brainstorming">{t('templateBrainstorming')}</option>
                               </select>
                             </div>
 
@@ -3320,8 +3320,8 @@ export default function App() {
                           {/* Right side - Ring gauge */}
                           <div className="md:col-span-4 lg:col-span-3 flex items-center justify-between md:justify-end gap-4 md:border-l md:border-slate-100 md:dark:border-white/5 md:pl-6 w-full pt-4 md:pt-0">
                             <div className="text-left">
-                              <p className="text-[10px] font-bold text-slate-800 dark:text-white uppercase tracking-widest">Qualidade IA</p>
-                              <p className="text-[9px] text-slate-400">Precisão da diariamento ativo</p>
+                              <p className="text-[10px] font-bold text-slate-800 dark:text-white uppercase tracking-widest">{t('aiQualityLabel')}</p>
+                              <p className="text-[9px] text-slate-400">{t('diarizationAccuracy')}</p>
                             </div>
                             
                             <div className="relative w-14 h-14 flex items-center justify-center shrink-0">

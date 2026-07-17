@@ -512,17 +512,17 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
 
               <div className="space-y-1.5 text-left">
                 <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                  Template de IA
+                  {t('aiTemplateLabel')}
                 </label>
                 <select
                   value={template}
                   onChange={(e) => setTemplate(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-900/40 border border-app-border rounded-xl px-3.5 py-2 text-xs text-slate-855 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20 font-medium"
                 >
-                  <option value="standard">Padrão (Executive)</option>
-                  <option value="client_meeting">Reunião com Cliente</option>
-                  <option value="internal_meeting">Reunião Interna / Ata</option>
-                  <option value="brainstorming">Brainstorming & Ideias</option>
+                  <option value="standard">{t('templateStandard')}</option>
+                  <option value="client_meeting">{t('templateClient')}</option>
+                  <option value="internal_meeting">{t('templateInternal')}</option>
+                  <option value="brainstorming">{t('templateBrainstorming')}</option>
                 </select>
               </div>
             </div>
@@ -531,7 +531,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
             <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between mt-4">
               <div>
                 <p className="text-[10px] font-bold text-slate-800 dark:text-white uppercase tracking-widest">Diarization Engine</p>
-                <p className="text-[9px] text-slate-400">Precisão da segmentação ativa</p>
+                <p className="text-[9px] text-slate-400">{t('segmentationAccuracy')}</p>
               </div>
               
               <div className="relative w-14 h-14 flex items-center justify-center shrink-0">

@@ -230,6 +230,14 @@ export interface TranslationKeys {
   meetings: string;
   userApprovedSuccess: string;
   userRejectedSuccess: string;
+  aiTemplateLabel: string;
+  templateStandard: string;
+  templateClient: string;
+  templateInternal: string;
+  templateBrainstorming: string;
+  aiQualityLabel: string;
+  diarizationAccuracy: string;
+  segmentationAccuracy: string;
 }
 
 export const translations: Record<'portuguese' | 'english' | string, TranslationKeys> = {
@@ -455,7 +463,15 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     userManagement: "Gestão de Utilizadores",
     meetings: "Reuniões",
     userApprovedSuccess: "Utilizador aprovado com sucesso!",
-    userRejectedSuccess: "Utilizador rejeitado/removido!"
+    userRejectedSuccess: "Utilizador rejeitado/removido!",
+    aiTemplateLabel: "Template de IA",
+    templateStandard: "Padrão (Executive)",
+    templateClient: "Reunião com Cliente",
+    templateInternal: "Reunião Interna / Ata",
+    templateBrainstorming: "Brainstorming & Ideias",
+    aiQualityLabel: "Qualidade IA",
+    diarizationAccuracy: "Precisão da diariamento ativo",
+    segmentationAccuracy: "Precisão da segmentação ativa"
   },
   english: {
     welcomeBack: "Welcome Back",
@@ -679,6 +695,14 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     userManagement: "User Management",
     meetings: "Meetings",
     userApprovedSuccess: "User approved successfully!",
-    userRejectedSuccess: "User rejected/removed!"
+    userRejectedSuccess: "User rejected/removed!",
+    aiTemplateLabel: "AI Template",
+    templateStandard: "Standard (Executive)",
+    templateClient: "Client Meeting",
+    templateInternal: "Internal Meeting / Minutes",
+    templateBrainstorming: "Brainstorming & Ideas",
+    aiQualityLabel: "AI Quality",
+    diarizationAccuracy: "Active diarization accuracy",
+    segmentationAccuracy: "Active segmentation accuracy"
   }
 };
