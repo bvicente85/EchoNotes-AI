@@ -154,6 +154,38 @@ export default function App() {
   const lastNormalVolumeTimeRef = useRef<number>(Date.now());
   const lastNormalClipTimeRef = useRef<number>(Date.now());
 
+  const uploadAudioToSupabase = async (blob: Blob): Promise<{ publicUrl: string; filePath: string }> => {
+    const fileExt = blob.type.split('/')[1]?.split(';')[0] || 'wav';
+    const filePath = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from('meeting-audio-temp')
+      .upload(filePath, blob, {
+        cacheControl: '3600',
+        upsert: true
+      });
+      
+    if (error) {
+      throw new Error(`Failed to upload audio to Supabase Storage: ${error.message}`);
+    }
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('meeting-audio-temp')
+      .getPublicUrl(filePath);
+      
+    return { publicUrl, filePath };
+  };
+
+  const deleteAudioFromSupabase = async (filePath: string) => {
+    try {
+      await supabase.storage
+        .from('meeting-audio-temp')
+        .remove([filePath]);
+    } catch (err) {
+      console.error("Failed to delete temporary audio from Supabase:", err);
+    }
+  };
+
   useEffect(() => {
     const supabase = getSupabase();
     
@@ -398,64 +430,72 @@ export default function App() {
     setActiveBackup(null);
     setError(null);
     setIsProcessing(true);
+    let tempFilePath: string | null = null;
     
     try {
       // Reconstruct the Blob from chunks saved in IndexedDB
       const audioBlob = new Blob(backup.chunks, { type: backup.metadata.mimeType });
       
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
-        const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
-        
-        try {
-          const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
-          const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
-          const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
-          const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
-          const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
-          const result = await generateMeetingReport(
-            base64Audio, 
-            audioBlob.type, 
-            detailLevel, 
-            languageSetting, 
-            false, 
-            speakersArray,
-            sessionType === 'quick_draft',
-            manualNotes,
-            template,
-            customTerms,
-            aiModel,
-            meetingTone,
-            customGuidelines
-          );
-          
-          const enriched = enrichReport(result, undefined, backup.metadata.timestamp, undefined);
-          const newItem = await saveToHistory(enriched, user.id);
-          if (newItem) {
-            setCurrentHistoryId(newItem.id);
-            await saveAudio(newItem.id, audioBlob);
-            const updatedHistory = await getHistory(user.id);
-            setHistory(updatedHistory);
-          }
-          setReport(enriched);
-          await clearBackup();
-        } catch (err) {
-          console.error("Recover processing failed:", err);
-          if (err instanceof MeetingAnalysisError) {
-          } else {
-            setError(t('recoveryFailed'));
-          }
-          setLastFailedAudio({ base64: base64Audio, mimeType: audioBlob.type });
-        } finally {
-          setIsProcessing(false);
-        }
-      };
+      // Upload to Supabase Storage first to bypass Vercel payload limit
+      const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
+      tempFilePath = filePath;
+      
+      const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
+      const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+      const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
+      const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
+      const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
+      const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
+      const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
+      
+      const result = await generateMeetingReport(
+        publicUrl, 
+        audioBlob.type, 
+        detailLevel, 
+        languageSetting, 
+        false, 
+        speakersArray,
+        sessionType === 'quick_draft',
+        manualNotes,
+        template,
+        customTerms,
+        aiModel,
+        meetingTone,
+        customGuidelines
+      );
+      
+      const enriched = enrichReport(result, undefined, backup.metadata.timestamp, undefined);
+      const newItem = await saveToHistory(enriched, user.id);
+      if (newItem) {
+        setCurrentHistoryId(newItem.id);
+        await saveAudio(newItem.id, audioBlob);
+        const updatedHistory = await getHistory(user.id);
+        setHistory(updatedHistory);
+      }
+      setReport(enriched);
+      await clearBackup();
     } catch (err) {
-      console.error("Failed to read reconstructed blob:", err);
-      setError(t('recoveryReadError'));
+      console.error("Recover processing failed:", err);
+      if (err instanceof MeetingAnalysisError) {
+        setError(err.message);
+      } else {
+        setError(t('recoveryFailed'));
+      }
+      
+      // Reconstruct base64 for fallback retry if needed
+      try {
+        const audioBlob = new Blob(backup.chunks, { type: backup.metadata.mimeType });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const base64Audio = (reader.result as string).split(',')[1];
+          setLastFailedAudio({ base64: base64Audio, mimeType: audioBlob.type });
+        };
+      } catch (e) {}
+    } finally {
+      if (tempFilePath) {
+        await deleteAudioFromSupabase(tempFilePath);
+      }
       setIsProcessing(false);
     }
   };
@@ -498,8 +538,13 @@ export default function App() {
     
     setError(null);
     setIsProcessing(true);
+    let tempFilePath: string | null = null;
     
     try {
+      const audioBlob = base64ToBlob(lastFailedAudio.base64, lastFailedAudio.mimeType);
+      const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
+      tempFilePath = filePath;
+      
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
       const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
@@ -508,7 +553,7 @@ export default function App() {
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       const result = await generateMeetingReport(
-        lastFailedAudio.base64, 
+        publicUrl, 
         lastFailedAudio.mimeType, 
         detailLevel, 
         languageSetting, 
@@ -523,13 +568,12 @@ export default function App() {
         customGuidelines
       );
       
-      const reportBlob = base64ToBlob(lastFailedAudio.base64, lastFailedAudio.mimeType);
       setLastFailedAudio(null);
       const enriched = enrichReport(result, undefined, undefined, undefined);
       const newItem = await saveToHistory(enriched, user.id);
       if (newItem) {
         setCurrentHistoryId(newItem.id);
-        await saveAudio(newItem.id, reportBlob);
+        await saveAudio(newItem.id, audioBlob);
         const updatedHistory = await getHistory(user.id);
         setHistory(updatedHistory);
       }
@@ -542,6 +586,9 @@ export default function App() {
         setError("Retry failed. The AI service might still be unavailable.");
       }
     } finally {
+      if (tempFilePath) {
+        await deleteAudioFromSupabase(tempFilePath);
+      }
       setIsProcessing(false);
     }
   };
@@ -551,6 +598,7 @@ export default function App() {
     
     setError(null);
     setIsProcessing(true);
+    let tempFilePath: string | null = null;
     
     try {
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
@@ -561,8 +609,12 @@ export default function App() {
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       
+      const audioBlob = base64ToBlob(base64, mimeType);
+      const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
+      tempFilePath = filePath;
+      
       const result = await generateMeetingReport(
-        base64, 
+        publicUrl, 
         mimeType, 
         detailLevel, 
         languageSetting, 
@@ -582,8 +634,7 @@ export default function App() {
       if (newItem) {
         setCurrentHistoryId(newItem.id);
         try {
-          const blob = base64ToBlob(base64, mimeType);
-          await saveAudio(newItem.id, blob);
+          await saveAudio(newItem.id, audioBlob);
         } catch (err) {
           console.error("Failed to store uploaded audio local:", err);
         }
@@ -600,6 +651,9 @@ export default function App() {
       }
       setLastFailedAudio({ base64, mimeType });
     } finally {
+      if (tempFilePath) {
+        await deleteAudioFromSupabase(tempFilePath);
+      }
       setIsProcessing(false);
     }
   };
@@ -906,76 +960,83 @@ export default function App() {
     setError(null);
     setIsProcessing(true);
     setPendingRecordingToSave(null);
+    let tempFilePath: string | null = null;
     
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
-        const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
-        
-        const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
-        const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
-        const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
-        const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
-        
+      // Upload to Supabase Storage first to bypass Vercel payload limit
+      const { publicUrl, filePath } = await uploadAudioToSupabase(blob);
+      tempFilePath = filePath;
+      
+      const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
+      const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
+      
+      const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
+      const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
+      const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
+      const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
+      
+      const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
+      const res = await generateMeetingReport(
+        publicUrl, 
+        blob.type, 
+        detailLevel, 
+        languageSetting, 
+        false, 
+        speakersArray, 
+        sessionType === 'quick_draft', 
+        manualNotes, 
+        template, 
+        customTerms,
+        aiModel,
+        meetingTone,
+        customGuidelines
+      );
+      
+      if (customTitle && customTitle.trim()) {
+        res.title = customTitle.trim();
+      }
+      
+      const enriched = enrichReport(
+        res, 
+        duration, 
+        recordingStartTimeRef.current, 
+        recordingEndTimeRef.current
+      );
+      const newItem = await saveToHistory(enriched, user.id);
+      if (newItem) {
+        setCurrentHistoryId(newItem.id);
         try {
-          const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
-          const res = await generateMeetingReport(
-            base64Audio, 
-            blob.type, 
-            detailLevel, 
-            languageSetting, 
-            false, 
-            speakersArray, 
-            sessionType === 'quick_draft', 
-            manualNotes, 
-            template, 
-            customTerms,
-            aiModel,
-            meetingTone,
-            customGuidelines
-          );
-          
-          if (customTitle && customTitle.trim()) {
-            res.title = customTitle.trim();
-          }
-          
-          const enriched = enrichReport(
-            res, 
-            duration, 
-            recordingStartTimeRef.current, 
-            recordingEndTimeRef.current
-          );
-          const newItem = await saveToHistory(enriched, user.id);
-          if (newItem) {
-            setCurrentHistoryId(newItem.id);
-            try {
-              await saveAudio(newItem.id, blob);
-            } catch (err) {
-              console.error("Failed to store recorded audio locally:", err);
-            }
-            setHistory(prev => [newItem, ...prev]);
-          }
-          setReport(enriched);
-          await clearBackup();
+          await saveAudio(newItem.id, blob);
         } catch (err) {
-          console.error("Processing failed:", err);
-          if (err instanceof MeetingAnalysisError) {
-            setError(err.message);
-          } else {
-            setError(t('aiServiceUnavailable'));
-          }
-          setLastFailedAudio({ base64: base64Audio, mimeType: blob.type });
-        } finally {
-          setIsProcessing(false);
-          setPendingTitleInput('');
+          console.error("Failed to store recorded audio locally:", err);
         }
-      };
+        setHistory(prev => [newItem, ...prev]);
+      }
+      setReport(enriched);
+      await clearBackup();
     } catch (err) {
-      console.error("Recording stop handling failed:", err);
+      console.error("Processing failed:", err);
+      if (err instanceof MeetingAnalysisError) {
+        setError(err.message);
+      } else {
+        setError(t('aiServiceUnavailable'));
+      }
+      
+      // Reconstruct base64 for fallback retry if needed
+      try {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+          const base64Audio = (reader.result as string).split(',')[1];
+          setLastFailedAudio({ base64: base64Audio, mimeType: blob.type });
+        };
+      } catch (e) {}
+    } finally {
+      if (tempFilePath) {
+        await deleteAudioFromSupabase(tempFilePath);
+      }
       setIsProcessing(false);
+      setPendingTitleInput('');
     }
   };
 
@@ -991,77 +1052,72 @@ export default function App() {
     setError(null);
     setIsProcessingPendingId(pendingId);
     setIsProcessing(true);
+    let tempFilePath: string | null = null;
     
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(pendingItem.audioBlob);
-      reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        
+      // Upload to Supabase Storage first to bypass Vercel payload limit
+      const { publicUrl, filePath } = await uploadAudioToSupabase(pendingItem.audioBlob);
+      tempFilePath = filePath;
+      
+      const speakersArray = pendingExpectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
+      const res = await generateMeetingReport(
+        publicUrl, 
+        pendingItem.audioBlob.type, 
+        localStorage.getItem('echonotes_summary_detail') || 'detailed', 
+        pendingLanguageSetting || localStorage.getItem('echonotes_language') || 'portuguese', 
+        false, 
+        speakersArray, 
+        pendingSessionType === 'quick_draft', 
+        pendingManualNotes, 
+        pendingTemplate, 
+        pendingCustomTerms,
+        pendingModel,
+        pendingTone,
+        pendingCustomGuidelines
+      );
+      
+      res.title = pendingTitle || pendingItem.title;
+      
+      const startMs = pendingItem.timestamp;
+      const endMs = startMs + (pendingItem.duration * 1000);
+      const enriched = enrichReport(
+        res, 
+        pendingItem.duration, 
+        startMs, 
+        endMs
+      );
+      const newItem = await saveToHistory(enriched, user.id);
+      if (newItem) {
+        setCurrentHistoryId(newItem.id);
         try {
-          const speakersArray = pendingExpectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
-          const res = await generateMeetingReport(
-            base64Audio, 
-            pendingItem.audioBlob.type, 
-            localStorage.getItem('echonotes_summary_detail') || 'detailed', 
-            pendingLanguageSetting || localStorage.getItem('echonotes_language') || 'portuguese', 
-            false, 
-            speakersArray, 
-            pendingSessionType === 'quick_draft', 
-            pendingManualNotes, 
-            pendingTemplate, 
-            pendingCustomTerms,
-            pendingModel,
-            pendingTone,
-            pendingCustomGuidelines
-          );
-          
-          res.title = pendingTitle || pendingItem.title;
-          
-          const startMs = pendingItem.timestamp;
-          const endMs = startMs + (pendingItem.duration * 1000);
-          const enriched = enrichReport(
-            res, 
-            pendingItem.duration, 
-            startMs, 
-            endMs
-          );
-          const newItem = await saveToHistory(enriched, user.id);
-          if (newItem) {
-            setCurrentHistoryId(newItem.id);
-            try {
-              await saveAudio(newItem.id, pendingItem.audioBlob);
-            } catch (err) {
-              console.error("Failed to store audio locally:", err);
-            }
-            setHistory(prev => [newItem, ...prev]);
-            setSelectedPreviewSessionId(newItem.id);
-          }
-          setReport(enriched);
-          
-          await deletePendingRecording(pendingId);
-          await fetchPendingRecordings();
-          
-          setSidebarTab('history');
-          setShowHistory(false);
-          
-          setSuccessMessage(t('pendingRecordingSuccess'));
-          setTimeout(() => setSuccessMessage(null), 5000);
+          await saveAudio(newItem.id, pendingItem.audioBlob);
         } catch (err) {
-          console.error("Processing pending failed:", err);
-          if (err instanceof MeetingAnalysisError) {
-            setError(err.message);
-          } else {
-            setError(t('aiServiceUnavailable'));
-          }
-        } finally {
-          setIsProcessingPendingId(null);
-          setIsProcessing(false);
+          console.error("Failed to store audio locally:", err);
         }
-      };
+        setHistory(prev => [newItem, ...prev]);
+        setSelectedPreviewSessionId(newItem.id);
+      }
+      setReport(enriched);
+      
+      await deletePendingRecording(pendingId);
+      await fetchPendingRecordings();
+      
+      setSidebarTab('history');
+      setShowHistory(false);
+      
+      setSuccessMessage(t('pendingRecordingSuccess'));
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
-      console.error("Failed to read pending recording blob:", err);
-      setError(t('pendingReadError'));
+      console.error("Processing pending failed:", err);
+      if (err instanceof MeetingAnalysisError) {
+        setError(err.message);
+      } else {
+        setError(t('aiServiceUnavailable'));
+      }
+    } finally {
+      if (tempFilePath) {
+        await deleteAudioFromSupabase(tempFilePath);
+      }
       setIsProcessingPendingId(null);
       setIsProcessing(false);
     }

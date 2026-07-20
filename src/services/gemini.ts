@@ -33,7 +33,7 @@ export class MeetingAnalysisError extends Error {
 }
 
 export async function generateMeetingReport(
-  audioBase64: string, 
+  audioBase64OrUrl: string, 
   mimeType: string, 
   detailLevel: string = 'detailed', 
   language: string = 'english',
@@ -48,13 +48,16 @@ export async function generateMeetingReport(
   customGuidelines?: string
 ): Promise<MeetingReport> {
   try {
+    const isUrl = audioBase64OrUrl.startsWith('http://') || audioBase64OrUrl.startsWith('https://');
+    
     const response = await fetch('/api/analyze', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        audioBase64,
+        audioBase64: isUrl ? undefined : audioBase64OrUrl,
+        audioUrl: isUrl ? audioBase64OrUrl : undefined,
         mimeType,
         detailLevel,
         language,

@@ -10,6 +10,7 @@ export default async function handler(req: any, res: any) {
   try {
     const { 
       audioBase64, 
+      audioUrl,
       mimeType, 
       detailLevel, 
       language, 
@@ -24,12 +25,23 @@ export default async function handler(req: any, res: any) {
       customGuidelines 
     } = req.body;
 
-    if (!audioBase64 || !mimeType) {
-      return res.status(400).json({ error: 'Missing required parameters: audioBase64 or mimeType' });
+    let finalBase64 = audioBase64;
+    if (audioUrl) {
+      console.log(`Downloading audio from URL: ${audioUrl}`);
+      const downloadRes = await fetch(audioUrl);
+      if (!downloadRes.ok) {
+        throw new Error(`Failed to download audio from storage: status ${downloadRes.status}`);
+      }
+      const arrayBuffer = await downloadRes.arrayBuffer();
+      finalBase64 = Buffer.from(arrayBuffer).toString('base64');
+    }
+
+    if (!finalBase64 || !mimeType) {
+      return res.status(400).json({ error: 'Missing required parameters: audioBase64/audioUrl or mimeType' });
     }
 
     const report = await generateMeetingReport(
-      audioBase64,
+      finalBase64,
       mimeType,
       detailLevel,
       language,
