@@ -154,24 +154,43 @@ export async function generateMeetingReport(
     const maxRetries = 3;
     
     while (true) {
+      let uploadResult: any = null;
       try {
         console.log(`Starting meeting analysis using model: ${modelName}...`);
-        const result = await ai.models.generateContent({
-          model: modelName,
-          contents: [
-            {
-              parts: [
-                { text: prompt },
-                {
-                  inlineData: {
-                    mimeType,
-                    data: audioBase64,
-                  },
-                },
-              ],
+        
+        const buffer = Buffer.from(audioBase64, 'base64');
+        const contentsParts: any[] = [{ text: prompt }];
+
+        if (buffer.length > 15 * 1024 * 1024) {
+          console.log(`Audio size (${(buffer.length / (1024 * 1024)).toFixed(2)} MB) is larger than 15MB. Uploading via Gemini Files API...`);
+          const fileObj = new File([buffer], `audio_${Date.now()}.bin`, { type: mimeType });
+          uploadResult = await ai.files.upload({ file: fileObj });
+          console.log(`Uploaded to Gemini Files API. URI: ${uploadResult.uri}`);
+          contentsParts.push({
+            fileData: {
+              fileUri: uploadResult.uri,
+              mimeType: uploadResult.mimeType
+            }
+          });
+        } else {
+          contentsParts.push({
+            inlineData: {
+              mimeType,
+              data: audioBase64,
             },
-          ],
-          config: {
+          });
+        }
+
+        let result;
+        try {
+          result = await ai.models.generateContent({
+            model: modelName,
+            contents: [
+              {
+                parts: contentsParts,
+              },
+            ],
+            config: {
             responseMimeType: "application/json",
             responseSchema: {
               type: Type.OBJECT,
@@ -207,6 +226,16 @@ export async function generateMeetingReport(
             },
           },
         });
+        } finally {
+          if (uploadResult) {
+            try {
+              console.log(`Cleaning up Gemini File: ${uploadResult.name}`);
+              await ai.files.delete({ name: uploadResult.name });
+            } catch (deleteError) {
+              console.error("Failed to delete Gemini File:", deleteError);
+            }
+          }
+        }
 
         if (!result || !result.text) {
           throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Empty response from AI model.');
