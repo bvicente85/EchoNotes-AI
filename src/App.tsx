@@ -186,6 +186,31 @@ export default function App() {
     }
   };
 
+  const uploadPermanentBackup = async (blob: Blob): Promise<string> => {
+    try {
+      if (!user) return "";
+      const fileExt = blob.type.split('/')[1]?.split(';')[0] || 'wav';
+      const filePath = `${user.id}/${Date.now()}_backup.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('meeting-audio-backups')
+        .upload(filePath, blob, {
+          cacheControl: '3600',
+          upsert: true
+        });
+        
+      if (error) {
+        console.error("Failed to upload permanent backup:", error.message);
+      } else {
+        console.log("Permanent backup successfully uploaded:", filePath);
+      }
+      return filePath;
+    } catch (err) {
+      console.error("Permanent backup error:", err);
+      return "";
+    }
+  };
+
   useEffect(() => {
     const supabase = getSupabase();
     
@@ -436,6 +461,9 @@ export default function App() {
       // Reconstruct the Blob from chunks saved in IndexedDB
       const audioBlob = new Blob(backup.chunks, { type: backup.metadata.mimeType });
       
+      // Upload permanent backup to Supabase Storage first for absolute safety
+      uploadPermanentBackup(audioBlob).catch(console.error);
+      
       // Upload to Supabase Storage first to bypass Vercel payload limit
       const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
       tempFilePath = filePath;
@@ -542,6 +570,10 @@ export default function App() {
     
     try {
       const audioBlob = base64ToBlob(lastFailedAudio.base64, lastFailedAudio.mimeType);
+      
+      // Upload permanent backup to Supabase Storage first for absolute safety
+      uploadPermanentBackup(audioBlob).catch(console.error);
+      
       const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
       tempFilePath = filePath;
       
@@ -610,6 +642,10 @@ export default function App() {
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       
       const audioBlob = base64ToBlob(base64, mimeType);
+      
+      // Upload permanent backup to Supabase Storage first for absolute safety
+      uploadPermanentBackup(audioBlob).catch(console.error);
+      
       const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
       tempFilePath = filePath;
       
@@ -963,6 +999,9 @@ export default function App() {
     let tempFilePath: string | null = null;
     
     try {
+      // Upload permanent backup to Supabase Storage first for absolute safety
+      uploadPermanentBackup(blob).catch(console.error);
+      
       // Upload to Supabase Storage first to bypass Vercel payload limit
       const { publicUrl, filePath } = await uploadAudioToSupabase(blob);
       tempFilePath = filePath;
@@ -1055,6 +1094,9 @@ export default function App() {
     let tempFilePath: string | null = null;
     
     try {
+      // Upload permanent backup to Supabase Storage first for absolute safety
+      uploadPermanentBackup(pendingItem.audioBlob).catch(console.error);
+      
       // Upload to Supabase Storage first to bypass Vercel payload limit
       const { publicUrl, filePath } = await uploadAudioToSupabase(pendingItem.audioBlob);
       tempFilePath = filePath;
