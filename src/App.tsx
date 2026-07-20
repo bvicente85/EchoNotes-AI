@@ -162,7 +162,7 @@ export default function App() {
       .from('meeting-audio-temp')
       .upload(filePath, blob, {
         cacheControl: '3600',
-        upsert: true
+        upsert: false
       });
       
     if (error) {
@@ -196,7 +196,7 @@ export default function App() {
         .from('meeting-audio-backups')
         .upload(filePath, blob, {
           cacheControl: '3600',
-          upsert: true
+          upsert: false
         });
         
       if (error) {
@@ -506,6 +506,8 @@ export default function App() {
       console.error("Recover processing failed:", err);
       if (err instanceof MeetingAnalysisError) {
         setError(err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
       } else {
         setError(t('recoveryFailed'));
       }
@@ -614,6 +616,8 @@ export default function App() {
       console.error("Retry failed:", err);
       if (err instanceof MeetingAnalysisError) {
         setError(err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
       } else {
         setError("Retry failed. The AI service might still be unavailable.");
       }
@@ -681,6 +685,8 @@ export default function App() {
     } catch (err) {
       console.error("Upload processing failed:", err);
       if (err instanceof MeetingAnalysisError) {
+        setError(err.message);
+      } else if (err instanceof Error) {
         setError(err.message);
       } else {
         setError("Failed to analyze the audio file. Make sure it's a valid audio format and its size is under 20MB.");
@@ -1057,6 +1063,8 @@ export default function App() {
       console.error("Processing failed:", err);
       if (err instanceof MeetingAnalysisError) {
         setError(err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
       } else {
         setError(t('aiServiceUnavailable'));
       }
@@ -1152,6 +1160,8 @@ export default function App() {
     } catch (err) {
       console.error("Processing pending failed:", err);
       if (err instanceof MeetingAnalysisError) {
+        setError(err.message);
+      } else if (err instanceof Error) {
         setError(err.message);
       } else {
         setError(t('aiServiceUnavailable'));
