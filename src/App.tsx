@@ -55,6 +55,8 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastFailedAudio, setLastFailedAudio] = useState<{base64: string, mimeType: string} | null>(null);
   const [processingTime, setProcessingTime] = useState(0);
+  const [processingStep, setProcessingStep] = useState<'uploading_backup' | 'uploading_temp' | 'sending_ai' | 'transcribing' | 'formatting' | 'finalizing' | 'idle'>('idle');
+  const [processingProgress, setProcessingProgress] = useState<number>(0);
   const [report, setReport] = useState<MeetingReport | null>(null);
   const [duration, setDuration] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
@@ -208,6 +210,53 @@ export default function App() {
     } catch (err) {
       console.error("Permanent backup error:", err);
       return "";
+    }
+  };
+
+  const getStepDetails = (step: typeof processingStep) => {
+    switch (step) {
+      case 'uploading_backup':
+        return {
+          label: language === 'portuguese' ? 'Salvaguardando áudio local...' : 'Securing local audio backup...',
+          desc: language === 'portuguese' ? 'A guardar cópia de segurança na nuvem Supabase...' : 'Uploading safety backup copy to Supabase cloud...',
+          percent: 15
+        };
+      case 'uploading_temp':
+        return {
+          label: language === 'portuguese' ? 'Preparando trânsito de áudio...' : 'Preparing audio transit stream...',
+          desc: language === 'portuguese' ? 'A carregar ficheiro para contornar limites de envio...' : 'Streaming file to bypass payload transit limits...',
+          percent: 30
+        };
+      case 'sending_ai':
+        return {
+          label: language === 'portuguese' ? 'Conectando ao Serviço de IA...' : 'Connecting to AI Service...',
+          desc: language === 'portuguese' ? 'A estabelecer ligação com os servidores do Google Gemini...' : 'Initializing handshake with Google Gemini secure servers...',
+          percent: 50
+        };
+      case 'transcribing':
+        return {
+          label: language === 'portuguese' ? 'Processando e Transcrevendo...' : 'Processing & Transcribing...',
+          desc: language === 'portuguese' ? 'A converter áudio em texto estruturado e diarizado...' : 'Analyzing voice signatures and converting speech to text...',
+          percent: 70
+        };
+      case 'formatting':
+        return {
+          label: language === 'portuguese' ? 'Estruturando Informação...' : 'Formatting Information...',
+          desc: language === 'portuguese' ? 'A extrair sumário, decisões e ações recomendadas...' : 'Extracting executive summary, next actions, and key decisions...',
+          percent: 88
+        };
+      case 'finalizing':
+        return {
+          label: language === 'portuguese' ? 'Finalizando Relatório...' : 'Finalizing Report...',
+          desc: language === 'portuguese' ? 'A polir e guardar na base de dados...' : 'Running final polish and writing to history archive...',
+          percent: 96
+        };
+      default:
+        return {
+          label: language === 'portuguese' ? 'Processando áudio...' : 'Processing audio...',
+          desc: language === 'portuguese' ? 'Por favor, aguarde...' : 'Please wait...',
+          percent: Math.max(5, processingProgress)
+        };
     }
   };
 
@@ -458,15 +507,22 @@ export default function App() {
     let tempFilePath: string | null = null;
     
     try {
+      setProcessingStep('uploading_backup');
+      setProcessingProgress(5);
       // Reconstruct the Blob from chunks saved in IndexedDB
       const audioBlob = new Blob(backup.chunks, { type: backup.metadata.mimeType });
       
       // Upload permanent backup to Supabase Storage first for absolute safety
       uploadPermanentBackup(audioBlob).catch(console.error);
       
+      setProcessingStep('uploading_temp');
+      setProcessingProgress(20);
       // Upload to Supabase Storage first to bypass Vercel payload limit
       const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
       tempFilePath = filePath;
+      
+      setProcessingStep('sending_ai');
+      setProcessingProgress(40);
       
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
@@ -553,10 +609,37 @@ export default function App() {
     if (isProcessing) {
       setProcessingTime(0);
       processingTimerRef.current = window.setInterval(() => {
-        setProcessingTime(prev => prev + 1);
+        setProcessingTime(prev => {
+          const nextTime = prev + 1;
+          
+          // Smoothly tick the progress bar based on time duration of AI call
+          setProcessingProgress(p => {
+            // If we are at the AI steps, increment progress slowly
+            if (p >= 40 && p < 95) {
+              if (p < 60) {
+                // Step 3 (sending_ai) -> Step 4 (transcribing): speed up slightly
+                if (nextTime > 5) setProcessingStep('transcribing');
+                return Math.min(95, p + 2);
+              } else if (p < 85) {
+                // Step 4 (transcribing) -> Step 5 (formatting): medium speed
+                if (nextTime > 15) setProcessingStep('formatting');
+                return Math.min(95, p + 1.2);
+              } else {
+                // Step 5 (formatting) -> Step 6 (finalizing): slow down
+                if (nextTime > 25) setProcessingStep('finalizing');
+                return Math.min(95, p + 0.5);
+              }
+            }
+            return p;
+          });
+          
+          return nextTime;
+        });
       }, 1000);
     } else {
       if (processingTimerRef.current) clearInterval(processingTimerRef.current);
+      setProcessingProgress(0);
+      setProcessingStep('idle');
     }
     return () => {
       if (processingTimerRef.current) clearInterval(processingTimerRef.current);
@@ -571,13 +654,20 @@ export default function App() {
     let tempFilePath: string | null = null;
     
     try {
+      setProcessingStep('uploading_backup');
+      setProcessingProgress(5);
       const audioBlob = base64ToBlob(lastFailedAudio.base64, lastFailedAudio.mimeType);
       
       // Upload permanent backup to Supabase Storage first for absolute safety
       uploadPermanentBackup(audioBlob).catch(console.error);
       
+      setProcessingStep('uploading_temp');
+      setProcessingProgress(20);
       const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
       tempFilePath = filePath;
+      
+      setProcessingStep('sending_ai');
+      setProcessingProgress(40);
       
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
@@ -645,13 +735,20 @@ export default function App() {
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       
+      setProcessingStep('uploading_backup');
+      setProcessingProgress(5);
       const audioBlob = base64ToBlob(base64, mimeType);
       
       // Upload permanent backup to Supabase Storage first for absolute safety
       uploadPermanentBackup(audioBlob).catch(console.error);
       
+      setProcessingStep('uploading_temp');
+      setProcessingProgress(20);
       const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
       tempFilePath = filePath;
+      
+      setProcessingStep('sending_ai');
+      setProcessingProgress(40);
       
       const result = await generateMeetingReport(
         publicUrl, 
@@ -1005,12 +1102,19 @@ export default function App() {
     let tempFilePath: string | null = null;
     
     try {
+      setProcessingStep('uploading_backup');
+      setProcessingProgress(5);
       // Upload permanent backup to Supabase Storage first for absolute safety
       uploadPermanentBackup(blob).catch(console.error);
       
+      setProcessingStep('uploading_temp');
+      setProcessingProgress(20);
       // Upload to Supabase Storage first to bypass Vercel payload limit
       const { publicUrl, filePath } = await uploadAudioToSupabase(blob);
       tempFilePath = filePath;
+      
+      setProcessingStep('sending_ai');
+      setProcessingProgress(40);
       
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
@@ -1102,12 +1206,19 @@ export default function App() {
     let tempFilePath: string | null = null;
     
     try {
+      setProcessingStep('uploading_backup');
+      setProcessingProgress(5);
       // Upload permanent backup to Supabase Storage first for absolute safety
       uploadPermanentBackup(pendingItem.audioBlob).catch(console.error);
       
+      setProcessingStep('uploading_temp');
+      setProcessingProgress(20);
       // Upload to Supabase Storage first to bypass Vercel payload limit
       const { publicUrl, filePath } = await uploadAudioToSupabase(pendingItem.audioBlob);
       tempFilePath = filePath;
+      
+      setProcessingStep('sending_ai');
+      setProcessingProgress(40);
       
       const speakersArray = pendingExpectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       const res = await generateMeetingReport(
@@ -3693,34 +3804,100 @@ export default function App() {
                 </motion.div>
               )
             ) : (
-              /* Processing screen - beautiful Loader */
-              <motion.div 
-                key="processing-ui"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center gap-8 text-center py-16"
-              >
-                <div className="relative">
-                  <Loader2 className="animate-spin text-slate-200 dark:text-slate-800" size={80} strokeWidth={1} />
-                  <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-app-accent" size={24} />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-3xl font-display font-bold text-slate-850 dark:text-white">{t('synthesizingIntelligence')}</h3>
-                  <p className="text-slate-400 max-w-md mx-auto text-sm leading-relaxed">
-                    {t('processingDesc')}
-                    <br />
-                    <span className="text-xs font-mono mt-3 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg inline-block text-slate-500 font-bold">{t('processingTime')}: {formatDuration(processingTime)}</span>
-                  </p>
-                </div>
-                <div className="w-64 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              /* Processing screen - beautiful Loader with step-by-step progress status bar */
+              (() => {
+                const pipelineSteps = [
+                  { id: 'uploading_backup', label: language === 'portuguese' ? 'Backup' : 'Backup' },
+                  { id: 'uploading_temp', label: language === 'portuguese' ? 'Trânsito' : 'Transit' },
+                  { id: 'sending_ai', label: language === 'portuguese' ? 'Conexão' : 'Connect' },
+                  { id: 'transcribing', label: language === 'portuguese' ? 'Transcrever' : 'Transcribe' },
+                  { id: 'formatting', label: language === 'portuguese' ? 'Análise' : 'Analyze' },
+                  { id: 'finalizing', label: language === 'portuguese' ? 'Gravação' : 'Save' }
+                ];
+                
+                const stepDetails = getStepDetails(processingStep);
+                const stepIndex = pipelineSteps.findIndex(s => s.id === processingStep);
+                
+                return (
                   <motion.div 
-                    initial={{ x: '-100%' }}
-                    animate={{ x: '100%' }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="w-full h-full bg-app-accent"
-                  />
-                </div>
-              </motion.div>
+                    key="processing-ui"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col items-center gap-10 text-center py-12 max-w-lg mx-auto w-full px-4"
+                  >
+                    {/* Big animated ring with percentage */}
+                    <div className="relative w-28 h-28 flex items-center justify-center">
+                      {/* Outer breathing glow */}
+                      <div className="absolute inset-0 rounded-full bg-app-accent/5 animate-ping pointer-events-none" />
+                      {/* Spinning Loader */}
+                      <Loader2 className="absolute inset-0 animate-spin text-slate-100 dark:text-slate-800" size={112} strokeWidth={1.5} />
+                      {/* Active percentage progress */}
+                      <div className="absolute text-3xl font-display font-black text-slate-850 dark:text-white flex flex-col items-center">
+                        <span>{stepDetails.percent}%</span>
+                        <span className="text-[8px] font-mono uppercase tracking-widest text-slate-400 dark:text-slate-500 mt-1">{t('processingTime')}: {formatDuration(processingTime)}</span>
+                      </div>
+                    </div>
+
+                    {/* Step descriptions */}
+                    <div className="space-y-2">
+                      <h3 className="text-2xl font-display font-bold text-slate-850 dark:text-white transition-all duration-300">
+                        {stepDetails.label}
+                      </h3>
+                      <p className="text-slate-400 text-xs md:text-sm max-w-sm mx-auto min-h-[40px] leading-relaxed transition-all duration-300">
+                        {stepDetails.desc}
+                      </p>
+                    </div>
+
+                    {/* Detailed Progress Bar */}
+                    <div className="w-full space-y-3">
+                      <div className="w-full h-1.5 bg-slate-150 dark:bg-slate-800/80 rounded-full overflow-hidden relative">
+                        <motion.div 
+                          className="h-full bg-app-accent rounded-full"
+                          animate={{ width: `${stepDetails.percent}%` }}
+                          transition={{ duration: 0.8, ease: "easeInOut" }}
+                        />
+                      </div>
+                      
+                      {/* Steps Pipeline visual indicators */}
+                      <div className="flex justify-between items-center relative px-2 pt-2">
+                        {/* Horizontal connecting line behind nodes */}
+                        <div className="absolute left-6 right-6 top-[22px] h-[2px] bg-slate-150 dark:bg-slate-800/50 -z-10" />
+                        
+                        {pipelineSteps.map((s, idx) => {
+                          const isCompleted = idx < stepIndex;
+                          const isActive = idx === stepIndex;
+                          return (
+                            <div key={s.id} className="flex flex-col items-center gap-1.5 flex-1">
+                              <div 
+                                className={cn(
+                                  "w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold border transition-all duration-300",
+                                  isCompleted 
+                                    ? "bg-app-accent border-app-accent text-white shadow-xs"
+                                    : isActive
+                                      ? "bg-white dark:bg-slate-900 border-app-accent text-app-accent font-black scale-110 shadow-md ring-4 ring-app-accent/10"
+                                      : "bg-slate-50 dark:bg-slate-905 border-app-border text-slate-400"
+                                )}
+                              >
+                                {isCompleted ? '✓' : idx + 1}
+                              </div>
+                              <span 
+                                className={cn(
+                                  "text-[8px] font-mono uppercase tracking-wider transition-all duration-300",
+                                  isCompleted || isActive 
+                                    ? "text-slate-700 dark:text-slate-200 font-bold" 
+                                    : "text-slate-400 dark:text-slate-600"
+                                )}
+                              >
+                                {s.label}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })()
             )}
           </AnimatePresence>
         </main>
