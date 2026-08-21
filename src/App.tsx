@@ -230,7 +230,7 @@ export default function App() {
       case 'sending_ai':
         return {
           label: language === 'portuguese' ? 'Conectando ao Serviço de IA...' : 'Connecting to AI Service...',
-          desc: language === 'portuguese' ? 'A estabelecer ligação com os servidores do Google Gemini...' : 'Initializing handshake with Google Gemini secure servers...',
+          desc: language === 'portuguese' ? 'A estabelecer ligação com os servidores de IA (Google Gemini / Groq)...' : 'Initializing handshake with AI secure servers (Google Gemini / Groq)...',
           percent: 50
         };
       case 'transcribing':

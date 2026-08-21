@@ -163,9 +163,9 @@ export async function generateMeetingReport(
   `;
 
   // Map user-friendly model strings to actual Google Gemini model IDs
-  let modelName = modelOverride || "gemini-2.5-flash";
-  if (modelName === "gemini-3.5-flash") {
-    modelName = "gemini-2.5-flash";
+  let modelName = modelOverride || "gemini-3.5-flash";
+  if (modelName === "gemini-2.5-pro") {
+    modelName = "gemini-3.5-flash";
   }
   try {
     let retries = 0;
@@ -285,15 +285,15 @@ export async function generateMeetingReport(
           err?.message?.includes('high demand') ||
           err?.message?.toLowerCase().includes('demand');
         
-        if (isQuotaOrServerFail && modelName === "gemini-2.5-pro") {
-          console.warn(`Model ${modelName} rate-limited or unavailable. Automatically falling back to gemini-3.5-flash...`);
-          modelName = "gemini-3.5-flash";
+        if (isQuotaOrServerFail && modelName === "gemini-3.5-flash") {
+          console.warn(`Model ${modelName} rate-limited or unavailable. Automatically falling back to gemini-3.5-flash-lite...`);
+          modelName = "gemini-3.5-flash-lite";
           await new Promise(resolve => setTimeout(resolve, 500));
           continue;
         }
-        if (isQuotaOrServerFail && modelName === "gemini-3.5-flash") {
-          console.warn(`Model ${modelName} rate-limited or unavailable (Overloaded/High demand). Automatically falling back to highly available gemini-2.5-flash...`);
-          modelName = "gemini-2.5-flash";
+        if (isQuotaOrServerFail && modelName === "gemini-3.5-flash-lite") {
+          console.warn(`Model ${modelName} rate-limited or unavailable. Automatically falling back to gemini-3.6-flash...`);
+          modelName = "gemini-3.6-flash";
           await new Promise(resolve => setTimeout(resolve, 500));
           continue;
         }
