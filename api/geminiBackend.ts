@@ -602,21 +602,39 @@ export async function generateMeetingReportWithGroq(
   formData.append('model', 'whisper-large-v3-turbo');
   formData.append('response_format', 'verbose_json');
 
-  const transcribeRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${groqApiKey}`
-    },
-    body: formData
-  });
+  let transcribeData: any = null;
+  let transcribeRetries = 0;
+  const maxTranscribeRetries = 3;
+  
+  while (true) {
+    const transcribeRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${groqApiKey}`
+      },
+      body: formData
+    });
 
-  if (!transcribeRes.ok) {
+    if (transcribeRes.ok) {
+      transcribeData = await transcribeRes.json();
+      break;
+    }
+
     const errorText = await transcribeRes.text();
+    const isRateLimit = transcribeRes.status === 429 || errorText.includes("rate_limit") || errorText.includes("429");
+    
+    if (isRateLimit && transcribeRetries < maxTranscribeRetries) {
+      transcribeRetries++;
+      const waitTime = 3000 * transcribeRetries;
+      console.warn(`Groq Transcribe rate-limited. Retrying attempt ${transcribeRetries}/${maxTranscribeRetries} after ${waitTime}ms...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      continue;
+    }
+    
     console.error("Groq Transcribe Error:", errorText);
     throw new MeetingAnalysisError('API_ERROR', `Failed to transcribe audio with Groq: ${transcribeRes.status}`);
   }
 
-  const transcribeData = await transcribeRes.json();
   const segments = transcribeData.segments || [];
   console.log(`Audio transcribed successfully with ${segments.length} segments.`);
 
@@ -739,30 +757,55 @@ export async function generateMeetingReportWithGroq(
 
   const finalPrompt = isQuickDraft ? quickDraftPrompt : prompt;
 
-  const chatRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${groqApiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "groq/compound",
-      messages: [
-        { role: "system", content: finalPrompt },
-        { role: "user", content: `Here are the meeting segments:\n\n${formattedSegmentsText}` }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.1
-    })
-  });
+  let chatData: any = null;
+  let chatRetries = 0;
+  const maxChatRetries = 4;
+  
+  while (true) {
+    const chatRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${groqApiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "groq/compound",
+        messages: [
+          { role: "system", content: finalPrompt },
+          { role: "user", content: `Here are the meeting segments:\n\n${formattedSegmentsText}` }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1
+      })
+    });
 
-  if (!chatRes.ok) {
+    if (chatRes.ok) {
+      chatData = await chatRes.json();
+      break;
+    }
+
     const errorText = await chatRes.text();
+    const isRateLimit = chatRes.status === 429 || errorText.includes("rate_limit") || errorText.includes("429") || errorText.includes("limit reached") || errorText.includes("Limit");
+    
+    if (isRateLimit && chatRetries < maxChatRetries) {
+      chatRetries++;
+      // Parse retry delay from error if possible, or use standard backoff
+      let waitTime = 3000 * chatRetries;
+      try {
+        const match = errorText.match(/try again in ([\d\.]+)s/i);
+        if (match) {
+          waitTime = Math.ceil(parseFloat(match[1]) * 1000) + 500; // Add 500ms safety buffer
+        }
+      } catch (e) {}
+      
+      console.warn(`Groq Chat rate-limited. Retrying attempt ${chatRetries}/${maxChatRetries} after ${waitTime}ms...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      continue;
+    }
+
     console.error("Groq Chat Error:", errorText);
     throw new MeetingAnalysisError('API_ERROR', `Failed to generate report with Groq: ${chatRes.status}`);
   }
-
-  const chatData = await chatRes.json();
   const resultText = chatData.choices[0]?.message?.content;
   if (!resultText) {
     throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Empty response from Groq LLM.');
