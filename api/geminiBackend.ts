@@ -766,7 +766,6 @@ export async function generateMeetingReportWithGroq(
           { role: "system", content: finalPrompt },
           { role: "user", content: `Here are the meeting segments:\n\n${formattedSegmentsText}` }
         ],
-        response_format: { type: "json_object" },
         temperature: 0.1
       })
     });
