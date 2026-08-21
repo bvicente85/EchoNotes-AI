@@ -745,10 +745,15 @@ export async function generateMeetingReportWithGroq(
   const finalPrompt = isQuickDraft ? quickDraftPrompt : prompt;
 
   let chatData: any = null;
+  const candidateModels = ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "groq/compound"];
+  let modelIndex = 0;
   let chatRetries = 0;
-  const maxChatRetries = 4;
+  const maxChatRetries = 6;
   
   while (true) {
+    const currentModel = candidateModels[modelIndex % candidateModels.length];
+    console.log(`Calling Groq model ${currentModel} for meeting report synthesis...`);
+
     const chatRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -756,7 +761,7 @@ export async function generateMeetingReportWithGroq(
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "groq/compound",
+        model: currentModel,
         messages: [
           { role: "system", content: finalPrompt },
           { role: "user", content: `Here are the meeting segments:\n\n${formattedSegmentsText}` }
@@ -772,21 +777,15 @@ export async function generateMeetingReportWithGroq(
     }
 
     const errorText = await chatRes.text();
-    const isRateLimit = chatRes.status === 429 || errorText.includes("rate_limit") || errorText.includes("429") || errorText.includes("limit reached") || errorText.includes("Limit");
+    const isRateLimit = chatRes.status === 429 || chatRes.status === 413 || errorText.includes("rate_limit") || errorText.includes("429") || errorText.includes("limit reached") || errorText.includes("Limit");
     
     if (isRateLimit && chatRetries < maxChatRetries) {
       chatRetries++;
-      // Parse retry delay from error if possible, or use standard backoff
-      let waitTime = 3000 * chatRetries;
-      try {
-        const match = errorText.match(/try again in ([\d\.]+)s/i);
-        if (match) {
-          waitTime = Math.ceil(parseFloat(match[1]) * 1000) + 500; // Add 500ms safety buffer
-        }
-      } catch (e) {}
-      
-      console.warn(`Groq Chat rate-limited. Retrying attempt ${chatRetries}/${maxChatRetries} after ${waitTime}ms...`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      // Rotate immediately to the next model for zero-delay failover
+      modelIndex++;
+      const nextModel = candidateModels[modelIndex % candidateModels.length];
+      console.warn(`Groq model ${currentModel} rate-limited. Instantly failing over to ${nextModel}...`);
+      await new Promise(resolve => setTimeout(resolve, 500));
       continue;
     }
 
