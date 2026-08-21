@@ -138,7 +138,7 @@ export default function App() {
   const [pendingSessionType, setPendingSessionType] = useState<'meeting' | 'quick_draft'>('meeting');
   const [pendingTemplate, setPendingTemplate] = useState('standard');
   const [pendingTone, setPendingTone] = useState('professional');
-  const [pendingModel, setPendingModel] = useState('gemini-3.5-flash');
+  const [pendingModel, setPendingModel] = useState(() => localStorage.getItem('echonotes_ai_model') || 'groq-llama-3.3');
   const [pendingExpectedSpeakers, setPendingExpectedSpeakers] = useState('');
   const [pendingManualNotes, setPendingManualNotes] = useState('');
   const [pendingCustomGuidelines, setPendingCustomGuidelines] = useState('');
@@ -1232,7 +1232,7 @@ export default function App() {
         pendingManualNotes, 
         pendingTemplate, 
         pendingCustomTerms,
-        pendingModel,
+        (pendingModel && pendingModel.includes('groq')) ? pendingModel : (localStorage.getItem('echonotes_ai_model') || 'groq-llama-3.3'),
         pendingTone,
         pendingCustomGuidelines
       );

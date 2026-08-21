@@ -769,7 +769,7 @@ export async function generateMeetingReportWithGroq(
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "qwen/qwen3.6-27b",
+        model: "llama-3.1-8b-instant",
         messages: [
           { role: "system", content: finalPrompt },
           { role: "user", content: `Here are the meeting segments:\n\n${formattedSegmentsText}` }
