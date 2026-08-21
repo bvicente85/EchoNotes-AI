@@ -56,6 +56,24 @@ export async function generateMeetingReport(
   tone?: string,
   customGuidelines?: string
 ): Promise<MeetingReport> {
+  if (modelOverride === "groq-llama-3.3") {
+    return generateMeetingReportWithGroq(
+      audioBase64,
+      mimeType,
+      detailLevel,
+      language,
+      optimizeLowVolume,
+      expectedSpeakers,
+      isQuickDraft,
+      manualNotes,
+      template,
+      customTerms,
+      modelOverride,
+      tone,
+      customGuidelines
+    );
+  }
+
   const ai = getAI();
 
   const lowVolumeInstruction = optimizeLowVolume 
@@ -298,6 +316,29 @@ export async function generateMeetingReport(
           throw new MeetingAnalysisError('PARSE_ERROR', 'Falha ao processar a transcrição estruturada após várias tentativas.');
         }
         
+        if (process.env.GROQ_API_KEY) {
+          console.warn("Gemini service failed. Automatically falling back to Groq Llama 3.3 for seamless recovery...");
+          try {
+            return await generateMeetingReportWithGroq(
+              audioBase64,
+              mimeType,
+              detailLevel,
+              language,
+              optimizeLowVolume,
+              expectedSpeakers,
+              isQuickDraft,
+              manualNotes,
+              template,
+              customTerms,
+              "groq-llama-3.3",
+              tone,
+              customGuidelines
+            );
+          } catch (groqErr) {
+            console.error("Groq fallback also failed:", groqErr);
+          }
+        }
+        
         if (err instanceof MeetingAnalysisError) throw err;
         
         const friendlyMsg = language === 'portuguese'
@@ -529,4 +570,236 @@ export async function postProcessReport(report: MeetingReport, language: string)
     }
   }
   return report;
+}
+
+export async function generateMeetingReportWithGroq(
+  audioBase64: string,
+  mimeType: string,
+  detailLevel: string = 'detailed',
+  language: string = 'english',
+  optimizeLowVolume: boolean = false,
+  expectedSpeakers?: string[],
+  isQuickDraft: boolean = false,
+  manualNotes?: string,
+  template: string = 'standard',
+  customTerms?: string,
+  modelOverride?: string,
+  tone?: string,
+  customGuidelines?: string
+): Promise<MeetingReport> {
+  const groqApiKey = process.env.GROQ_API_KEY;
+  if (!groqApiKey) {
+    throw new MeetingAnalysisError('CONFIG_ERROR', 'Groq API Key not found. Please set the GROQ_API_KEY environment variable.');
+  }
+
+  console.log("Transcribing audio using Groq Whisper-Large-V3...");
+  const audioBuffer = Buffer.from(audioBase64, 'base64');
+  const fileExt = mimeType.split('/')[1]?.split(';')[0] || 'wav';
+  const fileObj = new File([audioBuffer], `audio.${fileExt}`, { type: mimeType });
+
+  const formData = new FormData();
+  formData.append('file', fileObj);
+  formData.append('model', 'whisper-large-v3-turbo');
+  formData.append('response_format', 'verbose_json');
+
+  const transcribeRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${groqApiKey}`
+    },
+    body: formData
+  });
+
+  if (!transcribeRes.ok) {
+    const errorText = await transcribeRes.text();
+    console.error("Groq Transcribe Error:", errorText);
+    throw new MeetingAnalysisError('API_ERROR', `Failed to transcribe audio with Groq: ${transcribeRes.status}`);
+  }
+
+  const transcribeData = await transcribeRes.json();
+  const segments = transcribeData.segments || [];
+  console.log(`Audio transcribed successfully with ${segments.length} segments.`);
+
+  // Format segments with timestamps for LLM diarization
+  const formattedSegments = segments.map((seg: any, idx: number) => {
+    const minutes = Math.floor(seg.start / 60).toString().padStart(2, '0');
+    const seconds = Math.floor(seg.start % 60).toString().padStart(2, '0');
+    const timestamp = `${minutes}:${seconds}`;
+    return {
+      index: idx,
+      timestamp,
+      text: seg.text.trim()
+    };
+  });
+
+  const formattedSegmentsText = formattedSegments.map((s: any) => `[${s.timestamp}] Segment ${s.index}: "${s.text}"`).join('\n');
+
+  console.log("Calling Groq Llama-3.3-70b-versatile for meeting report synthesis...");
+
+  // Build prompt instructions
+  const lowVolumeInstruction = optimizeLowVolume 
+    ? "The audio had low volume. Pay extra attention to faint dialogue."
+    : "";
+  const summaryInstruction = detailLevel === 'concise' 
+    ? "Provide a very concise executive summary (max 3 sentences)." 
+    : "Provide a detailed executive summary covering all key aspects.";
+  
+  const templateInstruction = `Template: ${template}. Adjust focus: client_meeting (focus on client needs, action items), internal_meeting (team alignment, accountability), brainstorming (all ideas, paths forward), standard (balanced summary).`;
+
+  const toneInstruction = tone
+    ? `TONE: Use a ${tone} tone (professional: formal/structured; technical: precise/spec-focused; casual: conversational; action_oriented: tasks/deadlines first).`
+    : "TONE: Professional, structured and clear.";
+
+  const guidelinesInstruction = customGuidelines && customGuidelines.trim() !== ""
+    ? `ADDITIONAL RULES: ${customGuidelines}`
+    : "";
+
+  const customTermsInstruction = customTerms && customTerms.trim() !== ""
+    ? `SPECIFIC TERMS (do not correct/change spelling of these): ${customTerms}.`
+    : "";
+
+  const speakersInstruction = expectedSpeakers && expectedSpeakers.length > 0
+    ? `The expected speaking participants in this session are: ${expectedSpeakers.join(', ')}.`
+    : "Determine speaker names sequentially (e.g. Speaker A, Speaker B).";
+  
+  const notesInstruction = manualNotes 
+    ? `User's manual notes (Prioritize these key focus areas):\n${manualNotes}`
+    : "";
+
+  const prompt = `
+    You are an expert business analyst. Analyze the following meeting segments.
+    
+    ${lowVolumeInstruction}
+    ${speakersInstruction}
+    ${templateInstruction}
+    ${notesInstruction}
+    ${customTermsInstruction}
+    ${toneInstruction}
+    ${guidelinesInstruction}
+
+    Goals:
+    1. "summary": ${summaryInstruction}
+    2. "highlights": Key topics/data points.
+    3. "keyDecisions": Agreements or approvals.
+    4. "nextActions": Concrete tasks with owner and deadline.
+    5. "speakers": A string array containing the mapped speaker name for each Segment index. 
+       - Look at the dialogue context to determine who is speaking (e.g. if Segment 2 says "Yes, Ana, I agree", then Segment 2 is not Ana, but Segment 1 or 3 might be).
+       - Map the voice names logically using the expected speakers list.
+       - The array MUST have exactly ${formattedSegments.length} items, one for each Segment index from 0 to ${formattedSegments.length - 1}.
+    
+    LANGUAGE REQUIREMENTS:
+    - Output language for summary, highlights, decisions, nextActions: ${language}.
+    - IF THE LANGUAGE IS PORTUGUESE: You MUST use EUROPEAN PORTUGUESE (PT-PT).
+    - VOCABULARY: Use "planeamento" (not planejamento), "equipa" (not equipe), "utilizador" (not usuário).
+    
+    Return a valid JSON object matching this schema:
+    {
+      "summary": "string",
+      "highlights": ["string"],
+      "keyDecisions": ["string"],
+      "nextActions": ["string"],
+      "speakers": ["string"]
+    }
+
+    Do NOT output markdown blocks. Just output the raw JSON object string.
+  `;
+
+  // Quick draft prompt
+  const quickDraftPrompt = `
+    You are an expert personal assistant. Format the following dictation segments into a beautiful personal note.
+    
+    Goals:
+    1. "summary": A short title/sentence describing this voice draft.
+    2. "highlights": Bullet points summarizing main thoughts.
+    3. "keyDecisions": Keep empty array unless explicit decisions are made.
+    4. "nextActions": Keep empty array unless explicit tasks/to-dos.
+    5. "formattedNotes": A clean scratchpad / markdown block formatting the transcript elegantly (with nice paragraphs, clean bullet points, or polished narrative style).
+    6. "taskList": A structured list of tasks/to-dos.
+    7. "emailDraft": A professional email draft based on the dictation.
+    8. "speakers": A string array of speaker names ("Utilizador" or "User") for each of the ${formattedSegments.length} Segment indexes.
+    
+    LANGUAGE REQUIREMENTS:
+    - Output language: ${language}.
+    - IF THE LANGUAGE IS PORTUGUESE: Use PT-PT.
+    
+    Return a valid JSON object matching this schema:
+    {
+      "summary": "string",
+      "highlights": ["string"],
+      "keyDecisions": ["string"],
+      "nextActions": ["string"],
+      "formattedNotes": "string",
+      "taskList": ["string"],
+      "emailDraft": "string",
+      "speakers": ["string"]
+    }
+
+    Do NOT output markdown blocks. Just output the raw JSON object string.
+  `;
+
+  const finalPrompt = isQuickDraft ? quickDraftPrompt : prompt;
+
+  const chatRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${groqApiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "groq/compound",
+      messages: [
+        { role: "system", content: finalPrompt },
+        { role: "user", content: `Here are the meeting segments:\n\n${formattedSegmentsText}` }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.1
+    })
+  });
+
+  if (!chatRes.ok) {
+    const errorText = await chatRes.text();
+    console.error("Groq Chat Error:", errorText);
+    throw new MeetingAnalysisError('API_ERROR', `Failed to generate report with Groq: ${chatRes.status}`);
+  }
+
+  const chatData = await chatRes.json();
+  const resultText = chatData.choices[0]?.message?.content;
+  if (!resultText) {
+    throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Empty response from Groq LLM.');
+  }
+
+  try {
+    const parsed = JSON.parse(resultText.trim());
+    
+    // Construct the transcript by combining Whisper segments with LLM attributed speakers
+    const transcript = formattedSegments.map((s: any, idx: number) => {
+      const speakerName = parsed.speakers && parsed.speakers[idx] 
+        ? parsed.speakers[idx] 
+        : (isQuickDraft ? (language === 'portuguese' ? 'Utilizador' : 'User') : `Speaker ${idx + 1}`);
+      return {
+        speaker: speakerName,
+        text: s.text,
+        timestamp: s.timestamp
+      };
+    });
+
+    const report: MeetingReport = {
+      summary: parsed.summary || "",
+      highlights: parsed.highlights || [],
+      keyDecisions: parsed.keyDecisions || [],
+      nextActions: parsed.nextActions || [],
+      transcript,
+      isQuickDraft,
+      quickDraft: isQuickDraft ? {
+        formattedNotes: parsed.formattedNotes || "",
+        taskList: parsed.taskList || [],
+        emailDraft: parsed.emailDraft || ""
+      } : undefined
+    };
+
+    return report;
+  } catch (parseError) {
+    console.error("Failed to parse Groq response as JSON:", resultText);
+    throw new MeetingAnalysisError('PARSE_ERROR', "Failed to parse structured response from Groq.");
+  }
 }

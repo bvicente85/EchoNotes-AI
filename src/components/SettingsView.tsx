@@ -364,8 +364,9 @@ export function SettingsView({
                 >
                   <option value="gemini-3.5-flash">Gemini 3.5 Flash (Rápido & Inteligente)</option>
                   <option value="gemini-2.5-pro">Gemini 2.5 Pro (Alta Precisão & Raciocínio)</option>
+                  <option value="groq-llama-3.3">Groq Llama 3.3 (Grátis, Ultra-rápido & Ilimitado)</option>
                 </select>
-                <p className="text-[10px] text-app-fg/40">O Pro é excelente para reuniões densas e com terminologia complexa.</p>
+                <p className="text-[10px] text-app-fg/40">O Llama 3.3 na Groq é 100% gratuito, ultra-rápido e suporta reuniões longas sem limites de quotas.</p>
               </div>
 
               <div className="space-y-2">
