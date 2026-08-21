@@ -163,9 +163,9 @@ export async function generateMeetingReport(
   `;
 
   // Map user-friendly model strings to actual Google Gemini model IDs
-  let modelName = modelOverride || "gemini-3.5-flash";
-  if (modelName === "gemini-2.5-pro") {
-    modelName = "gemini-3.5-flash";
+  let modelName = modelOverride || "gemini-2.5-flash";
+  if (modelName === "gemini-3.5-flash" || modelName === "gemini-3.5-flash-lite" || modelName === "gemini-3.6-flash") {
+    modelName = "gemini-2.5-flash";
   }
   try {
     let retries = 0;
@@ -285,39 +285,8 @@ export async function generateMeetingReport(
           err?.message?.includes('high demand') ||
           err?.message?.toLowerCase().includes('demand');
         
-        if (isQuotaOrServerFail && modelName === "gemini-3.5-flash") {
-          console.warn(`Model ${modelName} rate-limited or unavailable. Automatically falling back to gemini-3.5-flash-lite...`);
-          modelName = "gemini-3.5-flash-lite";
-          await new Promise(resolve => setTimeout(resolve, 500));
-          continue;
-        }
-        if (isQuotaOrServerFail && modelName === "gemini-3.5-flash-lite") {
-          console.warn(`Model ${modelName} rate-limited or unavailable. Automatically falling back to gemini-3.6-flash...`);
-          modelName = "gemini-3.6-flash";
-          await new Promise(resolve => setTimeout(resolve, 500));
-          continue;
-        }
-
-        const isParseOrEmptyError = 
-          (err instanceof MeetingAnalysisError && (err.type === 'EMPTY_RESPONSE' || err.type === 'PARSE_ERROR')) || 
-          err instanceof SyntaxError;
-        
-        const isNetworkError = !err?.status && err?.message?.toLowerCase().includes('fetch');
-
-        if ((isQuotaOrServerFail || isParseOrEmptyError || isNetworkError || !err?.status) && retries < maxRetries) {
-          retries++;
-          const backoffTime = 2000 * Math.pow(2, retries - 1);
-          console.warn(`Retry attempt ${retries}/${maxRetries} after ${backoffTime}ms with model ${modelName} due to: ${err?.message || err}...`);
-          await new Promise(resolve => setTimeout(resolve, backoffTime));
-          continue;
-        }
-
-        if (err instanceof SyntaxError || (err instanceof MeetingAnalysisError && err.type === 'PARSE_ERROR')) {
-          throw new MeetingAnalysisError('PARSE_ERROR', 'Falha ao processar a transcrição estruturada após várias tentativas.');
-        }
-        
-        if (process.env.GROQ_API_KEY) {
-          console.warn("Gemini service failed. Automatically falling back to Groq Llama 3.3 for seamless recovery...");
+        if (isQuotaOrServerFail && process.env.GROQ_API_KEY) {
+          console.warn("Gemini quota exhausted or service overloaded. Instantly falling back to Groq for zero-delay recovery...");
           try {
             return await generateMeetingReportWithGroq(
               audioBase64,
@@ -337,6 +306,24 @@ export async function generateMeetingReport(
           } catch (groqErr) {
             console.error("Groq fallback also failed:", groqErr);
           }
+        }
+
+        const isParseOrEmptyError = 
+          (err instanceof MeetingAnalysisError && (err.type === 'EMPTY_RESPONSE' || err.type === 'PARSE_ERROR')) || 
+          err instanceof SyntaxError;
+        
+        const isNetworkError = !err?.status && err?.message?.toLowerCase().includes('fetch');
+
+        if ((isQuotaOrServerFail || isParseOrEmptyError || isNetworkError || !err?.status) && retries < maxRetries) {
+          retries++;
+          const backoffTime = 2000 * Math.pow(2, retries - 1);
+          console.warn(`Retry attempt ${retries}/${maxRetries} after ${backoffTime}ms with model ${modelName} due to: ${err?.message || err}...`);
+          await new Promise(resolve => setTimeout(resolve, backoffTime));
+          continue;
+        }
+
+        if (err instanceof SyntaxError || (err instanceof MeetingAnalysisError && err.type === 'PARSE_ERROR')) {
+          throw new MeetingAnalysisError('PARSE_ERROR', 'Falha ao processar a transcrição estruturada após várias tentativas.');
         }
         
         if (err instanceof MeetingAnalysisError) throw err;
