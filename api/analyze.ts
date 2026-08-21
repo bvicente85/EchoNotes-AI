@@ -24,9 +24,14 @@ export default async function handler(req: any, res: any) {
       template, 
       customTerms, 
       aiModel, 
+      modelOverride,
       meetingTone, 
+      tone,
       customGuidelines 
     } = req.body;
+
+    const chosenModel = aiModel || modelOverride || 'groq-llama-3.3';
+    const chosenTone = meetingTone || tone || 'professional';
 
     let finalBase64 = audioBase64;
     if (audioUrl) {
@@ -54,8 +59,8 @@ export default async function handler(req: any, res: any) {
       manualNotes,
       template,
       customTerms,
-      aiModel,
-      meetingTone,
+      chosenModel,
+      chosenTone,
       customGuidelines
     );
 

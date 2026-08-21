@@ -56,7 +56,7 @@ export async function generateMeetingReport(
   tone?: string,
   customGuidelines?: string
 ): Promise<MeetingReport> {
-  if (modelOverride === "groq-llama-3.3") {
+  if (!modelOverride || modelOverride === "groq-llama-3.3" || !modelOverride.startsWith("gemini")) {
     return generateMeetingReportWithGroq(
       audioBase64,
       mimeType,
