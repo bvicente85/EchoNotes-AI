@@ -769,7 +769,7 @@ export async function generateMeetingReportWithGroq(
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "groq/compound",
+        model: "qwen/qwen3.6-27b",
         messages: [
           { role: "system", content: finalPrompt },
           { role: "user", content: `Here are the meeting segments:\n\n${formattedSegmentsText}` }
@@ -812,7 +812,13 @@ export async function generateMeetingReportWithGroq(
   }
 
   try {
-    const parsed = JSON.parse(resultText.trim());
+    let jsonText = resultText.trim();
+    // Extract JSON block if the model output contains reasoning or conversational prefixes
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
+    }
+    const parsed = JSON.parse(jsonText);
     
     // Construct the transcript by combining Whisper segments with LLM attributed speakers
     const transcript = formattedSegments.map((s: any, idx: number) => {
