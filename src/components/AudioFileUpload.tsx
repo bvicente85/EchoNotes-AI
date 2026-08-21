@@ -173,7 +173,7 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
                     className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-50 text-white dark:text-slate-900 py-3.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-98 disabled:opacity-50 cursor-pointer"
                   >
                     {(() => {
-                      const selectedModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash';
+                      const selectedModel = localStorage.getItem('echonotes_ai_model') || 'groq-llama-3.3';
                       const isGroq = selectedModel === 'groq-llama-3.3';
                       const isPortuguese = localStorage.getItem('echonotes_language') === 'portuguese';
                       

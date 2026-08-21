@@ -38,7 +38,7 @@ export function SettingsView({
   const [language, setLanguage] = useState(initialLanguage || localStorage.getItem('echonotes_language') || 'english');
   const [summaryDetail, setSummaryDetail] = useState(initialSummaryDetail || localStorage.getItem('echonotes_summary_detail') || 'detailed');
   const [customTerms, setCustomTerms] = useState(localStorage.getItem('echonotes_custom_terms') || '');
-  const [aiModel, setAiModel] = useState(localStorage.getItem('echonotes_ai_model') || 'gemini-3.5-flash');
+  const [aiModel, setAiModel] = useState(localStorage.getItem('echonotes_ai_model') || 'groq-llama-3.3');
   const [meetingTone, setMeetingTone] = useState(localStorage.getItem('echonotes_meeting_tone') || 'professional');
   const [customGuidelines, setCustomGuidelines] = useState(localStorage.getItem('echonotes_custom_guidelines') || '');
   const [isSaved, setIsSaved] = useState(false);
