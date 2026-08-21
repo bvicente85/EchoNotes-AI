@@ -1226,7 +1226,7 @@ export default function App() {
       const speakersArray = pendingExpectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       const res = await generateMeetingReport(
         publicUrl, 
-        pendingItem.audioBlob.type, 
+        pendingItem.audioBlob?.type || 'audio/webm', 
         localStorage.getItem('echonotes_summary_detail') || 'detailed', 
         pendingLanguageSetting || localStorage.getItem('echonotes_language') || 'portuguese', 
         false, 

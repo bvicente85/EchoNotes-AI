@@ -44,13 +44,15 @@ export default async function handler(req: any, res: any) {
       finalBase64 = Buffer.from(arrayBuffer).toString('base64');
     }
 
-    if (!finalBase64 || !mimeType) {
-      return res.status(400).json({ error: 'Missing required parameters: audioBase64/audioUrl or mimeType' });
+    const validMimeType = mimeType || 'audio/webm';
+
+    if (!finalBase64) {
+      return res.status(400).json({ error: 'Missing required parameters: audioBase64 or audioUrl' });
     }
 
     const report = await generateMeetingReport(
       finalBase64,
-      mimeType,
+      validMimeType,
       detailLevel,
       language,
       optimizeLowVolume,
