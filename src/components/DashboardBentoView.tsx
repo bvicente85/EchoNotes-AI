@@ -258,10 +258,12 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
             <Sparkles size={18} />
           </div>
           <div className="min-w-0">
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Gemini AI Model</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
+              {language === 'portuguese' ? 'Motor de IA' : 'AI Engine'}
+            </p>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-display font-black text-slate-800 dark:text-white">{averageAccuracy}</span>
-              <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider">Flash</span>
+              <span className="text-xl font-display font-black text-slate-800 dark:text-white">Groq</span>
+              <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider">LPU</span>
             </div>
           </div>
         </div>
@@ -282,8 +284,8 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
             </h2>
             <p className="text-slate-450 dark:text-slate-400 text-xs md:text-sm font-medium leading-relaxed max-w-lg">
               {language === 'portuguese' 
-                ? 'Grave reuniões, extraia planos de ação estruturados, e consulte a inteligência artificial da Gemini.' 
-                : 'Just ask me anything! Capture live audio, transcribe, and run strategic smart audits.'}
+                ? 'Grave reuniões, extraia decisões, tarefas e atas executivas completas com inteligência artificial.' 
+                : 'Capture conversations, extract decisions, action items and full executive minutes.'}
             </p>
           </div>
           
@@ -299,7 +301,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
           </button>
         </div>
 
-        {/* High-fidelity Interactive Weekly Calendar Widget (Matches 'Schedule' widget on TeamTrack Right panel) */}
+        {/* High-fidelity Interactive Weekly Calendar Widget */}
         <div className="col-span-12 lg:col-span-4 bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col justify-between backdrop-blur-md">
           <div className="flex items-center justify-between mb-3 text-left">
             <div>
@@ -311,13 +313,13 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
             
             <button 
               onClick={() => {
-                setSessionType('quick_draft');
                 const el = document.getElementById('audio-recorder-section');
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
               className="px-3.5 py-1.5 bg-app-accent hover:opacity-95 text-white rounded-full text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
             >
-              {language === 'portuguese' ? 'Ata Rápida' : 'Quick Draft'}
+              <Mic size={10} />
+              {language === 'portuguese' ? 'Gravar' : 'Record'}
               <ArrowRight size={10} />
             </button>
           </div>

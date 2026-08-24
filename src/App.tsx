@@ -3452,21 +3452,21 @@ export default function App() {
                         </div>
                       </div>
                       
-                      {/* Terracotta show my tasks capsule button */}
+                      {/* Record button */}
                       <button 
                         onClick={() => {
-                          setSessionType('quick_draft');
                           const el = document.getElementById('audio-recorder-section');
                           if (el) el.scrollIntoView({ behavior: 'smooth' });
                         }}
-                        className="px-4 py-2 bg-app-accent hover:opacity-90 text-white rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
+                        className="px-4 py-2 bg-app-accent hover:opacity-90 text-white rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shrink-0"
                       >
-                        {language === 'portuguese' ? 'Ata Rápida' : 'Quick Draft'}
+                        <Mic size={11} />
+                        {language === 'portuguese' ? 'Gravar' : 'Record'}
                         <ArrowRight size={10} />
                       </button>
                     </div>
 
-                    {/* Welcome Card (Matches 'Hey, Need Help? Just ask me anything!') */}
+                    {/* Welcome Card */}
                     <div className="col-span-12 lg:col-span-8 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                       <div className="space-y-1 text-left">
                         <h2 className="text-2xl font-display font-bold text-slate-800 dark:text-white flex items-center gap-2">
@@ -3475,8 +3475,8 @@ export default function App() {
                         </h2>
                         <p className="text-slate-400 text-xs md:text-sm font-medium leading-relaxed max-w-lg">
                           {language === 'portuguese' 
-                            ? 'Grave conversas, extraia tarefas e interaja com o assistente inteligente Gemini.' 
-                            : 'Just ask me anything! Record or upload any conversation to extract summaries.'}
+                            ? 'Grave conversas, extraia decisões, tarefas e atas executivas completas com inteligência artificial.' 
+                            : 'Capture conversations, extract decisions, action items and full executive minutes.'}
                         </p>
                       </div>
                       {/* Circular floating mic button */}
