@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
       customGuidelines 
     } = req.body;
 
-    const chosenModel = aiModel || modelOverride || 'groq-llama-3.3';
+    const chosenModel = aiModel || modelOverride || 'gemini-3.7-flash';
     const chosenTone = meetingTone || tone || 'professional';
 
     let finalBase64 = audioBase64;

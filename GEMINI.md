@@ -1,8 +1,8 @@
-﻿# EchoNotes-AI (SUMA) Workspace Guidelines & Architectural Invariants
+# EchoNotes-AI (SUMA) Workspace Guidelines & Architectural Invariants
 
 ## 1. AI Provider & Architecture Invariants
-- **Primary Engine**: The entire application is standardized on **Groq** (`whisper-large-v3-turbo` for speech-to-text + high-speed LPU LLMs like `openai/gpt-oss-20b`, `openai/gpt-oss-120b`, `groq/compound` for report synthesis and the chat assistant).
-- **No Unprovisioned Gemini Endpoints**: Do not revert to Google Gemini (`@google/genai`) unless explicitly instructed by the user and confirmed to have paid Google Cloud billing enabled.
+- **Primary Engine**: The entire application is standardized on **Google Gemini Multimodal** (`gemini-3.7-flash` as primary with automatic cascade failover across `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-2.5-flash`, `gemini-2.5-pro`).
+- Direct audio ingestion (WebM/WAV/MP3) via `@google/genai` with native diarization and structured JSON output.
 
 ## 2. Serverless Function Constraints (Vercel)
 - Any audio-processing or AI-synthesizing serverless function in `api/` must export:
@@ -12,12 +12,8 @@
   ```
 - Audio files transferred via Supabase Storage URLs must default missing `mimeType` to `'audio/webm'`.
 
-## 3. Whisper Speech-to-Text Guidelines
-- When transcribing European Portuguese (PT-PT) sessions via Groq Whisper, always supply:
-  - `language`: `'pt'`
-  - `prompt`: `'Ata de reunião executiva em português de Portugal (PT-PT).'`
-  - `temperature`: `'0'`
-- Preserve vocabulary rules: use `planeamento` (not *planejamento*), `equipa` (not *equipe*), `utilizador` (not *usuário*).
+## 3. Language & Localization Guidelines
+- European Portuguese (PT-PT) vocabulary rules: use `planeamento` (not *planejamento*), `equipa` (not *equipe*), `utilizador` (not *usuário*).
 
 ## 4. Resilient Multi-Stage JSON Parsing
 - Never use unshielded `JSON.parse()` on open-source LLM outputs.

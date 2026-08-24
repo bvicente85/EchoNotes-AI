@@ -163,7 +163,7 @@ export default function App() {
   const [pendingSessionType, setPendingSessionType] = useState<'meeting' | 'quick_draft'>('meeting');
   const [pendingTemplate, setPendingTemplate] = useState('standard');
   const [pendingTone, setPendingTone] = useState('professional');
-  const [pendingModel, setPendingModel] = useState(() => localStorage.getItem('echonotes_ai_model') || 'groq-llama-3.3');
+  const [pendingModel, setPendingModel] = useState(() => localStorage.getItem('echonotes_ai_model') || 'gemini-3.7-flash');
   const [pendingExpectedSpeakers, setPendingExpectedSpeakers] = useState('');
   const [pendingManualNotes, setPendingManualNotes] = useState('');
   const [pendingCustomGuidelines, setPendingCustomGuidelines] = useState('');
@@ -255,7 +255,7 @@ export default function App() {
       case 'sending_ai':
         return {
           label: language === 'portuguese' ? 'Conectando ao Serviço de IA...' : 'Connecting to AI Service...',
-          desc: language === 'portuguese' ? 'A estabelecer ligação com os servidores de IA (Google Gemini / Groq)...' : 'Initializing handshake with AI secure servers (Google Gemini / Groq)...',
+          desc: language === 'portuguese' ? 'A estabelecer ligação com os servidores de IA (Google Gemini)...' : 'Initializing handshake with AI secure servers (Google Gemini)...',
           percent: 50
         };
       case 'transcribing':
@@ -699,7 +699,7 @@ export default function App() {
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
       const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
       const rawAiModel = localStorage.getItem('echonotes_ai_model');
-      const aiModel = (rawAiModel && rawAiModel !== 'gemini-3.5-flash') ? rawAiModel : 'groq-llama-3.3';
+      const aiModel = (rawAiModel && rawAiModel.startsWith('gemini')) ? rawAiModel : 'gemini-3.7-flash';
       const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
@@ -1083,7 +1083,7 @@ export default function App() {
     const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
     const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
     const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
-    const aiModel = localStorage.getItem('echonotes_ai_model') || 'groq-llama-3.3';
+    const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.7-flash';
     const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
     const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
     
@@ -1148,7 +1148,7 @@ export default function App() {
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
       
       const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
-      const aiModel = localStorage.getItem('echonotes_ai_model') || 'groq-llama-3.3';
+      const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.7-flash';
       const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       
@@ -1260,7 +1260,7 @@ export default function App() {
         pendingManualNotes, 
         pendingTemplate, 
         pendingCustomTerms,
-        (pendingModel && pendingModel.includes('groq')) ? pendingModel : (localStorage.getItem('echonotes_ai_model') || 'groq-llama-3.3'),
+        (pendingModel && pendingModel.startsWith('gemini')) ? pendingModel : (localStorage.getItem('echonotes_ai_model') || 'gemini-3.7-flash'),
         pendingTone,
         pendingCustomGuidelines
       );
