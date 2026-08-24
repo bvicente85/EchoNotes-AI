@@ -28,7 +28,7 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
       return;
     }
 
-    // 25MB max size check for Groq Whisper
+    // Audio size validation check (up to 25MB)
     if (selectedFile.size > 25 * 1024 * 1024) {
       setFileError(`O ficheiro tem ${(selectedFile.size / (1024 * 1024)).toFixed(1)}MB. O tamanho máximo permitido para transcrição é 25MB.`);
       return;
