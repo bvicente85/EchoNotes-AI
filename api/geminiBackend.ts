@@ -412,7 +412,7 @@ ${(report.transcript || []).slice(0, 100).map(t => `[${t.timestamp}] ${t.speaker
 
   messages.push({ role: "user", content: query });
 
-  const candidateModels = ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "groq/compound"];
+  const candidateModels = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b", "groq/compound"];
   for (const model of candidateModels) {
     try {
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -424,13 +424,18 @@ ${(report.transcript || []).slice(0, 100).map(t => `[${t.timestamp}] ${t.speaker
         body: JSON.stringify({
           model,
           messages,
-          temperature: 0.2
+          temperature: 0.2,
+          max_tokens: 2048
         })
       });
 
       if (res.ok) {
         const data = await res.json();
-        return data.choices?.[0]?.message?.content || (language === 'portuguese' ? "Sem resposta do assistente." : "No response from assistant.");
+        const rawMsg = data.choices?.[0]?.message;
+        const text = rawMsg?.content || rawMsg?.reasoning || rawMsg?.reasoning_content || "";
+        if (text.trim()) {
+          return text;
+        }
       }
     } catch (err) {
       console.warn(`Groq chat model ${model} failed, trying next candidate:`, err);
@@ -701,13 +706,13 @@ export async function generateMeetingReportWithGroq(
     }
   `;
 
-  let chatData: any = null;
-  const candidateModels = ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "groq/compound"];
+  let resultText = "";
+  const candidateModels = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b", "groq/compound"];
   let modelIndex = 0;
   let chatRetries = 0;
-  const maxChatRetries = 6;
+  const maxChatRetries = 8;
   
-  while (true) {
+  while (chatRetries < maxChatRetries) {
     const currentModel = candidateModels[modelIndex % candidateModels.length];
     console.log(`Calling Groq model ${currentModel} for meeting report synthesis...`);
 
@@ -723,13 +728,24 @@ export async function generateMeetingReportWithGroq(
           { role: "system", content: finalPrompt },
           { role: "user", content: `Here are the meeting segments:\n\n${formattedSegmentsText}` }
         ],
-        temperature: 0.1
+        temperature: 0.1,
+        max_tokens: 4096
       })
     });
 
     if (chatRes.ok) {
-      chatData = await chatRes.json();
-      break;
+      const chatData = await chatRes.json();
+      const rawMsg = chatData.choices?.[0]?.message;
+      const text = rawMsg?.content || rawMsg?.reasoning || rawMsg?.reasoning_content || "";
+      if (text && text.trim().length > 0) {
+        resultText = text;
+        break;
+      }
+      console.warn(`Groq model ${currentModel} returned empty content. Failing over to next candidate...`);
+      modelIndex++;
+      chatRetries++;
+      await new Promise(resolve => setTimeout(resolve, 300));
+      continue;
     }
 
     const errorText = await chatRes.text();
@@ -737,7 +753,6 @@ export async function generateMeetingReportWithGroq(
     
     if (isRateLimit && chatRetries < maxChatRetries) {
       chatRetries++;
-      // Rotate immediately to the next model for zero-delay failover
       modelIndex++;
       const nextModel = candidateModels[modelIndex % candidateModels.length];
       console.warn(`Groq model ${currentModel} rate-limited. Instantly failing over to ${nextModel}...`);
@@ -745,11 +760,13 @@ export async function generateMeetingReportWithGroq(
       continue;
     }
 
-    console.error("Groq Chat Error:", errorText);
-    throw new MeetingAnalysisError('API_ERROR', `Failed to generate report with Groq: ${chatRes.status}`);
+    console.error(`Groq Chat Error with ${currentModel}:`, errorText);
+    modelIndex++;
+    chatRetries++;
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
-  const resultText = chatData.choices[0]?.message?.content;
-  if (!resultText) {
+
+  if (!resultText || resultText.trim().length === 0) {
     throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Empty response from Groq LLM.');
   }
 
