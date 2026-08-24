@@ -794,7 +794,7 @@ export default function App() {
         customGuidelines
       );
       
-      const enriched = enrichReport(result, undefined, undefined, undefined);
+      const enriched = enrichReport(result, result.duration, undefined, undefined);
       const newItem = await saveToHistory(enriched, user.id);
       if (newItem) {
         setCurrentHistoryId(newItem.id);

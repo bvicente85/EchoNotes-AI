@@ -126,10 +126,11 @@ export async function generateMeetingReport(
 
     Goals:
     1. ${summaryInstruction} Use Markdown for headers or bolding.
-    2. "highlights": Most important topics and data points discussed (clean array of bullet points).
-    3. "keyDecisions": Explicit agreements, approvals, or conclusions.
+    2. "highlights": Comprehensive list of key topics and discussion points covering the entire meeting (array of strings).
+    3. "keyDecisions": Explicit agreements, approvals, or conclusions reached (array of strings).
     4. "nextActions": Concrete actionable tasks with owners and deadlines.
-    5. "transcript": Structured speaker dialogue and key verbatim moments with speaker identification and timestamps (MM:SS).
+    5. "transcript": Comprehensive chronological dialogue covering every key intervention from the beginning (00:00) through the middle to the very end of the recording. Each entry must have "speaker", "text", and accurate "timestamp" (MM:SS).
+    6. "duration": Total length of the audio in seconds.
 
     LANGUAGE REQUIREMENTS:
     - Target Output Language: ${language}.
@@ -206,6 +207,7 @@ export async function generateMeetingReport(
               type: Type.OBJECT,
               properties: {
                 summary: { type: Type.STRING },
+                duration: { type: Type.INTEGER, description: "Audio duration in seconds" },
                 highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
                 keyDecisions: { type: Type.ARRAY, items: { type: Type.STRING } },
                 nextActions: { type: Type.ARRAY, items: { type: Type.STRING } },
