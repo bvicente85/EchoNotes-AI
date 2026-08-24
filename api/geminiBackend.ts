@@ -138,15 +138,14 @@ export async function generateMeetingReport(
     - Output a polished, final, print-ready document directly.
   `;
 
-  // Cascade pool of Gemini models (ultra-fast and production-stable models)
+  // Cascade pool of Gemini models (100% Flash models with full Free Tier quota support)
   const candidateModels = [
     "gemini-3.5-flash",
     "gemini-3.6-flash",
     "gemini-2.5-flash",
     "gemini-flash-latest",
     "gemini-3.5-flash-lite",
-    "gemini-2.5-flash-lite",
-    "gemini-pro-latest"
+    "gemini-2.5-flash-lite"
   ];
 
   // If user selected a specific model override, put it first in the pool
