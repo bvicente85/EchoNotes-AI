@@ -3437,49 +3437,6 @@ export default function App() {
                     </motion.div>
                   )}
 
-                  {/* Row 1: Welcome Bubble & Calendar Card */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                    {/* Calendar Card (Matches '19 Tue December') */}
-                    <div className="col-span-12 lg:col-span-4 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        {/* Dynamic day number circle */}
-                        <div className="w-20 h-20 rounded-full border border-app-accent/15 bg-app-accent/5 flex flex-col items-center justify-center shrink-0">
-                          <span className="text-3xl font-display font-semibold text-app-accent leading-none">{new Date().getDate()}</span>
-                        </div>
-                        <div className="text-left">
-                          <p className="text-xs font-semibold text-slate-400 capitalize">{new Date().toLocaleDateString(language === 'portuguese' ? 'pt-PT' : 'en-US', { weekday: 'long' })}</p>
-                          <p className="text-sm font-bold text-slate-800 dark:text-white capitalize">{new Date().toLocaleDateString(language === 'portuguese' ? 'pt-PT' : 'en-US', { month: 'long' })}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Welcome Card */}
-                    <div className="col-span-12 lg:col-span-8 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                      <div className="space-y-1 text-left">
-                        <h2 className="text-2xl font-display font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                          {language === 'portuguese' ? 'Olá! Qual é o plano de hoje?' : 'Hey, Need help?'}
-                          <span className="animate-bounce">👋</span>
-                        </h2>
-                        <p className="text-slate-400 text-xs md:text-sm font-medium leading-relaxed max-w-lg">
-                          {language === 'portuguese' 
-                            ? 'Grave conversas, extraia decisões, tarefas e atas executivas completas com inteligência artificial.' 
-                            : 'Capture conversations, extract decisions, action items and full executive minutes.'}
-                        </p>
-                      </div>
-                      {/* Circular floating mic button */}
-                      <button
-                        onClick={() => {
-                          const el = document.getElementById('audio-recorder-section');
-                          if (el) el.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                        className="w-14 h-14 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-                        title={language === 'portuguese' ? 'Ir para Gravador' : 'Go to Recorder'}
-                      >
-                        <Mic size={20} />
-                      </button>
-                    </div>
-                  </div>
-
                   {/* Row 2: Main Grid Layout containing Core widgets and Recent List */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     
@@ -3649,20 +3606,6 @@ export default function App() {
                                 onChange={(e) => setExpectedSpeakers(e.target.value)}
                                 placeholder={t('expectedSpeakersPlaceholder')}
                                 className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20 font-medium"
-                              />
-                            </div>
-
-                            {/* Speakers input */}
-                            <div className="space-y-2 sm:col-span-2">
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                {t('expectedSpeakersLabel')}
-                              </label>
-                              <input
-                                type="text"
-                                value={expectedSpeakers}
-                                onChange={(e) => setExpectedSpeakers(e.target.value)}
-                                placeholder={t('expectedSpeakersPlaceholder')}
-                                className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2 h-11 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20 font-medium"
                               />
                             </div>
                           </div>
