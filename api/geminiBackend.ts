@@ -137,11 +137,11 @@ export async function generateMeetingReport(
     - Output a polished, final, print-ready document directly.
   `;
 
-  // Cascade pool of Gemini models (latest generations first)
+  // Cascade pool of Gemini models (ultra-fast and reliable models prioritized)
   const candidateModels = [
-    "gemini-3.7-flash",
     "gemini-3.6-flash",
     "gemini-3.5-flash",
+    "gemini-3.7-flash",
     "gemini-2.5-flash",
     "gemini-2.5-pro",
     "gemini-flash-latest",
@@ -186,7 +186,16 @@ export async function generateMeetingReport(
       try {
         console.log(`[Gemini Pipeline] Attempting analysis with model: ${currentModel}...`);
 
-        const result = await ai.models.generateContent({
+        // Per-model circuit breaker: if a model hangs/spikes >35s, immediately cascade to next model
+        const modelTimeoutMs = 35000;
+        let timeoutHandle: any;
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutHandle = setTimeout(() => {
+            reject(new Error(`Model ${currentModel} response timed out after ${modelTimeoutMs / 1000}s`));
+          }, modelTimeoutMs);
+        });
+
+        const generatePromise = ai.models.generateContent({
           model: currentModel,
           contents: [
             {
@@ -229,6 +238,9 @@ export async function generateMeetingReport(
             },
           },
         });
+
+        const result = await Promise.race([generatePromise, timeoutPromise]) as any;
+        clearTimeout(timeoutHandle);
 
         if (!result || !result.text) {
           throw new MeetingAnalysisError('EMPTY_RESPONSE', `Empty response from Gemini model ${currentModel}.`);
