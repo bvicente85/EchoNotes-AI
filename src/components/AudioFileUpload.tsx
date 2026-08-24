@@ -197,32 +197,17 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
                     disabled={isProcessing}
                     className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-50 text-white dark:text-slate-900 py-3.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-98 disabled:opacity-50 cursor-pointer"
                   >
-                    {(() => {
-                      const rawModel = localStorage.getItem('echonotes_ai_model');
-                      const selectedModel = (rawModel && rawModel !== 'gemini-3.5-flash') ? rawModel : 'groq-llama-3.3';
-                      const isGroq = selectedModel === 'groq-llama-3.3';
-                      const isPortuguese = localStorage.getItem('echonotes_language') === 'portuguese';
-                      
-                      const buttonText = isGroq 
-                        ? (isPortuguese ? 'Transcrever com Groq' : 'Transcribe with Groq')
-                        : t('transcribeWithGemini');
-                        
-                      const runningText = isGroq
-                        ? (isPortuguese ? 'Análise Groq em Execução...' : 'Groq Analysis Running...')
-                        : t('geminiAnalysisRunning');
-
-                      return isProcessing ? (
-                        <>
-                          <Loader2 className="animate-spin" size={16} />
-                          {runningText}
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles size={16} />
-                          {buttonText}
-                        </>
-                      );
-                    })()}
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="animate-spin" size={16} />
+                        {t('geminiAnalysisRunning') || 'Análise Gemini em Execução...'}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} />
+                        {t('transcribeWithGemini') || 'Analisar com Gemini'}
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

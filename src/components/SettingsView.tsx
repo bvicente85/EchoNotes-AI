@@ -356,16 +356,16 @@ export function SettingsView({
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-app-fg/40">Motor de IA Dedicado</label>
-                <div className="w-full px-5 py-3.5 glass rounded-2xl text-sm flex items-center justify-between border border-emerald-500/20 bg-emerald-500/5">
+                <label className="text-xs font-bold text-app-fg/40">Motor de IA Multimodal</label>
+                <div className="w-full px-5 py-3.5 glass rounded-2xl text-sm flex items-center justify-between border border-app-accent/20 bg-app-accent/5">
                   <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-app-accent animate-pulse" />
                     <div>
-                      <div className="font-semibold text-app-fg">Groq LPU + Whisper AI</div>
-                      <div className="text-[11px] text-app-fg/50">Transcrição PT-PT e síntese ultra-rápida sem quotas</div>
+                      <div className="font-semibold text-app-fg">Google Gemini 2.5 Flash / Pro</div>
+                      <div className="text-[11px] text-app-fg/50">Audição direta, diarização nativa e redundância em cascata</div>
                     </div>
                   </div>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Ativo</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md bg-app-accent/10 text-app-accent">Ativo</span>
                 </div>
               </div>
 

@@ -262,8 +262,8 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
               {language === 'portuguese' ? 'Motor de IA' : 'AI Engine'}
             </p>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-display font-black text-slate-800 dark:text-white">Groq</span>
-              <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider">LPU</span>
+              <span className="text-xl font-display font-black text-slate-800 dark:text-white">Gemini</span>
+              <span className="text-[9px] font-bold text-app-accent uppercase tracking-wider">Multi-Model</span>
             </div>
           </div>
         </div>
