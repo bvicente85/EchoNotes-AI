@@ -137,14 +137,17 @@ export async function generateMeetingReport(
     - Output a polished, final, print-ready document directly.
   `;
 
-  // Cascade pool of Gemini models
+  // Cascade pool of Gemini models (latest generations first)
   const candidateModels = [
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
     "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-pro",
-    "gemini-2.5-pro"
+    "gemini-2.5-pro",
+    "gemini-flash-latest",
+    "gemini-pro-latest",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash-lite"
   ];
 
   // If user selected a specific model override, put it first in the pool
@@ -314,12 +317,14 @@ ${(report.transcript || []).slice(0, 80).map(t => `[${t.timestamp}] ${t.speaker}
   `;
 
   const candidateModels = [
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
     "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-pro",
-    "gemini-2.5-pro"
+    "gemini-2.5-pro",
+    "gemini-flash-latest",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash-lite"
   ];
 
   for (const model of candidateModels) {
