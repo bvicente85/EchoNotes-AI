@@ -3574,7 +3574,7 @@ export default function App() {
                           </span>
                           <span className="flex items-center gap-1.5">
                             <Sparkles size={13} className="text-app-accent" />
-                            <span>Groq LPU Ativo</span>
+                            <span>{language === 'portuguese' ? 'Gemini 3.7 Flash Ativo' : 'Gemini 3.7 Flash Active'}</span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             <Headphones size={13} className="text-slate-400" />
