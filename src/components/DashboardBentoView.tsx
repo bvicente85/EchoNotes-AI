@@ -310,18 +310,6 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
                 {new Date().toLocaleDateString(language === 'portuguese' ? 'pt-PT' : 'en-US', { month: 'long', year: 'numeric' })}
               </h4>
             </div>
-            
-            <button 
-              onClick={() => {
-                const el = document.getElementById('audio-recorder-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-3.5 py-1.5 bg-app-accent hover:opacity-95 text-white rounded-full text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
-            >
-              <Mic size={10} />
-              {language === 'portuguese' ? 'Gravar' : 'Record'}
-              <ArrowRight size={10} />
-            </button>
           </div>
 
           {/* Interactive Week Calendar Indicators */}

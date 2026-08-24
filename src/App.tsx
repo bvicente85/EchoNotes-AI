@@ -3451,19 +3451,6 @@ export default function App() {
                           <p className="text-sm font-bold text-slate-800 dark:text-white capitalize">{new Date().toLocaleDateString(language === 'portuguese' ? 'pt-PT' : 'en-US', { month: 'long' })}</p>
                         </div>
                       </div>
-                      
-                      {/* Record button */}
-                      <button 
-                        onClick={() => {
-                          const el = document.getElementById('audio-recorder-section');
-                          if (el) el.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                        className="px-4 py-2 bg-app-accent hover:opacity-90 text-white rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shrink-0"
-                      >
-                        <Mic size={11} />
-                        {language === 'portuguese' ? 'Gravar' : 'Record'}
-                        <ArrowRight size={10} />
-                      </button>
                     </div>
 
                     {/* Welcome Card */}
