@@ -186,8 +186,8 @@ export async function generateMeetingReport(
       try {
         console.log(`[Gemini Pipeline] Attempting analysis with model: ${currentModel}...`);
 
-        // Per-model circuit breaker: allow up to 65s for full multimodal audio analysis before cascading
-        const modelTimeoutMs = 65000;
+        // Per-model circuit breaker: allow up to 240s for exhaustive long-form meeting transcription before cascading
+        const modelTimeoutMs = 240000;
         let timeoutHandle: any;
         const timeoutPromise = new Promise((_, reject) => {
           timeoutHandle = setTimeout(() => {
