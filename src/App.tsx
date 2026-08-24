@@ -3618,54 +3618,31 @@ export default function App() {
                           {/* Left Inputs side */}
                           <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-5">
                             
-                            {/* Segmented control for sessionType */}
-                            <div className="space-y-2">
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                {language === 'portuguese' ? 'Tipo de Sessão' : 'Session Type'}
-                              </label>
-                              <div className="grid grid-cols-2 gap-2 bg-slate-100/50 dark:bg-slate-900/40 p-1 rounded-xl border border-slate-200/40 dark:border-white/5">
-                                <button
-                                  type="button"
-                                  onClick={() => setSessionType('meeting')}
-                                  className={cn(
-                                    "py-2 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer",
-                                    sessionType === 'meeting'
-                                      ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs"
-                                      : "text-slate-400 hover:text-slate-700"
-                                  )}
-                                >
-                                  {t('sessionTypeMeeting')}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setSessionType('quick_draft')}
-                                  className={cn(
-                                    "py-2 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer",
-                                    sessionType === 'quick_draft'
-                                      ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs"
-                                      : "text-slate-400 hover:text-slate-700"
-                                  )}
-                                >
-                                  {t('sessionTypeQuickDraft')}
-                                </button>
+                            {/* Standard Executive Report Badge */}
+                            <div className="p-3.5 bg-slate-100/50 dark:bg-slate-900/40 rounded-2xl border border-slate-200/40 dark:border-white/5 space-y-1">
+                              <div className="flex items-center gap-1.5 text-app-accent">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                                  {language === 'portuguese' ? 'Ata Executiva Completa' : 'Full Executive Minutes'}
+                                </span>
                               </div>
+                              <p className="text-[10px] text-slate-400 leading-tight">
+                                {language === 'portuguese' ? 'Resumo executivo, decisões tomadas, ações e transcrição completa.' : 'Executive summary, key decisions, next actions with assignees and full transcript.'}
+                              </p>
                             </div>
 
-                            {/* Template dropdown */}
-                            <div className="space-y-2">
+                            {/* Speakers input */}
+                            <div className="space-y-1.5">
                               <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                {t('aiTemplateLabel')}
+                                {t('expectedSpeakersLabel')}
                               </label>
-                              <select
-                                value={template}
-                                onChange={(e) => setTemplate(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2 h-11 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20 font-medium cursor-pointer"
-                              >
-                                <option value="standard">{t('templateStandard')}</option>
-                                <option value="client_meeting">{t('templateClient')}</option>
-                                <option value="internal_meeting">{t('templateInternal')}</option>
-                                <option value="brainstorming">{t('templateBrainstorming')}</option>
-                              </select>
+                              <input
+                                type="text"
+                                value={expectedSpeakers}
+                                onChange={(e) => setExpectedSpeakers(e.target.value)}
+                                placeholder={t('expectedSpeakersPlaceholder')}
+                                className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20 font-medium"
+                              />
                             </div>
 
                             {/* Speakers input */}

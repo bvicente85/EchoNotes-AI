@@ -637,18 +637,14 @@ export async function generateMeetingReportWithGroq(
   console.log("Calling Groq Llama-3.3-70b-versatile for meeting report synthesis...");
 
   // Build prompt instructions
+  // Build prompt instructions
   const lowVolumeInstruction = optimizeLowVolume 
     ? "The audio had low volume. Pay extra attention to faint dialogue."
     : "";
-  const summaryInstruction = detailLevel === 'concise' 
-    ? "Provide a very concise executive summary (max 3 sentences)." 
-    : "Provide a detailed executive summary covering all key aspects.";
   
-  const templateInstruction = `Template: ${template}. Adjust focus: client_meeting (focus on client needs, action items), internal_meeting (team alignment, accountability), brainstorming (all ideas, paths forward), standard (balanced summary).`;
-
   const toneInstruction = tone
     ? `TONE: Use a ${tone} tone (professional: formal/structured; technical: precise/spec-focused; casual: conversational; action_oriented: tasks/deadlines first).`
-    : "TONE: Professional, structured and clear.";
+    : "TONE: Professional, structured, clear and executive.";
 
   const guidelinesInstruction = customGuidelines && customGuidelines.trim() !== ""
     ? `ADDITIONAL RULES: ${customGuidelines}`
@@ -666,78 +662,44 @@ export async function generateMeetingReportWithGroq(
     ? `User's manual notes (Prioritize these key focus areas):\n${manualNotes}`
     : "";
 
-  const prompt = `
-    You are an expert business analyst. Analyze the following meeting segments.
+  const finalPrompt = `
+    You are an expert executive meeting secretary and business intelligence analyst for EchoNotes.
+    Analyze the following meeting transcript segments and produce a comprehensive, structured executive meeting report.
     
     ${lowVolumeInstruction}
     ${speakersInstruction}
-    ${templateInstruction}
     ${notesInstruction}
     ${customTermsInstruction}
     ${toneInstruction}
     ${guidelinesInstruction}
 
-    Goals:
-    1. "summary": ${summaryInstruction}
-    2. "highlights": Key topics/data points.
-    3. "keyDecisions": Agreements or approvals.
-    4. "nextActions": Concrete tasks with owner and deadline.
-    5. "speakers": A string array containing the mapped speaker name for each Segment index. 
-       - Look at the dialogue context to determine who is speaking (e.g. if Segment 2 says "Yes, Ana, I agree", then Segment 2 is not Ana, but Segment 1 or 3 might be).
-       - Map the voice names logically using the expected speakers list.
-       - The array MUST have exactly ${formattedSegments.length} items, one for each Segment index from 0 to ${formattedSegments.length - 1}.
-    
+    REPORT REQUIREMENTS:
+    1. "summary": A clear, polished, and comprehensive executive summary capturing the meeting objectives, context, and key outcomes.
+    2. "highlights": Key discussion topics, insights, and data points analyzed during the session.
+    3. "keyDecisions": Explicit agreements, approvals, consensus, or strategic decisions made.
+    4. "nextActions": Concrete action items with designated owners and target deadlines.
+    5. "speakers": A string array containing the mapped speaker name for each Segment index (from 0 to ${formattedSegments.length - 1}).
+
     LANGUAGE REQUIREMENTS:
-    - Output language for summary, highlights, decisions, nextActions: ${language}.
-    - IF THE LANGUAGE IS PORTUGUESE: You MUST use EUROPEAN PORTUGUESE (PT-PT).
-    - VOCABULARY: Use "planeamento" (not planejamento), "equipa" (not equipe), "utilizador" (not usuário).
-    
-    Return a valid JSON object matching this schema:
+    - Target Output Language: ${language}.
+    - IF THE LANGUAGE IS PORTUGUESE: You MUST use EUROPEAN PORTUGUESE (PT-PT) with proper UTF-8 accents and formal corporate vocabulary (use "planeamento", "equipa", "utilizador").
+    - IF THE LANGUAGE IS ENGLISH: Use formal, professional business English.
+
+    Return ONLY a valid JSON object matching this schema:
     {
-      "summary": "string",
-      "highlights": ["string"],
-      "keyDecisions": ["string"],
-      "nextActions": ["string"],
-      "speakers": ["string"]
+      "summary": "Comprehensive executive summary string",
+      "highlights": ["Key discussion point 1", "Key discussion point 2"],
+      "keyDecisions": ["Agreed decision 1"],
+      "nextActions": [
+        {
+          "task": "Actionable task description",
+          "assignee": "Responsible person or Team",
+          "dueDate": "YYYY-MM-DD or TBD"
+        }
+      ],
+      "speakers": ["Speaker Name for Segment 0", "Speaker Name for Segment 1"]
     }
-
-    Do NOT output markdown blocks. Just output the raw JSON object string.
   `;
-
-  // Quick draft prompt
-  const quickDraftPrompt = `
-    You are an expert personal assistant. Format the following dictation segments into a beautiful personal note.
-    
-    Goals:
-    1. "summary": A short title/sentence describing this voice draft.
-    2. "highlights": Bullet points summarizing main thoughts.
-    3. "keyDecisions": Keep empty array unless explicit decisions are made.
-    4. "nextActions": Keep empty array unless explicit tasks/to-dos.
-    5. "formattedNotes": A clean scratchpad / markdown block formatting the transcript elegantly (with nice paragraphs, clean bullet points, or polished narrative style).
-    6. "taskList": A structured list of tasks/to-dos.
-    7. "emailDraft": A professional email draft based on the dictation.
-    8. "speakers": A string array of speaker names ("Utilizador" or "User") for each of the ${formattedSegments.length} Segment indexes.
-    
-    LANGUAGE REQUIREMENTS:
-    - Output language: ${language}.
-    - IF THE LANGUAGE IS PORTUGUESE: Use PT-PT.
-    
-    Return a valid JSON object matching this schema:
-    {
-      "summary": "string",
-      "highlights": ["string"],
-      "keyDecisions": ["string"],
-      "nextActions": ["string"],
-      "formattedNotes": "string",
-      "taskList": ["string"],
-      "emailDraft": "string",
-      "speakers": ["string"]
-    }
-
-    Do NOT output markdown blocks. Just output the raw JSON object string.
-  `;
-
-  const finalPrompt = isQuickDraft ? quickDraftPrompt : prompt;
 
   let chatData: any = null;
   const candidateModels = ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "groq/compound"];
