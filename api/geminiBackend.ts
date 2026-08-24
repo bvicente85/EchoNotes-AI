@@ -137,17 +137,15 @@ export async function generateMeetingReport(
     - Output a polished, final, print-ready document directly.
   `;
 
-  // Cascade pool of Gemini models (ultra-fast 18s models prioritized for zero timeout)
+  // Cascade pool of Gemini models (ultra-fast and production-stable models)
   const candidateModels = [
     "gemini-3.5-flash",
     "gemini-3.6-flash",
     "gemini-2.5-flash",
-    "gemini-3.7-flash",
-    "gemini-2.5-pro",
     "gemini-flash-latest",
-    "gemini-pro-latest",
     "gemini-3.5-flash-lite",
-    "gemini-2.5-flash-lite"
+    "gemini-2.5-flash-lite",
+    "gemini-pro-latest"
   ];
 
   // If user selected a specific model override, put it first in the pool
@@ -186,8 +184,8 @@ export async function generateMeetingReport(
       try {
         console.log(`[Gemini Pipeline] Attempting analysis with model: ${currentModel}...`);
 
-        // Per-model circuit breaker: allow up to 240s for exhaustive long-form meeting transcription before cascading
-        const modelTimeoutMs = 240000;
+        // Strict 25s circuit breaker: if any model is queued or stalls on Google Cloud, fail over immediately
+        const modelTimeoutMs = 25000;
         let timeoutHandle: any;
         const timeoutPromise = new Promise((_, reject) => {
           timeoutHandle = setTimeout(() => {
