@@ -352,18 +352,20 @@ export async function askGemini(
   chatHistory: { role: 'user' | 'model', parts: { text: string }[] }[] = [],
   language: string = 'english'
 ): Promise<string> {
-  const ai = getAI();
+  const groqApiKey = process.env.GROQ_API_KEY;
+  if (!groqApiKey) {
+    throw new Error("GROQ_API_KEY environment variable not configured.");
+  }
 
   let context = "MEETING ARCHIVE CONTEXT:\n";
-  
   if (historyItems.length > 0) {
     context += historyItems.map((item, i) => `
 ID: ${item.id}
 INDEX: ${i + 1}
 TITLE: ${item.title}
 DATE: ${new Date(item.date).toLocaleString('pt-PT')}
-CLIENT: ${item.report.clientName || 'N/A'}
-SUMMARY: ${item.report.summary.slice(0, 500)}...
+CLIENT: ${item.report?.clientName || 'N/A'}
+SUMMARY: ${item.report?.summary ? item.report.summary.slice(0, 400) : ''}...
 -------------------`).join('\n');
   } else {
     context += "No previous meetings in archive.\n";
@@ -373,79 +375,69 @@ SUMMARY: ${item.report.summary.slice(0, 500)}...
     context += `\n\nCURRENT ACTIVE MEETING (DETAILED FOCUS):\n`;
     context += `TITLE: ${historyItems.find(h => h.report.summary === report.summary)?.title || 'Selected Meeting'}
 SUMMARY: ${report.summary}
-HIGHLIGHTS: ${report.highlights.join(', ')}
+HIGHLIGHTS: ${report.highlights?.join(', ') || 'None'}
 DECISIONS: ${report.keyDecisions?.join(', ') || 'None reported'}
-ACTIONS: ${report.nextActions.join(', ')}
-TRANSCRIPT (FULL):
-${report.transcript.map(t => `[${t.timestamp}] ${t.speaker}: ${t.text}`).join('\n')}
+ACTIONS: ${(report.nextActions || []).map(a => typeof a === 'string' ? a : `${a.task} (${a.assignee})`).join(', ')}
+TRANSCRIPT (SAMPLE/RECENT):
+${(report.transcript || []).slice(0, 100).map(t => `[${t.timestamp}] ${t.speaker}: ${t.text}`).join('\n')}
 `;
   }
 
   const systemInstruction = `
-    You are "Gemini", an AI business strategist for EchoNotes. You have access to the user's meeting archive.
+    You are the AI Executive Meeting Assistant for EchoNotes / SUMA. You have access to the user's meeting archive.
     
     CAPABILITIES:
     1. Cross-Meeting Analysis: Compare discussions or follow-up on topics across different dates.
-    2. Deep Dive: Use the FULL TRANSCRIPT of the active meeting to find specific details, technical terms, or exact quotes.
-    3. Retrieval: Search through the INDEX of previous meetings to answer questions about the past.
-
+    2. Deep Dive: Use the transcript and summary of the active meeting to find specific details or actions.
+    3. Retrieval: Search through the index of previous meetings to answer questions.
+    
     RESPONSE GUIDELINES:
     - If the user asks about "this meeting", prioritize the CURRENT ACTIVE MEETING section.
     - If the user asks about "previous meetings" or specific older projects, search the MEETING ARCHIVE CONTEXT.
-    - Always state which meeting(s) you are referencing in your answer.
-    - Use Markdown for clarity (bolding, lists).
-    - Language: Respond in the same language as the user.
-    - PORTUGUESE (PT-PT): Use European Portuguese grammar/vocab. Focus on UTF-8 correct accents (ã, á, é, ç, etc.).
+    - Use Markdown for clarity (bolding, bullet points).
+    - Respond in European Portuguese (PT-PT) if Portuguese is requested.
   `;
 
-  let modelName = "gemini-3.5-flash";
-  let attempts = 0;
-  while (attempts < 2) {
-    try {
-      console.log(`Sending question to Gemini using model: ${modelName}...`);
-      const chat = ai.chats.create({
-        model: modelName,
-        config: {
-          systemInstruction,
-        },
-        history: chatHistory.length > 0 ? chatHistory : [
-          {
-            role: 'user',
-            parts: [{ text: `System Context Injection:\n${context}` }]
-          },
-          {
-            role: 'model',
-            parts: [{ text: "Context synchronized. I am ready to analyze your specific meetings or your entire history. How can I assist you?" }]
-          }
-        ]
-      });
+  const messages: any[] = [
+    { role: "system", content: `${systemInstruction}\n\n${context}` }
+  ];
 
-      const result = await chat.sendMessage({ message: query });
-      return result.text || "Desculpe, não consegui obter uma resposta.";
-    } catch (error: any) {
-      console.error(`Ask Gemini Error with ${modelName}:`, error);
-      const isQuotaOrServerFail = 
-        error?.message?.includes('503') || 
-        error?.status === 503 || 
-        error?.message?.includes('429') || 
-        error?.status === 429 ||
-        error?.message?.includes('exhausted') ||
-        error?.message?.includes('rate limit') ||
-        error?.message?.includes('overloaded') ||
-        error?.message?.includes('UNAVAILABLE') ||
-        error?.message?.includes('high demand') ||
-        error?.message?.toLowerCase().includes('demand');
-
-      if (isQuotaOrServerFail && modelName === "gemini-3.5-flash" && attempts === 0) {
-        console.warn("Falling back to gemini-2.5-flash for chat conversation due to quota/rate limits...");
-        modelName = "gemini-2.5-flash";
-        attempts++;
-        continue;
-      }
-      throw new Error("AI interaction failed.");
+  for (const h of chatHistory) {
+    const role = h.role === 'model' ? 'assistant' : 'user';
+    const text = (h.parts || []).map((p: any) => p.text || '').join('\n');
+    if (text.trim()) {
+      messages.push({ role, content: text });
     }
   }
-  throw new Error("AI interaction failed.");
+
+  messages.push({ role: "user", content: query });
+
+  const candidateModels = ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "groq/compound"];
+  for (const model of candidateModels) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${groqApiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature: 0.2
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content || (language === 'portuguese' ? "Sem resposta do assistente." : "No response from assistant.");
+      }
+    } catch (err) {
+      console.warn(`Groq chat model ${model} failed, trying next candidate:`, err);
+    }
+  }
+
+  throw new Error("Assistente de IA temporariamente indisponível.");
 }
 
 export async function postProcessReport(report: MeetingReport, language: string): Promise<MeetingReport> {
@@ -588,6 +580,9 @@ export async function generateMeetingReportWithGroq(
   formData.append('file', fileObj);
   formData.append('model', 'whisper-large-v3-turbo');
   formData.append('response_format', 'verbose_json');
+  formData.append('language', language === 'portuguese' ? 'pt' : 'en');
+  formData.append('prompt', language === 'portuguese' ? 'Ata de reunião executiva em português de Portugal (PT-PT).' : 'Executive business meeting minutes.');
+  formData.append('temperature', '0');
 
   let transcribeData: any = null;
   let transcribeRetries = 0;

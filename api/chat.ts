@@ -1,5 +1,8 @@
 import { askGemini } from './geminiBackend.js';
 
+export const maxDuration = 300;
+export const dynamic = 'force-dynamic';
+
 export default async function handler(req: any, res: any) {
   // Only allow POST requests
   if (req.method !== 'POST') {

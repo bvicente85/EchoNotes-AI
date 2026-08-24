@@ -356,17 +356,17 @@ export function SettingsView({
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-app-fg/40">Model de IA de Precisão</label>
-                <select 
-                  value={aiModel}
-                  onChange={(e) => setAiModel(e.target.value)}
-                  className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg appearance-none cursor-pointer"
-                >
-                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Rápido & Inteligente)</option>
-                  <option value="gemini-2.5-pro">Gemini 2.5 Pro (Alta Precisão & Raciocínio)</option>
-                  <option value="groq-llama-3.3">Groq Llama 3.3 (Grátis, Ultra-rápido & Ilimitado)</option>
-                </select>
-                <p className="text-[10px] text-app-fg/40">O Llama 3.3 na Groq é 100% gratuito, ultra-rápido e suporta reuniões longas sem limites de quotas.</p>
+                <label className="text-xs font-bold text-app-fg/40">Motor de IA Dedicado</label>
+                <div className="w-full px-5 py-3.5 glass rounded-2xl text-sm flex items-center justify-between border border-emerald-500/20 bg-emerald-500/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <div>
+                      <div className="font-semibold text-app-fg">Groq LPU + Whisper AI</div>
+                      <div className="text-[11px] text-app-fg/50">Transcrição PT-PT e síntese ultra-rápida sem quotas</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Ativo</span>
+                </div>
               </div>
 
               <div className="space-y-2">
