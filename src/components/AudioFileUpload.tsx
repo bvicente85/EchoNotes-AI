@@ -14,8 +14,28 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
   const { t } = useLanguage();
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [optimizeLowVolume, setOptimizeLowVolume] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const validateAndSetFile = (selectedFile: File) => {
+    setFileError(null);
+    const isAudioType = selectedFile.type.startsWith('audio/') || 
+      /\.(mp3|wav|m4a|aac|ogg|webm|flac|wma)$/i.test(selectedFile.name);
+
+    if (!isAudioType) {
+      setFileError("Por favor, selecione um ficheiro de áudio válido (.mp3, .wav, .m4a, .webm, .ogg, .aac).");
+      return;
+    }
+
+    // 25MB max size check for Groq Whisper
+    if (selectedFile.size > 25 * 1024 * 1024) {
+      setFileError(`O ficheiro tem ${(selectedFile.size / (1024 * 1024)).toFixed(1)}MB. O tamanho máximo permitido para transcrição é 25MB.`);
+      return;
+    }
+
+    setFile(selectedFile);
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -33,17 +53,14 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
     setDragActive(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type.startsWith('audio/')) {
-        setFile(droppedFile);
-      }
+      validateAndSetFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      validateAndSetFile(e.target.files[0]);
     }
   };
 
@@ -56,7 +73,8 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
     
     try {
       const base64 = await getBase64(file);
-      onFileSelect(base64, file.type, { optimizeLowVolume });
+      const mimeType = file.type || 'audio/webm';
+      onFileSelect(base64, mimeType, { optimizeLowVolume });
     } catch (error) {
       console.error("Error converting file to base64:", error);
     }
@@ -101,6 +119,13 @@ export function AudioFileUpload({ onFileSelect, isProcessing }: AudioFileUploadP
               <p className="text-slate-400 dark:text-slate-400 text-xs mb-8 max-w-xs mx-auto leading-relaxed">
                 {t('dragDropOrClick')}
               </p>
+
+              {fileError && (
+                <div className="mb-6 p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs rounded-xl font-medium max-w-md mx-auto">
+                  {fileError}
+                </div>
+              )}
+
               <button
                 onClick={onButtonClick}
                 className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-50 text-white dark:text-slate-900 px-6 py-2.5 rounded-lg text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer"

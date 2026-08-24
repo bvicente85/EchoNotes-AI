@@ -722,7 +722,7 @@ export async function generateMeetingReportWithGroq(
   `;
 
   let resultText = "";
-  const candidateModels = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b", "groq/compound"];
+  const candidateModels = ["openai/gpt-oss-20b", "groq/compound", "openai/gpt-oss-120b", "qwen/qwen3.6-27b"];
   let modelIndex = 0;
   let chatRetries = 0;
   const maxChatRetries = 8;
@@ -744,14 +744,17 @@ export async function generateMeetingReportWithGroq(
           { role: "user", content: `Here are the meeting segments:\n\n${formattedSegmentsText}` }
         ],
         temperature: 0.1,
-        max_tokens: 4096
+        max_tokens: 8192
       })
     });
 
     if (chatRes.ok) {
       const chatData = await chatRes.json();
       const rawMsg = chatData.choices?.[0]?.message;
-      const text = rawMsg?.content || rawMsg?.reasoning || rawMsg?.reasoning_content || "";
+      let text = rawMsg?.content || "";
+      if (!text || text.trim().length === 0) {
+        text = rawMsg?.reasoning || rawMsg?.reasoning_content || "";
+      }
       if (text && text.trim().length > 0) {
         resultText = text;
         break;
@@ -789,6 +792,8 @@ export async function generateMeetingReportWithGroq(
 
   try {
     let jsonText = resultText.trim();
+    // Strip <think>...</think> reasoning blocks if present
+    jsonText = jsonText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
     // Remove markdown code fences if present (e.g. ```json ... ```)
     jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
     
