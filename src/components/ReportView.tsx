@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { FileText, CheckCircle2, ListFilter, MessageSquare, Download, FileJson, Plus, Trash2, Copy, Check, Undo, Redo, Gavel, Hash, User, Sparkles, Play, Pause, Volume2, VolumeX, Clock, FastForward, RotateCcw, Mail, Database } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { FileText, CheckCircle2, ListFilter, MessageSquare, Download, FileJson, Plus, Trash2, Copy, Check, Undo, Redo, Gavel, Hash, User, Sparkles, Play, Pause, Volume2, VolumeX, Clock, FastForward, RotateCcw, Mail, Database, Calendar, Timer } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MeetingReport } from '../services/gemini';
 import { jsPDF } from 'jspdf';
@@ -51,6 +51,66 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
     endTime: report.endTime,
     analyzedAt: report.analyzedAt
   });
+
+  const metadata = useMemo(() => {
+    let dateObj: Date | null = null;
+    if (data.meetingDate) {
+      dateObj = new Date(data.meetingDate);
+    } else if (data.analyzedAt) {
+      dateObj = new Date(data.analyzedAt);
+    } else {
+      dateObj = new Date();
+    }
+
+    const formattedDate = dateObj.toLocaleDateString(language === 'portuguese' ? 'pt-PT' : 'en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const startTimeFormatted = data.startTime || dateObj.toLocaleTimeString(language === 'portuguese' ? 'pt-PT' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    let endTimeFormatted = data.endTime;
+    if (!endTimeFormatted && data.duration !== undefined && data.duration > 0) {
+      const endTimestamp = dateObj.getTime() + (data.duration * 1000);
+      endTimeFormatted = new Date(endTimestamp).toLocaleTimeString(language === 'portuguese' ? 'pt-PT' : 'en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    let durationFormatted = 'N/A';
+    if (data.duration !== undefined && data.duration > 0) {
+      const h = Math.floor(data.duration / 3600);
+      const m = Math.floor((data.duration % 3600) / 60);
+      const s = Math.floor(data.duration % 60);
+      if (h > 0) {
+        durationFormatted = `${h}h ${m}m ${s}s`;
+      } else if (m > 0) {
+        durationFormatted = `${m}m ${s}s`;
+      } else {
+        durationFormatted = `${s}s`;
+      }
+    } else if (data.transcript && data.transcript.length > 0) {
+      const lastSeg = data.transcript[data.transcript.length - 1];
+      if (lastSeg && lastSeg.timestamp) {
+        durationFormatted = `~${lastSeg.timestamp}`;
+      }
+    }
+
+    return {
+      formattedDate,
+      startTime: startTimeFormatted,
+      endTime: endTimeFormatted || 'N/A',
+      durationFormatted
+    };
+  }, [data.meetingDate, data.analyzedAt, data.startTime, data.endTime, data.duration, data.transcript, language]);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const isEditingTitleRef = useRef(isEditingTitle);
@@ -939,8 +999,63 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
           </div>
         </div>
 
-        {/* Global Metadata Inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 bg-app-card border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-sm backdrop-blur-md">
+        {/* Session Timing & Metadata Stats Card */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 p-5 bg-app-card border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-sm backdrop-blur-md">
+          {/* 1. Start Date */}
+          <div className="space-y-1 text-left">
+            <div className="flex items-center gap-1.5 text-app-accent">
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {language === 'portuguese' ? 'Data da Reunião' : 'Start Date'}
+              </p>
+            </div>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-100 capitalize">
+              {metadata.formattedDate}
+            </p>
+          </div>
+
+          {/* 2. Start Hour */}
+          <div className="space-y-1 text-left">
+            <div className="flex items-center gap-1.5 text-emerald-500">
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {language === 'portuguese' ? 'Hora de Início' : 'Start Time'}
+              </p>
+            </div>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-100 font-mono">
+              {metadata.startTime}
+            </p>
+          </div>
+
+          {/* 3. Finished Hour */}
+          <div className="space-y-1 text-left">
+            <div className="flex items-center gap-1.5 text-amber-500">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {language === 'portuguese' ? 'Hora de Término' : 'Finished Time'}
+              </p>
+            </div>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-100 font-mono">
+              {metadata.endTime}
+            </p>
+          </div>
+
+          {/* 4. Duration */}
+          <div className="space-y-1 text-left">
+            <div className="flex items-center gap-1.5 text-indigo-500">
+              <Timer className="w-3.5 h-3.5 shrink-0" />
+              <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {language === 'portuguese' ? 'Duração Total' : 'Duration'}
+              </p>
+            </div>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-100 font-mono">
+              {metadata.durationFormatted}
+            </p>
+          </div>
+        </div>
+
+        {/* Optional Custom Metadata Inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-100/30 dark:bg-slate-900/10 border border-slate-200/40 dark:border-white/5 rounded-2xl">
           <div className="space-y-1">
             <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-550" />
@@ -951,7 +1066,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
               value={data.clientName}
               onChange={(e) => updateData({ ...data, clientName: e.target.value })}
               placeholder={t('clientNamePlaceholder')}
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-700 tracking-tight"
+              className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-700 tracking-tight"
             />
           </div>
           <div className="space-y-1">
@@ -961,58 +1076,12 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
             </label>
             <input
               type="datetime-local"
-              value={data.meetingDate}
+              value={data.meetingDate ? data.meetingDate.slice(0, 16) : ''}
               onChange={(e) => updateData({ ...data, meetingDate: e.target.value })}
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-semibold text-slate-800 dark:text-slate-100 [color-scheme:light] dark:[color-scheme:dark] tracking-tight"
+              className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs font-semibold text-slate-800 dark:text-slate-100 [color-scheme:light] dark:[color-scheme:dark] tracking-tight cursor-pointer"
             />
           </div>
         </div>
-
-        {/* Additional Technical Metadata */}
-        {(data.startTime || data.endTime || data.duration || data.analyzedAt) && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-slate-100/30 dark:bg-slate-900/10 border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-xs backdrop-blur-xs">
-            {data.startTime && (
-              <div className="space-y-1 text-left">
-                <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  {language === 'portuguese' ? 'Início da Gravação' : 'Recording Started'}
-                </p>
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {data.startTime}
-                </p>
-              </div>
-            )}
-            {data.endTime && (
-              <div className="space-y-1 text-left">
-                <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  {language === 'portuguese' ? 'Fim da Gravação' : 'Recording Ended'}
-                </p>
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {data.endTime}
-                </p>
-              </div>
-            )}
-            {data.duration !== undefined && (
-              <div className="space-y-1 text-left">
-                <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  {language === 'portuguese' ? 'Duração Total' : 'Total Duration'}
-                </p>
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {Math.floor(data.duration / 60)}m {data.duration % 60}s
-                </p>
-              </div>
-            )}
-            {data.analyzedAt && (
-              <div className="space-y-1 text-left col-span-2 md:col-span-1">
-                <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  {language === 'portuguese' ? 'Análise Realizada' : 'Analyzed by AI'}
-                </p>
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {new Date(data.analyzedAt).toLocaleDateString(language === 'portuguese' ? 'pt-PT' : 'en-US')} {new Date(data.analyzedAt).toLocaleTimeString(language === 'portuguese' ? 'pt-PT' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Audio Player Card */}
         {meetingId && (
@@ -1822,9 +1891,17 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
       <section className="space-y-6 mt-8 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/50 dark:border-white/5 pb-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="text-slate-400 dark:text-slate-550 w-4 h-4 shrink-0" />
-              <h2 className="text-lg font-bold text-slate-950 dark:text-white tracking-tight">{t('fullTranscript')}</h2>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="text-slate-400 dark:text-slate-550 w-4 h-4 shrink-0" />
+                <h2 className="text-lg font-bold text-slate-950 dark:text-white tracking-tight">{t('fullTranscript')}</h2>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2.5 py-1 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                <Clock className="w-3 h-3 text-emerald-500 shrink-0" />
+                <span>{metadata.startTime} &rarr; {metadata.endTime}</span>
+                <span className="text-slate-400">•</span>
+                <span>{metadata.durationFormatted}</span>
+              </div>
             </div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('speakerDiarizationDesc')}</p>
           </div>

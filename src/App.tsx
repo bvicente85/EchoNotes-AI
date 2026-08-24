@@ -37,12 +37,17 @@ const enrichReport = (
   startMs?: number | null, 
   endMs?: number | null
 ): MeetingReport => {
+  const startDate = startMs ? new Date(startMs) : new Date();
+  const dur = durationSec !== undefined ? durationSec : (report.duration || 0);
+  const endDate = endMs ? new Date(endMs) : new Date(startDate.getTime() + dur * 1000);
+
   return {
     ...report,
-    duration: durationSec !== undefined ? durationSec : report.duration,
-    startTime: startMs ? new Date(startMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : report.startTime,
-    endTime: endMs ? new Date(endMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : report.endTime,
-    analyzedAt: new Date().toISOString()
+    meetingDate: report.meetingDate || startDate.toISOString(),
+    duration: dur,
+    startTime: report.startTime || startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    endTime: report.endTime || endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    analyzedAt: report.analyzedAt || new Date().toISOString()
   };
 };
 
