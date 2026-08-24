@@ -186,8 +186,8 @@ export async function generateMeetingReport(
       try {
         console.log(`[Gemini Pipeline] Attempting analysis with model: ${currentModel}...`);
 
-        // Per-model circuit breaker: if a model hangs/spikes >35s, immediately cascade to next model
-        const modelTimeoutMs = 35000;
+        // Per-model circuit breaker: allow up to 65s for full multimodal audio analysis before cascading
+        const modelTimeoutMs = 65000;
         let timeoutHandle: any;
         const timeoutPromise = new Promise((_, reject) => {
           timeoutHandle = setTimeout(() => {
