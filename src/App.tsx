@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
-import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink, Calendar, Clock, BarChart3, PieChart, TrendingUp, Menu, ArrowRight, Sliders, HelpCircle, Volume2, CheckSquare, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink, Calendar, Clock, BarChart3, PieChart, TrendingUp, Menu, ArrowRight, Sliders, HelpCircle, Volume2, CheckSquare, PanelLeftClose, PanelLeftOpen, Users, Timer, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateMeetingReport, MeetingReport, MeetingAnalysisError } from './services/gemini';
 import { AudioFileUpload } from './components/AudioFileUpload';
@@ -3437,167 +3437,108 @@ export default function App() {
                     </motion.div>
                   )}
 
-                  {/* Row 2: Main Grid Layout containing Core widgets and Recent List */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Modern Vertical Executive Dashboard */}
+                  <div className="space-y-8 text-left">
                     
-                    {/* Left & Middle Column widgets (occupies col-span-8 on desktop) */}
-                    <div className="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                      
-                      {/* Card 1: Primary Recording Suite (Stretches full width) */}
-                      <div id="audio-recorder-section" className="col-span-1 md:col-span-2 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-6">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <Sliders size={14} className="text-app-accent" />
-                            {language === 'portuguese' ? 'Estúdio de Captura Audio' : 'Audio Capture Suite'}
+                    {/* SECTION 1: Unified Executive Audio Recording Studio (Full Width) */}
+                    <div id="audio-recorder-section" className="bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 md:p-8 shadow-xs flex flex-col gap-6 backdrop-blur-md">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-5">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                            <Sliders size={16} className="text-app-accent" />
+                            {language === 'portuguese' ? 'Estúdio de Gravação e Análise' : 'Audio Capture Suite'}
                           </h3>
-                          <div className="flex items-center gap-1.5 bg-slate-100/60 dark:bg-slate-900/60 p-0.5 rounded-xl border border-slate-200/40 dark:border-white/5">
-                            <button 
-                              onClick={() => setRecordingMode('mic')}
-                              className={cn(
-                                "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer",
-                                recordingMode === 'mic' 
-                                  ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs" 
-                                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
-                              )}
-                            >
-                              <Mic size={11} />
-                              {t('inPerson')}
-                            </button>
-                            <button 
-                              onClick={() => setRecordingMode('system')}
-                              className={cn(
-                                "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer",
-                                recordingMode === 'system' 
-                                  ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs" 
-                                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
-                              )}
-                            >
-                              <Headphones size={11} />
-                              {t('virtualMeeting')}
-                            </button>
-                            <button 
-                              onClick={() => setRecordingMode('upload')}
-                              className={cn(
-                                "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer",
-                                recordingMode === 'upload' 
-                                  ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs" 
-                                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
-                              )}
-                            >
-                              <Upload size={11} />
-                              {t('uploadFile')}
-                            </button>
-                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {language === 'portuguese' ? 'Grave conversas em direto ou carregue ficheiros de áudio para gerar atas executivas instantâneas.' : 'Record live meetings or upload audio files to generate instant executive minutes.'}
+                          </p>
                         </div>
-
-                        {error && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl text-xs text-center flex flex-col gap-2 items-center"
+                        
+                        {/* Mode switch tabs */}
+                        <div className="flex items-center gap-1.5 bg-slate-100/60 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200/40 dark:border-white/5 self-start sm:self-auto">
+                          <button 
+                            onClick={() => setRecordingMode('mic')}
+                            className={cn(
+                              "px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                              recordingMode === 'mic' 
+                                ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs" 
+                                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
+                            )}
                           >
-                            <p className="font-bold">{error}</p>
-                            {lastFailedAudio && (
-                              <button 
-                                onClick={handleRetry}
-                                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg uppercase text-[10px]"
-                              >
-                                {language === 'portuguese' ? 'Tentar Novamente' : 'Try Again'}
-                              </button>
+                            <Mic size={13} />
+                            {t('inPerson')}
+                          </button>
+                          <button 
+                            onClick={() => setRecordingMode('system')}
+                            className={cn(
+                              "px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                              recordingMode === 'system' 
+                                ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs" 
+                                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
                             )}
-                          </motion.div>
-                        )}
-
-                        {recordingMode === 'upload' ? (
-                          <div className="w-full">
-                            <AudioFileUpload 
-                              onFileSelect={handleFileUpload} 
-                              isProcessing={isProcessing} 
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-4 bg-slate-50/40 dark:bg-slate-900/20 border border-app-border/40 rounded-2xl w-full">
-                            {recordingMode === 'system' && (
-                              <div className="flex-1 text-left space-y-2.5 max-w-sm">
-                                <p className="text-[10px] text-app-accent font-bold uppercase tracking-widest flex items-center gap-1.5">
-                                  <Monitor size={12} />
-                                  {t('virtualSetupTitle')}
-                                </p>
-                                <ul className="text-[11px] text-slate-500 dark:text-slate-400 space-y-1.5 leading-snug">
-                                  <li className="flex gap-2">
-                                    <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-[8px] text-slate-500 shrink-0">1</span>
-                                    <span>{t('virtualSetupStep1')}</span>
-                                  </li>
-                                  <li className="flex gap-2">
-                                    <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-[8px] text-slate-500 shrink-0">2</span>
-                                    <span className="text-app-accent font-bold">{t('virtualSetupStep2')}</span>
-                                  </li>
-                                </ul>
-                                <p className="text-[9px] text-amber-600 dark:text-amber-500/90 font-medium pt-1.5 leading-normal border-t border-slate-150 dark:border-white/5 mt-2">
-                                  {t('minimizeStreamWarning')}
-                                </p>
-                              </div>
+                          >
+                            <Headphones size={13} />
+                            {t('virtualMeeting')}
+                          </button>
+                          <button 
+                            onClick={() => setRecordingMode('upload')}
+                            className={cn(
+                              "px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                              recordingMode === 'upload' 
+                                ? "bg-white dark:bg-slate-800 text-app-accent shadow-xs" 
+                                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
                             )}
-                            {recordingMode === 'mic' && (
-                              <div className="flex-1 text-left space-y-1 max-w-sm">
-                                <p className="text-sm font-bold text-slate-800 dark:text-white">{language === 'portuguese' ? 'Gravação Presencial Local' : 'Local Mic Capture'}</p>
-                                <p className="text-xs text-slate-400 leading-relaxed">{language === 'portuguese' ? 'Otimizado para conversas em sala, reuniões presenciais ou apresentações locais com diariamento de vozes.' : 'Optimized for in-room dialogue, speech clarity and live diarization using high-fidelity local mic.'}</p>
-                              </div>
-                            )}
-
-                            {/* Centered recording button in container */}
-                            <div className="relative shrink-0 flex items-center justify-center py-4 px-6">
-                              <div className="absolute w-32 h-32 rounded-full bg-app-accent/5 animate-pulse-ring pointer-events-none" />
-                              <button
-                                onClick={startRecording}
-                                className="relative z-10 w-28 h-28 rounded-full bg-app-accent text-white flex flex-col items-center justify-center shadow-lg hover:scale-102 transition-transform cursor-pointer border border-white/5 active:scale-98"
-                              >
-                                <Mic size={24} className="text-white" />
-                                <span className="mt-2 font-mono text-[7px] tracking-[0.15em] uppercase font-bold opacity-90">{t('startSession')}</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-6 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                          <div className="flex items-center gap-1.5">
-                            <Headphones size={12} className="text-app-green" />
-                            <span>Headset Optimized</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Sparkles size={12} className="text-app-green" />
-                            <span>AI Active</span>
-                          </div>
+                          >
+                            <Upload size={13} />
+                            {t('uploadFile')}
+                          </button>
                         </div>
                       </div>
 
-                      {/* Card 2: Parâmetros da Sessão (Expected Speakers & Template & Ring Gauge) */}
-                      <div className="col-span-1 md:col-span-2 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-6 text-left">
-                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                          <Sliders size={12} className="text-app-accent" />
-                          {language === 'portuguese' ? 'Configuração e Filtros' : 'Session Parameters'}
-                        </h3>
+                      {error && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/20 text-red-700 dark:text-red-400 px-6 py-4 rounded-2xl text-xs text-center flex flex-col gap-2 items-center"
+                        >
+                          <p className="font-bold">{error}</p>
+                          {lastFailedAudio && (
+                            <button 
+                              onClick={handleRetry}
+                              className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg uppercase text-[10px] cursor-pointer"
+                            >
+                              {language === 'portuguese' ? 'Tentar Novamente' : 'Try Again'}
+                            </button>
+                          )}
+                        </motion.div>
+                      )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                          {/* Left Inputs side */}
-                          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-5">
-                            
-                            {/* Standard Executive Report Badge */}
-                            <div className="p-3.5 bg-slate-100/50 dark:bg-slate-900/40 rounded-2xl border border-slate-200/40 dark:border-white/5 space-y-1">
-                              <div className="flex items-center gap-1.5 text-app-accent">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                                  {language === 'portuguese' ? 'Ata Executiva Completa' : 'Full Executive Minutes'}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-slate-400 leading-tight">
-                                {language === 'portuguese' ? 'Resumo executivo, decisões tomadas, ações e transcrição completa.' : 'Executive summary, key decisions, next actions with assignees and full transcript.'}
+                      {recordingMode === 'upload' ? (
+                        <div className="w-full">
+                          <AudioFileUpload 
+                            onFileSelect={handleFileUpload} 
+                            isProcessing={isProcessing} 
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 p-6 bg-slate-50/50 dark:bg-slate-900/20 border border-app-border/40 rounded-2xl w-full">
+                          <div className="flex-1 text-left space-y-4 w-full">
+                            <div>
+                              <p className="text-sm font-bold text-slate-800 dark:text-white">
+                                {recordingMode === 'system' 
+                                  ? (language === 'portuguese' ? 'Encontro Virtual (Teams, Zoom, Meet)' : 'Virtual Meeting Capture')
+                                  : (language === 'portuguese' ? 'Gravação Presencial Local' : 'Local Mic Capture')}
+                              </p>
+                              <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-xl">
+                                {recordingMode === 'system' 
+                                  ? (language === 'portuguese' ? 'Otimizado para capturar chamadas e abas de reunião com alta fidelidade e cancelamento de eco.' : 'Optimized for browser tabs and virtual conferencing platforms.')
+                                  : (language === 'portuguese' ? 'Otimizado para conversas em sala, reuniões presenciais ou apresentações locais com diariamento de vozes.' : 'Optimized for in-room dialogue, speech clarity and live diarization.')}
                               </p>
                             </div>
 
-                            {/* Speakers input */}
-                            <div className="space-y-1.5">
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                            {/* Integrated Expected Speakers input */}
+                            <div className="space-y-1.5 max-w-xl">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <Users size={12} className="text-app-accent" />
                                 {t('expectedSpeakersLabel')}
                               </label>
                               <input
@@ -3605,134 +3546,130 @@ export default function App() {
                                 value={expectedSpeakers}
                                 onChange={(e) => setExpectedSpeakers(e.target.value)}
                                 placeholder={t('expectedSpeakersPlaceholder')}
-                                className="w-full bg-slate-50 dark:bg-slate-900/60 border border-app-border rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/20 font-medium"
+                                className="w-full bg-white dark:bg-slate-900/60 border border-app-border rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-app-accent/30 font-medium placeholder:text-slate-400"
                               />
                             </div>
                           </div>
 
-                          {/* Right side - Ring gauge */}
-                          <div className="md:col-span-4 lg:col-span-3 flex items-center justify-between md:justify-end gap-4 md:border-l md:border-slate-100 md:dark:border-white/5 md:pl-6 w-full pt-4 md:pt-0">
-                            <div className="text-left">
-                              <p className="text-[10px] font-bold text-slate-800 dark:text-white uppercase tracking-widest">{t('aiQualityLabel')}</p>
-                              <p className="text-[9px] text-slate-400">{t('diarizationAccuracy')}</p>
-                            </div>
-                            
-                            <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
-                              <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="28" cy="28" r="22" stroke="rgba(129,140,248,0.08)" strokeWidth="3" fill="transparent" />
-                                <motion.circle 
-                                  cx="28" cy="28" r="22" 
-                                  stroke="var(--app-accent)" strokeWidth="3" fill="transparent" 
-                                  strokeDasharray={138}
-                                  initial={{ strokeDashoffset: 138 }}
-                                  animate={{ strokeDashoffset: 138 - (138 * 0.98) }}
-                                  transition={{ duration: 1.5 }}
-                                />
-                              </svg>
-                              <span className="absolute text-[10px] font-mono font-bold text-app-accent">98%</span>
-                            </div>
+                          {/* Large pulsing Start Recording button */}
+                          <div className="relative shrink-0 flex items-center justify-center p-2">
+                            <div className="absolute w-36 h-36 rounded-full bg-app-accent/5 animate-pulse-ring pointer-events-none" />
+                            <button
+                              onClick={startRecording}
+                              className="relative z-10 w-32 h-32 rounded-full bg-app-accent hover:opacity-95 text-white flex flex-col items-center justify-center shadow-xl hover:scale-105 transition-all cursor-pointer border-4 border-white/20 active:scale-95 group"
+                            >
+                              <Mic size={30} className="text-white group-hover:scale-110 transition-transform" />
+                              <span className="mt-2 font-mono text-[8px] tracking-[0.15em] uppercase font-black opacity-90">{t('startSession')}</span>
+                            </button>
                           </div>
+                        </div>
+                      )}
+
+                      {/* Footer State Tags */}
+                      <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-slate-100 dark:border-white/5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 size={13} />
+                            {language === 'portuguese' ? 'Ata Executiva Completa' : 'Full Executive Minutes'}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Sparkles size={13} className="text-app-accent" />
+                            <span>Groq LPU Ativo</span>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Headphones size={13} className="text-slate-400" />
+                            <span>Headset Optimized</span>
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                          98% Precisão Diarização
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: Full-Width Recent Sessions Grid */}
+                    <div className="bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 md:p-8 shadow-xs flex flex-col gap-6 text-left">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-app-accent/10 text-app-accent flex items-center justify-center">
+                            <History size={18} />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">
+                              {t('recentSessions') || 'Sessões Recentes'}
+                            </h3>
+                            <p className="text-xs text-slate-400">{history.length} {language === 'portuguese' ? 'atas gravadas e processadas' : 'minutes recorded & processed'}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-full sm:w-72">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
+                            <input 
+                              type="text"
+                              placeholder={language === 'portuguese' ? 'Procurar reuniões...' : 'Search recent meetings...'}
+                              value={searchQuery}
+                              onChange={e => setSearchQuery(e.target.value)}
+                              className="w-full bg-slate-50 dark:bg-slate-900 border border-app-border rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-app-accent/30 text-slate-800 dark:text-white placeholder-slate-400"
+                            />
+                          </div>
+                          <button 
+                            onClick={() => setShowHistory(true)}
+                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer"
+                          >
+                            {language === 'portuguese' ? 'Ver Todas' : 'View All'} →
+                          </button>
                         </div>
                       </div>
 
-                    </div>
+                      {sortedHistory.length === 0 ? (
+                        <div className="py-16 text-center text-slate-400 space-y-2">
+                          <Clock size={28} className="mx-auto opacity-40 text-app-accent" />
+                          <p className="text-sm font-bold text-slate-600 dark:text-slate-300">{t('noSessionsYet')}</p>
+                          <p className="text-xs text-slate-400">{t('startRecordingToBegin')}</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {sortedHistory.slice(0, 6).map((item) => {
+                            const durSec = item.report.duration || 0;
+                            const durFormatted = durSec > 0 ? `${Math.floor(durSec / 60)}m ${durSec % 60}s` : 'N/A';
+                            const dateFormatted = new Date(item.date).toLocaleDateString(language === 'portuguese' ? 'pt-PT' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+                            const timeFormatted = item.report.startTime || new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                    {/* Right column sidebar / Recent Sessions (occupies col-span-4 on desktop) */}
-                    <div className="col-span-12 lg:col-span-4 bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 shadow-xs flex flex-col gap-5 h-full">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                          <History size={14} className="text-app-accent" />
-                          {t('recentSessions') || 'Sessões Recentes'}
-                        </h3>
-                        <button 
-                          onClick={() => setShowHistory(true)}
-                          className="text-[9px] font-bold text-app-accent uppercase tracking-widest hover:underline cursor-pointer"
-                        >
-                          {language === 'portuguese' ? 'Ver Tudo' : 'View All'}
-                        </button>
-                      </div>
-
-                      {/* Small inline search bar in right sidebar */}
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
-                        <input 
-                          type="text"
-                          placeholder={language === 'portuguese' ? 'Procurar reuniões...' : 'Search recent...'}
-                          value={searchQuery}
-                          onChange={e => setSearchQuery(e.target.value)}
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-app-border rounded-xl pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-app-accent/20 transition-all text-slate-800 dark:text-white placeholder-slate-400"
-                        />
-                      </div>
-
-                      {/* List of Recent Items */}
-                      <div className="space-y-3.5 max-h-[360px] overflow-y-auto custom-scrollbar pr-1">
-                        {sortedHistory.length === 0 ? (
-                          <div className="py-12 text-center text-slate-400 space-y-2">
-                            <Clock size={20} className="mx-auto opacity-50 text-app-accent" />
-                            <p className="text-xs font-semibold">{t('noSessionsYet')}</p>
-                            <p className="text-[10px] leading-snug">{t('startRecordingToBegin')}</p>
-                          </div>
-                        ) : (
-                          sortedHistory.slice(0, 4).map((item) => (
-                            <div 
-                              key={item.id}
-                              onClick={() => handleSelectHistory(item)}
-                              className="group flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/40 border border-app-border rounded-2xl cursor-pointer hover:border-app-accent/40 hover:shadow-xs transition-all"
-                            >
-                              <div className="flex-1 mr-3 overflow-hidden text-left">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                  <span className="text-[8px] font-mono text-slate-400 uppercase">
-                                    {new Date(item.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                                  </span>
-                                  {item.report.clientName && (
-                                    <span className="text-[8px] font-bold text-app-accent bg-app-accent/5 px-1.5 py-0.2 rounded uppercase">
-                                      {item.report.clientName}
+                            return (
+                              <div 
+                                key={item.id}
+                                onClick={() => handleSelectHistory(item)}
+                                className="group flex flex-col justify-between p-5 bg-slate-50/60 dark:bg-slate-900/30 hover:bg-white dark:hover:bg-slate-900 border border-app-border hover:border-app-accent/40 rounded-2xl cursor-pointer shadow-2xs hover:shadow-md transition-all text-left space-y-4"
+                              >
+                                <div className="space-y-2.5">
+                                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                                    <span className="flex items-center gap-1.5 font-semibold">
+                                      <Calendar size={11} className="text-app-accent" />
+                                      {dateFormatted} • {timeFormatted}
                                     </span>
-                                  )}
-                                  {item.report.downloaded && (
-                                    <span 
-                                      className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/10 px-1.5 py-0.2 rounded uppercase flex items-center gap-0.5"
-                                      title={t('downloadedTooltip')}
-                                    >
-                                      <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
-                                      {t('downloadedBadge')}
+                                    <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                                      <Timer size={10} />
+                                      {durFormatted}
                                     </span>
-                                  )}
+                                  </div>
+                                  <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-app-accent transition-colors">
+                                    {item.title}
+                                  </h4>
+                                  <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                                    {item.report.summary || (language === 'portuguese' ? 'Resumo executivo da sessão processado.' : 'Executive session summary.')}
+                                  </p>
                                 </div>
-                                <h4 className="text-xs font-bold text-slate-800 dark:text-white truncate leading-tight group-hover:text-app-accent transition-colors">
-                                  {item.title}
-                                </h4>
-                                <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5 leading-snug">
-                                  {item.report.summary}
-                                </p>
+
+                                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5 text-[11px] font-bold text-app-accent group-hover:translate-x-1 transition-transform">
+                                  <span>{language === 'portuguese' ? 'Abrir Ata Completa' : 'Open Full Minutes'}</span>
+                                  <ArrowRight size={13} />
+                                </div>
                               </div>
-
-                              {/* Tiny terracotta micro sparkline SVG next to each item */}
-                              <div className="w-12 h-6 shrink-0 opacity-85 group-hover:opacity-100 transition-opacity">
-                                <svg className="w-full h-full">
-                                  <path 
-                                    d={`M 0 14 Q 12 4, 24 16 T 48 10`} 
-                                    fill="none" 
-                                    stroke="var(--app-accent)" 
-                                    strokeWidth="1.5" 
-                                  />
-                                </svg>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      {/* Small feedback prompt card matching Dwayne Tatum widget look */}
-                      <div className="mt-auto bg-app-accent/5 dark:bg-app-accent/10 border border-app-accent/15 rounded-2xl p-4 text-left">
-                        <p className="text-[10px] font-bold text-app-accent uppercase tracking-widest mb-1">Dica de Produtividade</p>
-                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 leading-snug">
-                          {language === 'portuguese' 
-                            ? 'Pode exportar atas diretamente para PDF, Clipboard ou partilhar por email utilizando o Painel de Relatório.' 
-                            : 'You can export reports to PDF, copy summaries, or ask the Gemini helper anything about the text!'}
-                        </p>
-                      </div>
-
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
                   </div>
