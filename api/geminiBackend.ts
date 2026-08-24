@@ -796,44 +796,79 @@ export async function generateMeetingReportWithGroq(
     throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Empty response from Groq LLM.');
   }
 
+  let parsed: any = null;
+
   try {
     let jsonText = resultText.trim();
+    // Remove markdown code fences if present (e.g. ```json ... ```)
+    jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    
     // Extract JSON block if the model output contains reasoning or conversational prefixes
     const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       jsonText = jsonMatch[0];
     }
-    const parsed = JSON.parse(jsonText);
     
-    // Construct the transcript by combining Whisper segments with LLM attributed speakers
-    const transcript = formattedSegments.map((s: any, idx: number) => {
-      const speakerName = parsed.speakers && parsed.speakers[idx] 
-        ? parsed.speakers[idx] 
-        : (isQuickDraft ? (language === 'portuguese' ? 'Utilizador' : 'User') : `Speaker ${idx + 1}`);
-      return {
-        speaker: speakerName,
-        text: s.text,
-        timestamp: s.timestamp
-      };
-    });
-
-    const report: MeetingReport = {
-      summary: parsed.summary || "",
-      highlights: parsed.highlights || [],
-      keyDecisions: parsed.keyDecisions || [],
-      nextActions: parsed.nextActions || [],
-      transcript,
-      isQuickDraft,
-      quickDraft: isQuickDraft ? {
-        formattedNotes: parsed.formattedNotes || "",
-        taskList: parsed.taskList || [],
-        emailDraft: parsed.emailDraft || ""
-      } : undefined
-    };
-
-    return report;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch (firstErr) {
+      // Fix common LLM JSON syntax quirks: trailing commas, unescaped control chars
+      const sanitized = jsonText
+        .replace(/,\s*([\}\]])/g, '$1')
+        .replace(/[\u0000-\u001F]+/g, ' ');
+      parsed = JSON.parse(sanitized);
+    }
   } catch (parseError) {
-    console.error("Failed to parse Groq response as JSON:", resultText);
-    throw new MeetingAnalysisError('PARSE_ERROR', "Failed to parse structured response from Groq.");
+    console.warn("Groq LLM output was not strict JSON. Applying intelligent text extraction fallback:", resultText);
+    const lines = resultText.split('\n').map((l: string) => l.trim()).filter(Boolean);
+    const bullets = lines.filter((l: string) => l.startsWith('-') || l.startsWith('*') || l.startsWith('•')).map((l: string) => l.replace(/^[-*•]\s*/, ''));
+    const nonBullets = lines.filter((l: string) => !l.startsWith('-') && !l.startsWith('*') && !l.startsWith('•') && !l.startsWith('```'));
+    
+    parsed = {
+      summary: nonBullets.slice(0, 3).join(' ') || (language === 'portuguese' ? "Resumo gerado com base na transcrição." : "Summary generated from transcript."),
+      highlights: bullets.length > 0 ? bullets : nonBullets.slice(3, 8),
+      keyDecisions: [],
+      nextActions: [],
+      speakers: []
+    };
   }
+
+  // Construct the transcript by combining Whisper segments with LLM attributed speakers
+  const transcript = formattedSegments.map((s: any, idx: number) => {
+    const speakerName = parsed.speakers && parsed.speakers[idx] 
+      ? parsed.speakers[idx] 
+      : (isQuickDraft ? (language === 'portuguese' ? 'Utilizador' : 'User') : `Speaker ${idx + 1}`);
+    return {
+      speaker: speakerName,
+      text: s.text,
+      timestamp: s.timestamp
+    };
+  });
+
+  const normalizedNextActions = (parsed.nextActions || []).map((na: any) => {
+    if (typeof na === 'string') {
+      return { task: na, assignee: language === 'portuguese' ? 'Equipa' : 'Team', dueDate: 'TBD' };
+    }
+    return {
+      task: na.task || na.description || String(na),
+      assignee: na.assignee || na.owner || (language === 'portuguese' ? 'Equipa' : 'Team'),
+      dueDate: na.dueDate || na.deadline || 'TBD'
+    };
+  });
+
+  const report: MeetingReport = {
+    summary: parsed.summary || "",
+    highlights: Array.isArray(parsed.highlights) ? parsed.highlights : (parsed.highlights ? [String(parsed.highlights)] : []),
+    keyDecisions: Array.isArray(parsed.keyDecisions) ? parsed.keyDecisions : (parsed.keyDecisions ? [String(parsed.keyDecisions)] : []),
+    nextActions: normalizedNextActions,
+    transcript,
+    isQuickDraft,
+    quickDraft: isQuickDraft ? {
+      formattedNotes: parsed.formattedNotes || "",
+      taskList: Array.isArray(parsed.taskList) ? parsed.taskList : [],
+      emailDraft: parsed.emailDraft || ""
+    } : undefined
+  };
+
+  return report;
 }
