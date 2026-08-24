@@ -640,8 +640,21 @@ export async function generateMeetingReportWithGroq(
     };
   }
 
+  // Deduplicate consecutive repeated hallucination segments from Whisper
+  const cleanSegments: any[] = [];
+  let prevText = "";
+  for (const seg of segments) {
+    const text = (seg.text || "").trim();
+    if (!text) continue;
+    if (text.toLowerCase() === prevText.toLowerCase()) {
+      continue;
+    }
+    prevText = text;
+    cleanSegments.push(seg);
+  }
+
   // Format segments with timestamps for LLM diarization
-  const formattedSegments = segments.map((seg: any, idx: number) => {
+  const formattedSegments = cleanSegments.map((seg: any, idx: number) => {
     const minutes = Math.floor(seg.start / 60).toString().padStart(2, '0');
     const seconds = Math.floor(seg.start % 60).toString().padStart(2, '0');
     const timestamp = `${minutes}:${seconds}`;
@@ -652,11 +665,15 @@ export async function generateMeetingReportWithGroq(
     };
   });
 
-  const formattedSegmentsText = formattedSegments.map((s: any) => `[${s.timestamp}] Segment ${s.index}: "${s.text}"`).join('\n');
+  let formattedSegmentsText = formattedSegments.map((s: any) => `[${s.timestamp}] Segment ${s.index}: "${s.text}"`).join('\n');
 
-  console.log("Calling Groq Llama-3.3-70b-versatile for meeting report synthesis...");
+  // If text is extremely long, safely truncate to avoid blowing token limit
+  if (formattedSegmentsText.length > 20000) {
+    formattedSegmentsText = formattedSegmentsText.slice(0, 20000) + "\n... [Remaining transcript summarized for executive context]";
+  }
 
-  // Build prompt instructions
+  console.log("Calling Groq for meeting report synthesis...");
+
   // Build prompt instructions
   const lowVolumeInstruction = optimizeLowVolume 
     ? "The audio had low volume. Pay extra attention to faint dialogue."
@@ -721,6 +738,11 @@ export async function generateMeetingReportWithGroq(
     }
   `;
 
+  // Calculate safe token budget dynamically so Prompt Tokens + max_tokens never exceeds Groq's 8,000 TPM limit
+  const estimatedPromptTokens = Math.ceil(formattedSegmentsText.length / 3.5) + 600;
+  const safeMaxTokens = Math.max(1500, Math.min(3200, 7500 - estimatedPromptTokens));
+  console.log(`Groq prompt tokens: ~${estimatedPromptTokens}, safeMaxTokens: ${safeMaxTokens}`);
+
   let resultText = "";
   const candidateModels = ["openai/gpt-oss-20b", "groq/compound", "openai/gpt-oss-120b", "qwen/qwen3.6-27b"];
   let modelIndex = 0;
@@ -729,7 +751,7 @@ export async function generateMeetingReportWithGroq(
   
   while (chatRetries < maxChatRetries) {
     const currentModel = candidateModels[modelIndex % candidateModels.length];
-    console.log(`Calling Groq model ${currentModel} for meeting report synthesis...`);
+    console.log(`Calling Groq model ${currentModel} (max_tokens: ${safeMaxTokens}) for meeting report synthesis...`);
 
     const chatRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -744,7 +766,7 @@ export async function generateMeetingReportWithGroq(
           { role: "user", content: `Here are the meeting segments:\n\n${formattedSegmentsText}` }
         ],
         temperature: 0.1,
-        max_tokens: 8192
+        max_tokens: safeMaxTokens
       })
     });
 

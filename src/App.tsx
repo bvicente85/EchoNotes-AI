@@ -553,7 +553,7 @@ export default function App() {
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
       const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
       const rawAiModel = localStorage.getItem('echonotes_ai_model');
-      const aiModel = (rawAiModel && rawAiModel !== 'gemini-3.5-flash') ? rawAiModel : 'groq-llama-3.3';
+      const aiModel = (rawAiModel && rawAiModel.includes('groq')) ? rawAiModel : 'groq-llama-3.3';
       const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
@@ -758,7 +758,7 @@ export default function App() {
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
       const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
       const rawAiModel = localStorage.getItem('echonotes_ai_model');
-      const aiModel = (rawAiModel && rawAiModel !== 'gemini-3.5-flash') ? rawAiModel : 'groq-llama-3.3';
+      const aiModel = (rawAiModel && rawAiModel.includes('groq')) ? rawAiModel : 'groq-llama-3.3';
       const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
