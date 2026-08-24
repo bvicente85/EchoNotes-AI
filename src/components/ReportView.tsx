@@ -53,12 +53,15 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
   });
 
   const metadata = useMemo(() => {
-    let dateObj: Date | null = null;
+    let dateObj: Date;
     if (data.meetingDate) {
       dateObj = new Date(data.meetingDate);
     } else if (data.analyzedAt) {
       dateObj = new Date(data.analyzedAt);
     } else {
+      dateObj = new Date();
+    }
+    if (isNaN(dateObj.getTime())) {
       dateObj = new Date();
     }
 
@@ -69,6 +72,26 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
       day: 'numeric'
     });
 
+    // Helper to parse strings like "01:56", "~01:56", or "01:05:30"
+    const parseSec = (ts?: string | number): number => {
+      if (typeof ts === 'number') return ts;
+      if (!ts) return 0;
+      const clean = String(ts).replace(/^[~≈\s]+/, '').trim();
+      const parts = clean.split(':').map(p => parseFloat(p) || 0);
+      if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      if (parts.length === 2) return parts[0] * 60 + parts[1];
+      if (parts.length === 1) return parts[0];
+      return 0;
+    };
+
+    let totalDurationSec = (typeof data.duration === 'number' && data.duration > 0) ? data.duration : 0;
+    if (totalDurationSec === 0 && data.transcript && data.transcript.length > 0) {
+      const lastSeg = data.transcript[data.transcript.length - 1];
+      if (lastSeg?.timestamp) {
+        totalDurationSec = parseSec(lastSeg.timestamp);
+      }
+    }
+
     const startTimeFormatted = data.startTime || dateObj.toLocaleTimeString(language === 'portuguese' ? 'pt-PT' : 'en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -76,20 +99,23 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
     });
 
     let endTimeFormatted = data.endTime;
-    if (!endTimeFormatted && data.duration !== undefined && data.duration > 0) {
-      const endTimestamp = dateObj.getTime() + (data.duration * 1000);
+    // If endTime is missing or identical to startTime while duration exists, calculate the real finished hour
+    if ((!endTimeFormatted || endTimeFormatted === startTimeFormatted) && totalDurationSec > 0) {
+      const endTimestamp = dateObj.getTime() + (totalDurationSec * 1000);
       endTimeFormatted = new Date(endTimestamp).toLocaleTimeString(language === 'portuguese' ? 'pt-PT' : 'en-US', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
       });
+    } else if (!endTimeFormatted) {
+      endTimeFormatted = startTimeFormatted;
     }
 
-    let durationFormatted = 'N/A';
-    if (data.duration !== undefined && data.duration > 0) {
-      const h = Math.floor(data.duration / 3600);
-      const m = Math.floor((data.duration % 3600) / 60);
-      const s = Math.floor(data.duration % 60);
+    let durationFormatted = '0s';
+    if (totalDurationSec > 0) {
+      const h = Math.floor(totalDurationSec / 3600);
+      const m = Math.floor((totalDurationSec % 3600) / 60);
+      const s = Math.floor(totalDurationSec % 60);
       if (h > 0) {
         durationFormatted = `${h}h ${m}m ${s}s`;
       } else if (m > 0) {
@@ -97,18 +123,14 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
       } else {
         durationFormatted = `${s}s`;
       }
-    } else if (data.transcript && data.transcript.length > 0) {
-      const lastSeg = data.transcript[data.transcript.length - 1];
-      if (lastSeg && lastSeg.timestamp) {
-        durationFormatted = `~${lastSeg.timestamp}`;
-      }
     }
 
     return {
       formattedDate,
       startTime: startTimeFormatted,
-      endTime: endTimeFormatted || 'N/A',
-      durationFormatted
+      endTime: endTimeFormatted,
+      durationFormatted,
+      totalDurationSec
     };
   }, [data.meetingDate, data.analyzedAt, data.startTime, data.endTime, data.duration, data.transcript, language]);
 
@@ -1076,8 +1098,25 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
             </label>
             <input
               type="datetime-local"
-              value={data.meetingDate ? data.meetingDate.slice(0, 16) : ''}
-              onChange={(e) => updateData({ ...data, meetingDate: e.target.value })}
+              value={(() => {
+                const val = data.meetingDate || data.analyzedAt;
+                if (!val) return '';
+                const d = new Date(val);
+                if (isNaN(d.getTime())) return '';
+                const YYYY = d.getFullYear();
+                const MM = String(d.getMonth() + 1).padStart(2, '0');
+                const DD = String(d.getDate()).padStart(2, '0');
+                const HH = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                return `${YYYY}-${MM}-${DD}T${HH}:${mm}`;
+              })()}
+              onChange={(e) => {
+                if (!e.target.value) return;
+                const newDate = new Date(e.target.value);
+                if (!isNaN(newDate.getTime())) {
+                  updateData({ ...data, meetingDate: newDate.toISOString() });
+                }
+              }}
               className="w-full bg-transparent border-none focus:ring-0 p-0 text-xs font-semibold text-slate-800 dark:text-slate-100 [color-scheme:light] dark:[color-scheme:dark] tracking-tight cursor-pointer"
             />
           </div>

@@ -31,6 +31,16 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
   return new Blob([byteArray], { type: mimeType });
 };
 
+const parseTimestampToSeconds = (ts?: string): number => {
+  if (!ts) return 0;
+  const cleaned = ts.replace(/^[~≈\s]+/, '').trim();
+  const parts = cleaned.split(':').map(p => parseFloat(p) || 0);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 1) return parts[0];
+  return 0;
+};
+
 const enrichReport = (
   report: MeetingReport, 
   durationSec?: number, 
@@ -38,15 +48,25 @@ const enrichReport = (
   endMs?: number | null
 ): MeetingReport => {
   const startDate = startMs ? new Date(startMs) : new Date();
-  const dur = durationSec !== undefined ? durationSec : (report.duration || 0);
-  const endDate = endMs ? new Date(endMs) : new Date(startDate.getTime() + dur * 1000);
+  
+  let dur = (durationSec !== undefined && durationSec > 0) ? durationSec : (report.duration || 0);
+  if (dur === 0 && report.transcript && report.transcript.length > 0) {
+    const lastSeg = report.transcript[report.transcript.length - 1];
+    dur = parseTimestampToSeconds(lastSeg?.timestamp);
+  }
+
+  const endDate = (endMs && endMs > startDate.getTime()) 
+    ? new Date(endMs) 
+    : new Date(startDate.getTime() + (dur * 1000));
 
   return {
     ...report,
     meetingDate: report.meetingDate || startDate.toISOString(),
     duration: dur,
     startTime: report.startTime || startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    endTime: report.endTime || endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    endTime: (report.endTime && report.endTime !== report.startTime && dur === 0) 
+      ? report.endTime 
+      : endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
     analyzedAt: report.analyzedAt || new Date().toISOString()
   };
 };

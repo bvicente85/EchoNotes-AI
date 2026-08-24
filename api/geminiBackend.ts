@@ -836,6 +836,7 @@ export async function generateMeetingReportWithGroq(
     keyDecisions: Array.isArray(parsed.keyDecisions) ? parsed.keyDecisions : (parsed.keyDecisions ? [String(parsed.keyDecisions)] : []),
     nextActions: normalizedNextActions,
     transcript,
+    duration: typeof transcribeData?.duration === 'number' ? Math.round(transcribeData.duration) : undefined,
     isQuickDraft,
     quickDraft: isQuickDraft ? {
       formattedNotes: parsed.formattedNotes || "",
