@@ -126,10 +126,10 @@ export async function generateMeetingReport(
 
     Goals:
     1. ${summaryInstruction} Use Markdown for headers or bolding.
-    2. "highlights": Most important topics and data points discussed.
+    2. "highlights": Most important topics and data points discussed (clean array of bullet points).
     3. "keyDecisions": Explicit agreements, approvals, or conclusions.
     4. "nextActions": Concrete actionable tasks with owners and deadlines.
-    5. "transcript": Full word-for-word transcript with speaker identification and timestamps (MM:SS).
+    5. "transcript": Structured speaker dialogue and key verbatim moments with speaker identification and timestamps (MM:SS).
 
     LANGUAGE REQUIREMENTS:
     - Target Output Language: ${language}.
@@ -137,12 +137,12 @@ export async function generateMeetingReport(
     - Output a polished, final, print-ready document directly.
   `;
 
-  // Cascade pool of Gemini models (ultra-fast and reliable models prioritized)
+  // Cascade pool of Gemini models (ultra-fast 18s models prioritized for zero timeout)
   const candidateModels = [
-    "gemini-3.6-flash",
     "gemini-3.5-flash",
-    "gemini-3.7-flash",
+    "gemini-3.6-flash",
     "gemini-2.5-flash",
+    "gemini-3.7-flash",
     "gemini-2.5-pro",
     "gemini-flash-latest",
     "gemini-pro-latest",
