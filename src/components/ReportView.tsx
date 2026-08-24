@@ -19,6 +19,18 @@ interface ReportViewProps {
   onDelete?: (id: string) => void;
 }
 
+const normalizeNextActions = (actions: any[]): string[] => {
+  if (!Array.isArray(actions)) return [];
+  return actions.map(a => {
+    if (typeof a === 'string') return a;
+    if (!a) return '';
+    const task = a.task || a.description || '';
+    const assignee = a.assignee && a.assignee !== 'Equipa' && a.assignee !== 'Team' ? ` (${a.assignee})` : '';
+    const due = a.dueDate && a.dueDate !== 'TBD' ? ` [Prazo: ${a.dueDate}]` : '';
+    return `${task}${assignee}${due}`.trim() || String(a);
+  });
+};
+
 export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTitle, meetingId, onReset, onUpdate, onUpdateTitle, onDelete }) => {
   const { language, t } = useLanguage();
   const { 
@@ -33,7 +45,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
     summary: report.summary,
     highlights: report.highlights,
     keyDecisions: report.keyDecisions || [],
-    nextActions: report.nextActions,
+    nextActions: normalizeNextActions(report.nextActions),
     transcript: report.transcript,
     clientName: report.clientName || '',
     meetingDate: report.meetingDate || new Date().toISOString().slice(0, 16),
@@ -345,7 +357,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
         summary: report.summary,
         highlights: report.highlights,
         keyDecisions: report.keyDecisions || [],
-        nextActions: report.nextActions,
+        nextActions: normalizeNextActions(report.nextActions),
         transcript: report.transcript,
         clientName: report.clientName || '',
         meetingDate: report.meetingDate || new Date().toISOString().slice(0, 16),

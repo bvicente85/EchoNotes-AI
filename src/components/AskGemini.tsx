@@ -17,7 +17,7 @@ interface AskGeminiProps {
 }
 
 export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] }) => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -68,7 +68,7 @@ export const AskGemini: React.FC<AskGeminiProps> = ({ report, historyItems = [] 
         parts: [{ text: msg.text }]
       }));
 
-      const response = await askGemini(query, report, historyItems, chatHistory);
+      const response = await askGemini(query, report, historyItems, chatHistory, language);
       setMessages(prev => [...prev, { role: 'model', text: response }]);
     } catch (error) {
       console.error("Chat error:", error);

@@ -625,6 +625,21 @@ export async function generateMeetingReportWithGroq(
   const segments = transcribeData.segments || [];
   console.log(`Audio transcribed successfully with ${segments.length} segments.`);
 
+  // Safeguard against completely silent or empty audio
+  if (segments.length === 0 && (!transcribeData.text || !transcribeData.text.trim())) {
+    return {
+      summary: language === 'portuguese' 
+        ? "Nenhuma fala percetível foi detetada na gravação de áudio." 
+        : "No audible speech was detected in the audio recording.",
+      highlights: [],
+      keyDecisions: [],
+      nextActions: [],
+      transcript: [],
+      duration: typeof transcribeData?.duration === 'number' ? Math.round(transcribeData.duration) : 0,
+      isQuickDraft
+    };
+  }
+
   // Format segments with timestamps for LLM diarization
   const formattedSegments = segments.map((seg: any, idx: number) => {
     const minutes = Math.floor(seg.start / 60).toString().padStart(2, '0');
