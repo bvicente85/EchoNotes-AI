@@ -177,6 +177,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
 
   // Quick Draft State
   const [activeDraftTab, setActiveDraftTab] = useState<'scratchpad' | 'tasks' | 'email'>('scratchpad');
+  const [activeReportTab, setActiveReportTab] = useState<'all' | 'summary' | 'decisions' | 'actions'>('all');
   const [isEditingDraftNotes, setIsEditingDraftNotes] = useState(false);
   const [isEditingDraftEmail, setIsEditingDraftEmail] = useState(false);
 
@@ -1627,282 +1628,385 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
             </section>
           ) : (
             <>
-              {/* Executive Insight Box */}
-              <section className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="text-amber-500 w-4 h-4 shrink-0" />
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('executiveSummary')}</h2>
-                  </div>
-                  <button 
-                    onClick={() => setIsEditingSummary(!isEditingSummary)}
-                    className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-slate-900 border border-slate-200 dark:border-white/5 px-3 py-1.5 rounded-lg transition-all bg-white dark:bg-slate-900 shadow-sm cursor-pointer"
-                  >
-                    {isEditingSummary ? t('save') : t('editSummaryWord')}
-                  </button>
-                </div>
-                
-                <div className="bg-app-card border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm backdrop-blur-md">
-                  {isEditingSummary ? (
-                    <textarea
-                      autoFocus
-                      value={data.summary}
-                      onChange={(e) => updateData({ ...data, summary: e.target.value })}
-                      onBlur={() => setIsEditingSummary(false)}
-                      className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm leading-relaxed text-slate-800 dark:text-slate-200 min-h-[300px] resize-none font-mono focus:outline-none"
-                      placeholder={t('enterStrategicAnalysis')}
-                    />
-                  ) : (
-                    <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-bold text-slate-700 dark:text-slate-350">
-                      <ReactMarkdown>{data.summary}</ReactMarkdown>
-                    </div>
+              {/* Executive Tab Navigation Bar */}
+              <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-white/5 pb-3 overflow-x-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setActiveReportTab('all')}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap",
+                    activeReportTab === 'all'
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                   )}
-                </div>
-              </section>
+                >
+                  <FileText size={13} />
+                  {language === 'portuguese' ? 'Visão Geral' : 'Overview'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveReportTab('summary')}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap",
+                    activeReportTab === 'summary'
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  )}
+                >
+                  <Sparkles size={13} className="text-amber-500" />
+                  {t('executiveSummary')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveReportTab('decisions')}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap",
+                    activeReportTab === 'decisions'
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  )}
+                >
+                  <Gavel size={13} className="text-emerald-500" />
+                  {t('keyDecisions')}
+                  {data.keyDecisions.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      {data.keyDecisions.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveReportTab('actions')}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap",
+                    activeReportTab === 'actions'
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  )}
+                >
+                  <CheckCircle2 size={13} className="text-amber-500" />
+                  {t('nextActions')}
+                  {data.nextActions.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                      {data.nextActions.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Executive Insight Box */}
+              {(activeReportTab === 'all' || activeReportTab === 'summary') && (
+                <section className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="text-amber-500 w-4 h-4 shrink-0" />
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('executiveSummary')}</h2>
+                    </div>
+                    <button 
+                      onClick={() => setIsEditingSummary(!isEditingSummary)}
+                      className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-slate-900 border border-slate-200 dark:border-white/5 px-3 py-1.5 rounded-lg transition-all bg-white dark:bg-slate-900 shadow-sm cursor-pointer"
+                    >
+                      {isEditingSummary ? t('save') : t('editSummaryWord')}
+                    </button>
+                  </div>
+                  
+                  <div className="bg-app-card border border-slate-200/60 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm backdrop-blur-md">
+                    {isEditingSummary ? (
+                      <textarea
+                        autoFocus
+                        value={data.summary}
+                        onChange={(e) => updateData({ ...data, summary: e.target.value })}
+                        onBlur={() => setIsEditingSummary(false)}
+                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm leading-relaxed text-slate-800 dark:text-slate-200 min-h-[300px] resize-none font-mono focus:outline-none"
+                        placeholder={t('enterStrategicAnalysis')}
+                      />
+                    ) : (
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-bold text-slate-700 dark:text-slate-350">
+                        <ReactMarkdown>{data.summary}</ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
 
               {/* Key Decisions Checklist */}
-              <section className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <Gavel className="text-slate-500 dark:text-slate-400 w-4 h-4 shrink-0" />
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('keyDecisions')}</h2>
-                  </div>
-                  <button 
-                    onClick={() => updateData({ ...data, keyDecisions: [...data.keyDecisions, ''] })}
-                    className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
-                    title={t('addDecision')}
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-                
-                <div className="space-y-3">
-                  {data.keyDecisions.map((decision, i) => (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      key={i}
-                      className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex items-start gap-4 transition-all hover:border-slate-300 dark:hover:border-white/10"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 mt-2 shrink-0 shadow-[0_0_6px_rgba(16,185,129,0.4)]" />
-                      <textarea
-                        value={decision}
-                        onChange={(e) => {
-                          const newDecisions = [...data.keyDecisions];
-                          newDecisions[i] = e.target.value;
-                          updateData({ ...data, keyDecisions: newDecisions });
-                        }}
-                        placeholder={t('enterDecisionDetails')}
-                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed focus:outline-none"
-                        rows={1}
-                        onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = 'auto';
-                          target.style.height = `${target.scrollHeight}px`;
-                        }}
-                      />
-                      <button 
-                        onClick={() => {
-                          const newDecisions = data.keyDecisions.filter((_, idx) => idx !== i);
-                          updateData({ ...data, keyDecisions: newDecisions });
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 mt-0.5 cursor-pointer"
-                        title={t('delete')}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </motion.div>
-                  ))}
-                  {data.keyDecisions.length === 0 && (
-                    <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
-                      <Gavel size={24} className="mb-2 text-slate-400" />
-                      <p className="text-xs font-bold uppercase tracking-wider">{t('noDecisionsRecorded')}</p>
+              {(activeReportTab === 'all' || activeReportTab === 'decisions') && (
+                <section className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <Gavel className="text-emerald-500 w-4 h-4 shrink-0" />
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('keyDecisions')}</h2>
                     </div>
-                  )}
-                </div>
-              </section>
+                    <button 
+                      onClick={() => updateData({ ...data, keyDecisions: [...data.keyDecisions, ''] })}
+                      className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
+                      title={t('addDecision')}
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {data.keyDecisions.map((decision, i) => (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        key={i}
+                        className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex items-start gap-3 transition-all hover:border-slate-300 dark:hover:border-white/10"
+                      >
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0 mt-0.5">
+                          {language === 'portuguese' ? 'Confirmada' : 'Confirmed'}
+                        </span>
+                        <textarea
+                          value={decision}
+                          onChange={(e) => {
+                            const newDecisions = [...data.keyDecisions];
+                            newDecisions[i] = e.target.value;
+                            updateData({ ...data, keyDecisions: newDecisions });
+                          }}
+                          placeholder={t('enterDecisionDetails')}
+                          className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed focus:outline-none"
+                          rows={1}
+                          onInput={(e) => {
+                            const target = e.target as HTMLTextAreaElement;
+                            target.style.height = 'auto';
+                            target.style.height = `${target.scrollHeight}px`;
+                          }}
+                        />
+                        <button 
+                          onClick={() => {
+                            const newDecisions = data.keyDecisions.filter((_, idx) => idx !== i);
+                            updateData({ ...data, keyDecisions: newDecisions });
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 mt-0.5 cursor-pointer"
+                          title={t('delete')}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </motion.div>
+                    ))}
+                    {data.keyDecisions.length === 0 && (
+                      <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
+                        <Gavel size={24} className="mb-2 text-slate-400" />
+                        <p className="text-xs font-bold uppercase tracking-wider">{t('noDecisionsRecorded')}</p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
 
               {/* Highlights Section */}
-              <section className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="text-amber-500 w-4 h-4 shrink-0" />
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('keyHighlights')}</h2>
-                  </div>
-                  <button 
-                    onClick={() => updateData({ ...data, highlights: [...data.highlights, ''] })}
-                    className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
-                    title="Adicionar Destaque"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-                
-                <div className="space-y-3">
-                  {data.highlights.map((item, i) => (
-                    <motion.div 
-                      key={i}
-                      initial={{ opacity: 0, x: 5 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex items-start gap-4 transition-all hover:border-slate-300 dark:hover:border-white/10"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0 shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
-                      <textarea
-                        value={item}
-                        onChange={(e) => {
-                          const newHighlights = [...data.highlights];
-                          newHighlights[i] = e.target.value;
-                          updateData({ ...data, highlights: newHighlights });
-                        }}
-                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed focus:outline-none"
-                        rows={1}
-                        onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = 'auto';
-                          target.style.height = `${target.scrollHeight}px`;
-                        }}
-                        placeholder="Novo destaque principal..."
-                      />
-                      <button 
-                        onClick={() => {
-                          const newHighlights = data.highlights.filter((_, idx) => idx !== i);
-                          updateData({ ...data, highlights: newHighlights });
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 mt-0.5 cursor-pointer"
-                        title={t('delete')}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </motion.div>
-                  ))}
-                  {data.highlights.length === 0 && (
-                    <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
-                      <Sparkles size={24} className="mb-2 text-slate-400" />
-                      <p className="text-xs font-bold uppercase tracking-wider">Nenhum destaque registado</p>
+              {(activeReportTab === 'all' || activeReportTab === 'summary') && (
+                <section className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="text-amber-500 w-4 h-4 shrink-0" />
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('keyHighlights')}</h2>
                     </div>
-                  )}
-                </div>
-              </section>
+                    <button 
+                      onClick={() => updateData({ ...data, highlights: [...data.highlights, ''] })}
+                      className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
+                      title="Adicionar Destaque"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {data.highlights.map((item, i) => (
+                      <motion.div 
+                        key={i} 
+                        initial={{ opacity: 0, x: 5 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex items-start gap-4 transition-all hover:border-slate-300 dark:hover:border-white/10"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0 shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
+                        <textarea
+                          value={item}
+                          onChange={(e) => {
+                            const newHighlights = [...data.highlights];
+                            newHighlights[i] = e.target.value;
+                            updateData({ ...data, highlights: newHighlights });
+                          }}
+                          className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed focus:outline-none"
+                          rows={1}
+                          onInput={(e) => {
+                            const target = e.target as HTMLTextAreaElement;
+                            target.style.height = 'auto';
+                            target.style.height = `${target.scrollHeight}px`;
+                          }}
+                          placeholder="Novo destaque principal..."
+                        />
+                        <button 
+                          onClick={() => {
+                            const newHighlights = data.highlights.filter((_, idx) => idx !== i);
+                            updateData({ ...data, highlights: newHighlights });
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 mt-0.5 cursor-pointer"
+                          title={t('delete')}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </motion.div>
+                    ))}
+                    {data.highlights.length === 0 && (
+                      <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
+                        <Sparkles size={24} className="mb-2 text-slate-400" />
+                        <p className="text-xs font-bold uppercase tracking-wider">Nenhum destaque registado</p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
 
               {/* Next Actions Checklist */}
-              <section className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="text-slate-500 dark:text-slate-400 w-4 h-4 shrink-0" />
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('nextActions')}</h2>
-                  </div>
-                  <button 
-                    onClick={() => updateData({ ...data, nextActions: [...data.nextActions, ''] })}
-                    className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
-                    title={t('nextActions')}
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-                
-                <div className="space-y-3">
-                  {data.nextActions.map((action, i) => (
-                    <motion.div 
-                      key={i}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex items-start gap-4 transition-all hover:border-slate-300 dark:hover:border-white/10"
+              {(activeReportTab === 'all' || activeReportTab === 'actions') && (
+                <section className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="text-slate-500 dark:text-slate-400 w-4 h-4 shrink-0" />
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t('nextActions')}</h2>
+                    </div>
+                    <button 
+                      onClick={() => updateData({ ...data, nextActions: [...data.nextActions, ''] })}
+                      className="p-1.5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
+                      title={t('nextActions')}
                     >
-                      <span className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-white/5 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0 mt-0.5">
-                        {i + 1}
-                      </span>
-                      <textarea
-                        value={action}
-                        onChange={(e) => {
-                          const newActions = [...data.nextActions];
-                          newActions[i] = e.target.value;
-                          updateData({ ...data, nextActions: newActions });
-                        }}
-                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed focus:outline-none"
-                        rows={1}
-                        onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = 'auto';
-                          target.style.height = `${target.scrollHeight}px`;
-                        }}
-                        placeholder="Próximo passo..."
-                      />
-                      <button 
-                        onClick={() => {
-                          const newActions = data.nextActions.filter((_, idx) => idx !== i);
-                          updateData({ ...data, nextActions: newActions });
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 mt-0.5 cursor-pointer"
-                        title={t('delete')}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </motion.div>
-                  ))}
-                  {data.nextActions.length === 0 && (
-                    <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
-                      <CheckCircle2 size={24} className="mb-2 text-slate-400" />
-                      <p className="text-xs font-bold uppercase tracking-wider">Nenhum passo seguinte registado</p>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              {/* Quick Copy Templates (Email, CRM) */}
-              <section className="bg-app-card border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4 backdrop-blur-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  {t('copyTemplatesHeader')}
-                </span>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Team Email Template */}
-                  <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Mail size={15} className="text-app-green" />
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                          {t('copyEmailFormat')}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => copyTemplate('email')}
-                        className="p-1.5 hover:bg-app-green/10 text-slate-400 hover:text-app-green rounded-lg transition-all cursor-pointer"
-                        title={t('copyEmailFormat')}
-                      >
-                        {copiedType === 'email' ? <Check size={14} className="text-app-green" /> : <Copy size={14} />}
-                      </button>
-                    </div>
-                    <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
-                      {t('copyEmailFormatDesc')}
-                    </p>
+                      <Plus size={16} />
+                    </button>
                   </div>
+                  <div className="space-y-3">
+                    {data.nextActions.map((action, i) => {
+                      const assigneeMatch = action.match(/\(([^)]+)\)/);
+                      const dueMatch = action.match(/\[Prazo:\s*([^\]]+)\]/i);
+                      const assignee = assigneeMatch ? assigneeMatch[1] : null;
+                      const dueDate = dueMatch ? dueMatch[1] : null;
 
-                  {/* CRM Format Template */}
-                  <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Database size={15} className="text-app-green" />
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                          {t('copyCrmFormat')}
-                        </span>
+                      return (
+                        <motion.div 
+                          key={i} 
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/5 rounded-xl p-4 shadow-sm flex flex-col gap-2.5 transition-all hover:border-slate-300 dark:hover:border-white/10"
+                        >
+                          <div className="flex items-start gap-3 w-full">
+                            <div className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0 mt-0.5">
+                              {i + 1}
+                            </div>
+                            <textarea
+                              value={action}
+                              onChange={(e) => {
+                                const newActions = [...data.nextActions];
+                                newActions[i] = e.target.value;
+                                updateData({ ...data, nextActions: newActions });
+                              }}
+                              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-medium text-slate-800 dark:text-slate-100 resize-none leading-relaxed focus:outline-none"
+                              rows={1}
+                              onInput={(e) => {
+                                const target = e.target as HTMLTextAreaElement;
+                                target.style.height = 'auto';
+                                target.style.height = `${target.scrollHeight}px`;
+                              }}
+                              placeholder="Definir ação, responsável (Nome) e prazo [Prazo: DD/MM]..."
+                            />
+                            <button 
+                              onClick={() => {
+                                const newActions = data.nextActions.filter((_, idx) => idx !== i);
+                                updateData({ ...data, nextActions: newActions });
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all scale-90 shrink-0 cursor-pointer"
+                              title={t('delete')}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+
+                          {(assignee || dueDate) && (
+                            <div className="flex items-center gap-2 pl-8 flex-wrap">
+                              {assignee && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/50 dark:border-white/5">
+                                  <User size={10} className="text-app-accent" />
+                                  {assignee}
+                                </span>
+                              )}
+                              {dueDate && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                  <Calendar size={10} />
+                                  {dueDate}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                    {data.nextActions.length === 0 && (
+                      <div className="py-12 bg-white dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
+                        <CheckCircle2 size={24} className="mb-2 text-slate-400" />
+                        <p className="text-xs font-bold uppercase tracking-wider">Nenhum passo seguinte registado</p>
                       </div>
-                      <button
-                        onClick={() => copyTemplate('crm')}
-                        className="p-1.5 hover:bg-app-green/10 text-slate-400 hover:text-app-green rounded-lg transition-all cursor-pointer"
-                        title={t('copyCrmFormat')}
-                      >
-                        {copiedType === 'crm' ? <Check size={14} className="text-app-green" /> : <Copy size={14} />}
-                      </button>
-                    </div>
-                    <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
-                      {t('copyCrmFormatDesc')}
-                    </p>
+                    )}
                   </div>
-                </div>
-              </section>
+                </section>
+              )}
+
+              {/* Quick Copy Templates (Email, CRM) - Exibido apenas na Visão Geral */}
+              {activeReportTab === 'all' && (
+                <section className="bg-app-card border border-slate-200/60 dark:border-white/5 p-5 rounded-2xl shadow-sm space-y-4 backdrop-blur-md">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {t('copyTemplatesHeader')}
+                  </span>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Team Email Template */}
+                    <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Mail size={15} className="text-app-green" />
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            {t('copyEmailFormat')}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => copyTemplate('email')}
+                          className="p-1.5 hover:bg-app-green/10 text-slate-400 hover:text-app-green rounded-lg transition-all cursor-pointer"
+                          title={t('copyEmailFormat')}
+                        >
+                          {copiedType === 'email' ? <Check size={14} className="text-app-green" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                      <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
+                        {t('copyEmailFormatDesc')}
+                      </p>
+                    </div>
+
+                    {/* CRM Format Template */}
+                    <div className="group relative bg-slate-50/50 dark:bg-slate-850/30 border border-slate-200/40 dark:border-white/5 rounded-xl p-3.5 space-y-2 hover:border-slate-300 dark:hover:border-white/10 transition-all">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Database size={15} className="text-app-green" />
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            {t('copyCrmFormat')}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => copyTemplate('crm')}
+                          className="p-1.5 hover:bg-app-green/10 text-slate-400 hover:text-app-green rounded-lg transition-all cursor-pointer"
+                          title={t('copyCrmFormat')}
+                        >
+                          {copiedType === 'crm' ? <Check size={14} className="text-app-green" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                      <p className="text-[11px] leading-normal text-slate-400 dark:text-slate-500">
+                        {t('copyCrmFormatDesc')}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              )}
             </>
           )}
         </div>

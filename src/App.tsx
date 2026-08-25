@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
-import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink, Calendar, Clock, BarChart3, PieChart, TrendingUp, Menu, ArrowRight, Sliders, HelpCircle, Volume2, CheckSquare, PanelLeftClose, PanelLeftOpen, Users, Timer, CheckCircle2 } from 'lucide-react';
+import { Mic, Square, Loader2, Headphones, Sparkles, History, Settings, Trash2, LogOut, User as UserIcon, Search, X, ArrowUpDown, LayoutGrid, ChevronDown, Sun, Moon, Upload, Monitor, ExternalLink, Calendar, Clock, BarChart3, PieChart, TrendingUp, Menu, ArrowRight, Sliders, HelpCircle, Volume2, CheckSquare, PanelLeftClose, PanelLeftOpen, Users, Timer, CheckCircle2, Gavel } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateMeetingReport, MeetingReport, MeetingAnalysisError } from './services/gemini';
 import { AudioFileUpload } from './components/AudioFileUpload';
@@ -341,44 +341,44 @@ export default function App() {
     switch (step) {
       case 'uploading_backup':
         return {
-          label: language === 'portuguese' ? 'Salvaguardando áudio local...' : 'Securing local audio backup...',
-          desc: language === 'portuguese' ? 'A guardar cópia de segurança na nuvem Supabase...' : 'Uploading safety backup copy to Supabase cloud...',
+          label: language === 'portuguese' ? 'Áudio Recebido' : 'Audio Received',
+          desc: language === 'portuguese' ? 'Ficheiro de áudio recebido e validado com sucesso.' : 'Audio file received and validated successfully.',
           percent: 15
         };
       case 'uploading_temp':
         return {
-          label: language === 'portuguese' ? 'Preparando trânsito de áudio...' : 'Preparing audio transit stream...',
-          desc: language === 'portuguese' ? 'A carregar ficheiro para contornar limites de envio...' : 'Streaming file to bypass payload transit limits...',
+          label: language === 'portuguese' ? 'Preparação da Análise' : 'Analysis Preparation',
+          desc: language === 'portuguese' ? 'A preparar os parâmetros contextuais e fluxo da reunião.' : 'Preparing contextual parameters and meeting stream.',
           percent: 30
         };
       case 'sending_ai':
         return {
-          label: language === 'portuguese' ? 'Conectando ao Serviço de IA...' : 'Connecting to AI Service...',
-          desc: language === 'portuguese' ? 'A estabelecer ligação com os servidores de IA (Google Gemini)...' : 'Initializing handshake with AI secure servers (Google Gemini)...',
+          label: language === 'portuguese' ? 'Transcrição Inteligente' : 'Smart Transcription',
+          desc: language === 'portuguese' ? 'A processar as intervenções e diarização de oradores.' : 'Processing speech signatures and speaker diarization.',
           percent: 50
         };
       case 'transcribing':
         return {
-          label: language === 'portuguese' ? 'Processando e Transcrevendo...' : 'Processing & Transcribing...',
-          desc: language === 'portuguese' ? 'A converter áudio em texto estruturado e diarizado...' : 'Analyzing voice signatures and converting speech to text...',
+          label: language === 'portuguese' ? 'Identificação de Decisões' : 'Decision Extraction',
+          desc: language === 'portuguese' ? 'A estruturar deliberações e pontos de acordo da reunião.' : 'Structuring meeting deliberations and formal decisions.',
           percent: 70
         };
       case 'formatting':
         return {
-          label: language === 'portuguese' ? 'Estruturando Informação...' : 'Formatting Information...',
-          desc: language === 'portuguese' ? 'A extrair sumário, decisões e ações recomendadas...' : 'Extracting executive summary, next actions, and key decisions...',
+          label: language === 'portuguese' ? 'Extração de Ações' : 'Action Plan Mapping',
+          desc: language === 'portuguese' ? 'A mapear a matriz de ações, responsáveis e prazos.' : 'Mapping action matrix, assignees and timelines.',
           percent: 88
         };
       case 'finalizing':
         return {
-          label: language === 'portuguese' ? 'Finalizando Relatório...' : 'Finalizing Report...',
-          desc: language === 'portuguese' ? 'A polir e guardar na base de dados...' : 'Running final polish and writing to history archive...',
+          label: language === 'portuguese' ? 'Síntese Executiva' : 'Executive Synthesis',
+          desc: language === 'portuguese' ? 'A consolidar o relatório final e arquivar o registo.' : 'Consolidating executive report and saving intelligence.',
           percent: 96
         };
       default:
         return {
-          label: language === 'portuguese' ? 'Processando áudio...' : 'Processing audio...',
-          desc: language === 'portuguese' ? 'Por favor, aguarde...' : 'Please wait...',
+          label: language === 'portuguese' ? 'A Processar Reunião...' : 'Processing Meeting...',
+          desc: language === 'portuguese' ? 'Por favor, aguarde enquanto a Inteligência EchoNotes conclui o relatório.' : 'Please wait while EchoNotes Intelligence finishes your report.',
           percent: Math.max(5, processingProgress)
         };
     }
@@ -1455,6 +1455,27 @@ export default function App() {
         }
       });
   }, [history, searchQuery, hideDownloaded, sortField, sortOrder]);
+
+  const kpis = useMemo(() => {
+    const totalMeetings = history.length;
+    let totalDecisions = 0;
+    let totalActions = 0;
+    let totalMinutes = 0;
+
+    for (const item of history) {
+      if (item.report?.keyDecisions && Array.isArray(item.report.keyDecisions)) {
+        totalDecisions += item.report.keyDecisions.filter(Boolean).length;
+      }
+      if (item.report?.nextActions && Array.isArray(item.report.nextActions)) {
+        totalActions += item.report.nextActions.filter(Boolean).length;
+      }
+      if (item.report?.duration && typeof item.report.duration === 'number') {
+        totalMinutes += Math.floor(item.report.duration / 60);
+      }
+    }
+
+    return { totalMeetings, totalDecisions, totalActions, totalMinutes };
+  }, [history]);
 
   const renderRecordingUI = () => {
     return (
@@ -3515,18 +3536,114 @@ export default function App() {
                   )}
 
                   {/* Modern Vertical Executive Dashboard */}
-                  <div className="space-y-8 text-left">
+                  <div className="space-y-6 md:space-y-7 text-left">
                     
+                    {/* Executive KPI Summary Grid (Calculated from existing data) */}
+                    {history.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                        <div className="bg-white dark:bg-app-card border border-app-border rounded-2xl p-3.5 sm:p-4 shadow-2xs space-y-1">
+                          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500">
+                            <span className="text-[10px] font-bold uppercase tracking-wider">{language === 'portuguese' ? 'Reuniões' : 'Meetings'}</span>
+                            <History size={14} className="text-app-accent" />
+                          </div>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{kpis.totalMeetings}</p>
+                        </div>
+                        <div className="bg-white dark:bg-app-card border border-app-border rounded-2xl p-3.5 sm:p-4 shadow-2xs space-y-1">
+                          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500">
+                            <span className="text-[10px] font-bold uppercase tracking-wider">{language === 'portuguese' ? 'Decisões' : 'Decisions'}</span>
+                            <Gavel size={14} className="text-emerald-500" />
+                          </div>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{kpis.totalDecisions}</p>
+                        </div>
+                        <div className="bg-white dark:bg-app-card border border-app-border rounded-2xl p-3.5 sm:p-4 shadow-2xs space-y-1">
+                          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500">
+                            <span className="text-[10px] font-bold uppercase tracking-wider">{language === 'portuguese' ? 'Ações' : 'Actions'}</span>
+                            <CheckCircle2 size={14} className="text-amber-500" />
+                          </div>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{kpis.totalActions}</p>
+                        </div>
+                        <div className="bg-white dark:bg-app-card border border-app-border rounded-2xl p-3.5 sm:p-4 shadow-2xs space-y-1">
+                          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500">
+                            <span className="text-[10px] font-bold uppercase tracking-wider">{language === 'portuguese' ? 'Tempo Total' : 'Total Time'}</span>
+                            <Timer size={14} className="text-sky-500" />
+                          </div>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{kpis.totalMinutes}m</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Onboarding State for First-Time Users */}
+                    {history.length === 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-gradient-to-r from-emerald-500/10 via-slate-50 to-emerald-500/5 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-emerald-950/10 border border-emerald-500/20 dark:border-emerald-500/15 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                              {language === 'portuguese' ? 'Primeira Reunião' : 'First Meeting'}
+                            </span>
+                            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                              {language === 'portuguese' ? 'Transforme reuniões em decisões e ações' : 'Transform meetings into decisions and actions'}
+                            </h3>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const el = document.getElementById('audio-recorder-section');
+                              el?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+                          >
+                            <Sparkles size={13} />
+                            {language === 'portuguese' ? 'Começar primeira reunião' : 'Start your first meeting'}
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                          <div className="bg-white/70 dark:bg-slate-900/60 border border-slate-200/50 dark:border-white/5 rounded-xl p-3 flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0">
+                              1
+                            </div>
+                            <div className="text-xs">
+                              <p className="font-bold text-slate-800 dark:text-slate-200">{language === 'portuguese' ? '1. Gravar ou importar reunião' : '1. Record or upload meeting'}</p>
+                              <p className="text-slate-400 text-[11px] mt-0.5">{language === 'portuguese' ? 'Microfone ou ficheiro áudio' : 'Microphone or audio file'}</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-white/70 dark:bg-slate-900/60 border border-slate-200/50 dark:border-white/5 rounded-xl p-3 flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0">
+                              2
+                            </div>
+                            <div className="text-xs">
+                              <p className="font-bold text-slate-800 dark:text-slate-200">{language === 'portuguese' ? '2. IA extrai decisões e compromissos' : '2. AI extracts decisions and actions'}</p>
+                              <p className="text-slate-400 text-[11px] mt-0.5">{language === 'portuguese' ? 'Deliberações e tarefas' : 'Deliberations and tasks'}</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-white/70 dark:bg-slate-900/60 border border-slate-200/50 dark:border-white/5 rounded-xl p-3 flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0">
+                              3
+                            </div>
+                            <div className="text-xs">
+                              <p className="font-bold text-slate-800 dark:text-slate-200">{language === 'portuguese' ? '3. Receber síntese executiva' : '3. Executive synthesis report'}</p>
+                              <p className="text-slate-400 text-[11px] mt-0.5">{language === 'portuguese' ? 'Ata pronta e exportável' : 'Ready-to-share minutes'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
                     {/* SECTION 1: Unified Executive Audio Recording Studio (Full Width) */}
-                    <div id="audio-recorder-section" className="bg-white dark:bg-app-card border border-app-border rounded-3xl p-6 md:p-8 shadow-xs flex flex-col gap-6 backdrop-blur-md">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-5">
+                    <div id="audio-recorder-section" className="bg-white dark:bg-app-card border border-app-border rounded-3xl p-5 md:p-6 lg:p-7 shadow-xs flex flex-col gap-5 md:gap-6 backdrop-blur-md">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
                         <div>
                           <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
                             <Sliders size={16} className="text-app-accent" />
-                            {language === 'portuguese' ? 'Estúdio de Gravação e Análise' : 'Audio Capture Suite'}
+                            {language === 'portuguese' ? 'Espaço de Reuniões' : 'Meeting Intelligence Workspace'}
                           </h3>
                           <p className="text-xs text-slate-400 mt-0.5">
-                            {language === 'portuguese' ? 'Grave conversas em direto ou carregue ficheiros de áudio para gerar atas executivas instantâneas.' : 'Record live meetings or upload audio files to generate instant executive minutes.'}
+                            {language === 'portuguese' ? 'Grave intervenções em direto ou importe ficheiros de áudio para gerar sínteses e atas executivas.' : 'Record live meetings or upload audio files to generate instant executive minutes.'}
                           </p>
                         </div>
                         
@@ -3602,13 +3719,13 @@ export default function App() {
                             <div>
                               <p className="text-sm font-bold text-slate-800 dark:text-white">
                                 {recordingMode === 'system' 
-                                  ? (language === 'portuguese' ? 'Encontro Virtual (Teams, Zoom, Meet)' : 'Virtual Meeting Capture')
-                                  : (language === 'portuguese' ? 'Gravação Presencial Local' : 'Local Mic Capture')}
+                                  ? (language === 'portuguese' ? 'Reunião Virtual (Teams, Zoom, Meet)' : 'Virtual Meeting Capture')
+                                  : (language === 'portuguese' ? 'Reunião Presencial (Microfone)' : 'Local Mic Capture')}
                               </p>
                               <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-xl">
                                 {recordingMode === 'system' 
                                   ? (language === 'portuguese' ? 'Otimizado para capturar chamadas e abas de reunião com alta fidelidade e cancelamento de eco.' : 'Optimized for browser tabs and virtual conferencing platforms.')
-                                  : (language === 'portuguese' ? 'Otimizado para conversas em sala, reuniões presenciais ou apresentações locais com diariamento de vozes.' : 'Optimized for in-room dialogue, speech clarity and live diarization.')}
+                                  : (language === 'portuguese' ? 'Otimizado para conversas em sala, reuniões presenciais ou apresentações com diarização de oradores.' : 'Optimized for in-room dialogue, speech clarity and live diarization.')}
                               </p>
                             </div>
 
@@ -3647,19 +3764,19 @@ export default function App() {
                         <div className="flex items-center gap-4">
                           <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                             <CheckCircle2 size={13} />
-                            {language === 'portuguese' ? 'Ata Executiva Completa' : 'Full Executive Minutes'}
+                            {language === 'portuguese' ? 'Síntese Executiva Completa' : 'Full Executive Minutes'}
                           </span>
                           <span className="flex items-center gap-1.5">
                             <Sparkles size={13} className="text-app-accent" />
-                            <span>{language === 'portuguese' ? 'Gemini 3.7 Flash Ativo' : 'Gemini 3.7 Flash Active'}</span>
+                            <span>{language === 'portuguese' ? 'Inteligência EchoNotes Ativa' : 'EchoNotes Intelligence Active'}</span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             <Headphones size={13} className="text-slate-400" />
-                            <span>Headset Optimized</span>
+                            <span>{language === 'portuguese' ? 'Áudio Otimizado' : 'Audio Optimized'}</span>
                           </span>
                         </div>
                         <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                          98% Precisão Diarização
+                          {language === 'portuguese' ? 'Diarização Automática' : 'Auto Diarization'}
                         </span>
                       </div>
                     </div>
@@ -3756,12 +3873,12 @@ export default function App() {
               /* Processing screen - beautiful Loader with step-by-step progress status bar */
               (() => {
                 const pipelineSteps = [
-                  { id: 'uploading_backup', label: language === 'portuguese' ? 'Backup' : 'Backup' },
-                  { id: 'uploading_temp', label: language === 'portuguese' ? 'Trânsito' : 'Transit' },
-                  { id: 'sending_ai', label: language === 'portuguese' ? 'Conexão' : 'Connect' },
-                  { id: 'transcribing', label: language === 'portuguese' ? 'Transcrever' : 'Transcribe' },
-                  { id: 'formatting', label: language === 'portuguese' ? 'Análise' : 'Analyze' },
-                  { id: 'finalizing', label: language === 'portuguese' ? 'Gravação' : 'Save' }
+                  { id: 'uploading_backup', label: language === 'portuguese' ? 'Áudio' : 'Audio' },
+                  { id: 'uploading_temp', label: language === 'portuguese' ? 'Preparação' : 'Preparation' },
+                  { id: 'sending_ai', label: language === 'portuguese' ? 'Transcrição' : 'Transcription' },
+                  { id: 'transcribing', label: language === 'portuguese' ? 'Decisões' : 'Decisions' },
+                  { id: 'formatting', label: language === 'portuguese' ? 'Ações' : 'Actions' },
+                  { id: 'finalizing', label: language === 'portuguese' ? 'Síntese' : 'Synthesis' }
                 ];
                 
                 const stepDetails = getStepDetails(processingStep);
@@ -3853,7 +3970,7 @@ export default function App() {
       )}
 
       <footer className="fixed bottom-0 w-full p-6 text-[10px] font-mono uppercase tracking-[0.2em] text-app-brown/20 flex justify-between pointer-events-none">
-        <span>Precision Audio Capture v1.0</span>
+        <span>EchoNotes Meeting Intelligence v2.0</span>
         <span>Secure End-to-End Analysis</span>
       </footer>
 

@@ -383,27 +383,27 @@ export function SettingsView({
               </div>
 
               <div className="md:col-span-2 space-y-2">
-                <label className="text-xs font-bold text-app-fg/40">Dicionário Pessoal (Termos Customizados)</label>
+                <label className="text-xs font-bold text-app-fg/40">Dicionário Corporativo & Termos Específicos</label>
                 <input 
                   type="text"
                   value={customTerms}
                   onChange={(e) => setCustomTerms(e.target.value)}
-                  placeholder="Ex: Skolae, SUMA, Projeto X, Ana Silva"
+                  placeholder="Ex: SUMA, Roadmap Q4, Direção Executiva, Ana Silva"
                   className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg placeholder:text-app-fg/20"
                 />
-                <p className="text-[10px] text-app-fg/40">Termos, marcas ou nomes separados por vírgula que a IA deve reconhecer sem autocorrigir.</p>
+                <p className="text-[10px] text-app-fg/40">Termos, marcas, acrónimos ou nomes que a Inteligência EchoNotes deve reconhecer rigorosamente.</p>
               </div>
 
               <div className="md:col-span-2 space-y-2">
-                <label className="text-xs font-bold text-app-fg/40">Instruções Customizadas da IA (Diretrizes Adicionais)</label>
+                <label className="text-xs font-bold text-app-fg/40">Diretrizes Executivas de Síntese</label>
                 <textarea 
                   value={customGuidelines}
                   onChange={(e) => setCustomGuidelines(e.target.value)}
-                  placeholder="Ex: Sempre colocar números de faturação em tabelas. Ignorar os primeiros 5 minutos de conversas informais. Formatar as ações futuras com data limite explícita."
+                  placeholder="Ex: Destacar deliberações financeiras em tabela. Identificar responsáveis nominais em todas as ações. Manter linguagem formal em português europeu."
                   rows={3}
                   className="w-full px-5 py-4 glass rounded-2xl text-sm focus:ring-4 focus:ring-app-accent/10 focus:border-app-accent transition-all text-app-fg placeholder:text-app-fg/20 resize-none"
                 />
-                <p className="text-[10px] text-app-fg/40">Instruções ou regras específicas que o modelo de IA seguirá estritamente para compilar o resumo e as notas.</p>
+                <p className="text-[10px] text-app-fg/40">Critérios específicos seguidos pelo motor para estruturar o relatório e a matriz de ações.</p>
               </div>
             </div>
           </section>

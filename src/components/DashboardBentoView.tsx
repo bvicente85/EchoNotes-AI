@@ -281,7 +281,7 @@ export const DashboardBentoView: React.FC<DashboardBentoViewProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h3 className="text-xs font-bold text-slate-450 uppercase tracking-widest flex items-center gap-2">
                 <Sliders size={14} className="text-app-accent" />
-                {language === 'portuguese' ? 'Estúdio de Captura de Áudio' : 'Audio Capture Suite'}
+                {language === 'portuguese' ? 'Espaço de Reuniões' : 'Meeting Intelligence Workspace'}
               </h3>
               
               {/* Segmented control for capture mode */}
