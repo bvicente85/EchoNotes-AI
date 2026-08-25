@@ -34,6 +34,7 @@ function generateMarkdownExport(data: MeetingReport, includeTranscript: boolean 
 
 function generateJsonExport(data: MeetingReport, includeTranscript: boolean = true) {
   return {
+    schemaVersion: "1.0",
     title: data.title,
     clientName: data.clientName,
     date: data.meetingDate,

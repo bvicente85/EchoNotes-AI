@@ -913,6 +913,7 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
 
   const downloadJSON = () => {
     const exportData = {
+      schemaVersion: "1.0",
       title: data.title,
       clientName: data.clientName,
       date: data.meetingDate,

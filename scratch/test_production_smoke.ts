@@ -5,7 +5,7 @@ import crypto from 'crypto';
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-import { askGemini, generateMeetingAnalysis } from '../api/geminiBackend';
+import { askGemini } from '../api/geminiBackend';
 import { MeetingReport } from '../src/services/gemini';
 
 async function runProductionSmokeTests() {
@@ -84,6 +84,7 @@ async function runProductionSmokeTests() {
   // ----------------------------------------------------------------------------
   console.log("3. Validar Exportação JSON Estruturado (Consumo por Agentes IA)...");
   const jsonExport = {
+    schemaVersion: "1.0",
     title: report.title,
     clientName: report.clientName,
     date: report.meetingDate,
