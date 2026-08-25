@@ -35,21 +35,15 @@ export async function authenticateRequest(req: any): Promise<AuthSuccess | AuthF
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Server Configuration Error: Supabase credentials missing in backend environment.');
-    return { error: 'Server Configuration Error', status: 500 };
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY missing in backend environment.');
+    return { error: 'Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY is required', status: 500 };
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 1. Validate JWT cryptographic signature and token validity
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);

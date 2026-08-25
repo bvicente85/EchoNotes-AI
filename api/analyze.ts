@@ -51,7 +51,12 @@ export default async function handler(req: any, res: any) {
 
   let activeJobId: string | null = null;
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY missing in backend environment.');
+    return res.status(500).json({ error: 'Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY is required' });
+  }
 
   try {
     const { 
@@ -65,15 +70,12 @@ export default async function handler(req: any, res: any) {
       isQuickDraft, 
       manualNotes, 
       template, 
-      customTerms, 
-      aiModel, 
-      modelOverride,
+      customTerms,
       meetingTone, 
       tone,
       customGuidelines 
     } = req.body;
 
-    const chosenModel = aiModel || modelOverride || 'gemini-3.6-flash';
     const chosenTone = meetingTone || tone || 'professional';
 
     let finalBase64 = audioBase64;
@@ -152,7 +154,6 @@ export default async function handler(req: any, res: any) {
       manualNotes,
       template,
       customTerms,
-      chosenModel,
       chosenTone,
       customGuidelines
     );

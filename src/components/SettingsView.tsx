@@ -38,7 +38,6 @@ export function SettingsView({
   const [language, setLanguage] = useState(initialLanguage || localStorage.getItem('echonotes_language') || 'english');
   const [summaryDetail, setSummaryDetail] = useState(initialSummaryDetail || localStorage.getItem('echonotes_summary_detail') || 'detailed');
   const [customTerms, setCustomTerms] = useState(localStorage.getItem('echonotes_custom_terms') || '');
-  const [aiModel, setAiModel] = useState(localStorage.getItem('echonotes_ai_model') || 'gemini-3.7-flash');
   const [meetingTone, setMeetingTone] = useState(localStorage.getItem('echonotes_meeting_tone') || 'professional');
   const [customGuidelines, setCustomGuidelines] = useState(localStorage.getItem('echonotes_custom_guidelines') || '');
   const [isSaved, setIsSaved] = useState(false);
@@ -152,7 +151,6 @@ export function SettingsView({
     localStorage.setItem('echonotes_language', language);
     localStorage.setItem('echonotes_summary_detail', summaryDetail);
     localStorage.setItem('echonotes_custom_terms', customTerms);
-    localStorage.setItem('echonotes_ai_model', aiModel);
     localStorage.setItem('echonotes_meeting_tone', meetingTone);
     localStorage.setItem('echonotes_custom_guidelines', customGuidelines);
     
@@ -356,16 +354,16 @@ export function SettingsView({
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-app-fg/40">Motor de IA Multimodal</label>
+                <label className="text-xs font-bold text-app-fg/40">Motor de IA Centralizado</label>
                 <div className="w-full px-5 py-3.5 glass rounded-2xl text-sm flex items-center justify-between border border-app-accent/20 bg-app-accent/5">
                   <div className="flex items-center gap-3">
                     <div className="w-2.5 h-2.5 rounded-full bg-app-accent animate-pulse" />
                     <div>
-                      <div className="font-semibold text-app-fg">Google Gemini 2.5 Flash / Pro</div>
-                      <div className="text-[11px] text-app-fg/50">Audição direta, diarização nativa e redundância em cascata</div>
+                      <div className="font-semibold text-app-fg">Google Gemini (gemini-3.6-flash / gemini-3.5-flash)</div>
+                      <div className="text-[11px] text-app-fg/50">Diarização nativa, resiliência adaptativa e gestão centralizada no backend</div>
                     </div>
                   </div>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md bg-app-accent/10 text-app-accent">Ativo</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md bg-app-accent/10 text-app-accent">Gerido</span>
                 </div>
               </div>
 

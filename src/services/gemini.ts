@@ -44,7 +44,6 @@ export async function generateMeetingReport(
   manualNotes?: string,
   template: string = 'standard',
   customTerms?: string,
-  modelOverride?: string,
   tone?: string,
   customGuidelines?: string
 ): Promise<MeetingReport> {
@@ -80,7 +79,6 @@ export async function generateMeetingReport(
         manualNotes,
         template,
         customTerms,
-        modelOverride,
         tone,
         customGuidelines
       })

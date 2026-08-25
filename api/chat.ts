@@ -23,12 +23,14 @@ export default async function handler(req: any, res: any) {
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-  let serviceSupabase: any = null;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
-  if (supabaseUrl && supabaseServiceKey) {
-    serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY missing in backend environment.');
+    return res.status(500).json({ error: 'Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY is required', requestId });
   }
+
+  const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
   const startTime = Date.now();
   let classification: any = { intent: 'STRUCTURED_QUERY', confidence: 1.0 };
@@ -76,9 +78,9 @@ export default async function handler(req: any, res: any) {
 
     const totalLatencyMs = Date.now() - startTime;
 
-    // 4. Asynchronous Observability Logging (Anonymized: Never store raw text or questions)
+    // 3. Asynchronously Record Metrics in gemini_usage_logs (Non-blocking)
     if (serviceSupabase) {
-      serviceSupabase.from('gemini_usage_logs').insert({
+      Promise.resolve(serviceSupabase.from('gemini_usage_logs').insert({
         request_id: requestId,
         user_id: authResult.user.id,
         meeting_id: report?.id || null,
@@ -89,7 +91,7 @@ export default async function handler(req: any, res: any) {
         tokens_output: chatResult.tokensOutput,
         primary_model: chatResult.primaryModel,
         final_model: chatResult.finalModel,
-        model_used: chatResult.finalModel,
+        model_used: chatResult.modelUsed,
         is_fallback: chatResult.isFallback,
         fallback_reason: chatResult.fallbackReason,
         error_type: chatResult.errorType,
@@ -98,7 +100,7 @@ export default async function handler(req: any, res: any) {
         fts_latency_ms: ftsLatencyMs,
         gemini_latency_ms: chatResult.geminiLatencyMs,
         has_transcript: chatResult.hasTranscript
-      }).then(({ error: logErr }: any) => {
+      })).then(({ error: logErr }: any) => {
         if (logErr) {
           console.warn('[Observability] Could not write to gemini_usage_logs:', logErr.message);
         }
@@ -130,7 +132,7 @@ export default async function handler(req: any, res: any) {
     console.error('Error in Vercel Serverless function /api/chat:', error);
 
     if (serviceSupabase) {
-      serviceSupabase.from('gemini_usage_logs').insert({
+      Promise.resolve(serviceSupabase.from('gemini_usage_logs').insert({
         request_id: requestId,
         user_id: authResult.user.id,
         query_type: 'ask_gemini',
@@ -140,7 +142,7 @@ export default async function handler(req: any, res: any) {
         latency_ms: totalLatencyMs,
         fts_latency_ms: ftsLatencyMs,
         is_fallback: false
-      }).catch(() => {});
+      })).catch(() => {});
     }
 
     return res.status(500).json({ 

@@ -163,7 +163,6 @@ export default function App() {
   const [pendingSessionType, setPendingSessionType] = useState<'meeting' | 'quick_draft'>('meeting');
   const [pendingTemplate, setPendingTemplate] = useState('standard');
   const [pendingTone, setPendingTone] = useState('professional');
-  const [pendingModel, setPendingModel] = useState(() => localStorage.getItem('echonotes_ai_model') || 'gemini-3.7-flash');
   const [pendingExpectedSpeakers, setPendingExpectedSpeakers] = useState('');
   const [pendingManualNotes, setPendingManualNotes] = useState('');
   const [pendingCustomGuidelines, setPendingCustomGuidelines] = useState('');
@@ -185,25 +184,120 @@ export default function App() {
     if (!user) throw new Error("User must be authenticated to upload audio.");
     const fileExt = blob.type.split('/')[1]?.split(';')[0] || 'wav';
     const filePath = `${user.id}/temp_${Date.now()}_${crypto.randomUUID()}.${fileExt}`;
+    const bucketName = 'meeting-audio-temp';
     
+    // Inspecionar sessão ativa
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    const sessionUserId = session?.user?.id;
+    const isTokenExpired = session?.expires_at ? (session.expires_at * 1000 < Date.now()) : true;
+
+    console.log('[Storage Diagnostic] Pre-upload verification:', {
+      bucket: bucketName,
+      filePath,
+      firstPathSegment: filePath.split('/')[0],
+      appUserId: user.id,
+      sessionUserId,
+      idsMatch: user.id === sessionUserId,
+      hasSession: Boolean(session),
+      isTokenExpired,
+      blobSize: blob.size,
+      mimeType: blob.type
+    });
+
     const { data, error } = await supabase.storage
-      .from('meeting-audio-temp')
+      .from(bucketName)
       .upload(filePath, blob, {
         cacheControl: '3600',
         upsert: false
       });
       
     if (error) {
+      console.error('[Storage Diagnostic] Upload failed:', {
+        bucket: bucketName,
+        filePath,
+        userId: user.id,
+        error: error.message,
+        statusCode: (error as any)?.statusCode
+      });
       throw new Error(`Failed to upload audio to Supabase Storage: ${error.message}`);
     }
+
+    console.log('[Storage Diagnostic] Upload succeeded:', {
+      bucket: bucketName,
+      filePath,
+      uploadData: data
+    });
+
+    // Listar ficheiros na pasta do utilizador para verificar se o objeto existe na tabela storage.objects
+    try {
+      const { data: listData, error: listError } = await supabase.storage
+        .from(bucketName)
+        .list(user.id, { limit: 10, sortBy: { column: 'created_at', order: 'desc' } });
+
+      console.log('[Storage Diagnostic] storage.list() in user folder:', {
+        folder: user.id,
+        filesFound: listData?.length || 0,
+        files: listData?.map(f => ({ name: f.name, id: f.id, createdAt: f.created_at, metadata: f.metadata })),
+        listError: listError?.message
+      });
+    } catch (listErr) {
+      console.warn('[Storage Diagnostic] Could not list user folder:', listErr);
+    }
     
+    // Inspecionar sessão imediatamente antes do createSignedUrl
+    const { data: signSessionData, error: sessionErr } = await supabase.auth.getSession();
+    const currentSession = signSessionData?.session;
+    const sessionUser = currentSession?.user;
+    const expiresAtTimestamp = currentSession?.expires_at;
+    const expiresAtDate = expiresAtTimestamp ? new Date(expiresAtTimestamp * 1000).toISOString() : 'N/A';
+    const secondsRemaining = expiresAtTimestamp ? Math.round((expiresAtTimestamp * 1000 - Date.now()) / 1000) : 0;
+    const hasAccessToken = Boolean(currentSession?.access_token);
+    const tokenPreview = currentSession?.access_token ? `${currentSession.access_token.slice(0, 10)}...${currentSession.access_token.slice(-10)}` : 'none';
+
+    const uploadFilePath = filePath;
+    const signFilePath = filePath;
+
+    console.log('[Storage Diagnostic - SIGN PRE-FLIGHT]', {
+      '1_app_user_id': user.id,
+      '2_session_user_id': sessionUser?.id,
+      '3_ids_match': user.id === sessionUser?.id,
+      '4_token_expires_at': expiresAtDate,
+      '4_token_seconds_remaining': secondsRemaining,
+      '4_token_is_valid': secondsRemaining > 0,
+      '4_has_access_token': hasAccessToken,
+      '4_token_preview': tokenPreview,
+      '5_upload_filePath': uploadFilePath,
+      '6_sign_filePath': signFilePath,
+      '6_paths_match': uploadFilePath === signFilePath,
+      bucket: bucketName,
+      session_error: sessionErr?.message || null
+    });
+
     const { data: signData, error: signError } = await supabase.storage
-      .from('meeting-audio-temp')
-      .createSignedUrl(filePath, 900);
+      .from(bucketName)
+      .createSignedUrl(signFilePath, 900);
       
     if (signError || !signData?.signedUrl) {
+      console.error('[Storage Diagnostic - SIGN ERROR]', {
+        bucket: bucketName,
+        signFilePath,
+        user_id: user.id,
+        session_user_id: sessionUser?.id,
+        raw_error: signError,
+        error_message: signError?.message,
+        status_code: (signError as any)?.statusCode || (signError as any)?.status,
+        name: (signError as any)?.name
+      });
       throw new Error(`Failed to generate signed URL: ${signError?.message || 'Unknown error'}`);
     }
+
+    console.log('[Storage Diagnostic - SIGN SUCCESS]', {
+      bucket: bucketName,
+      signFilePath,
+      signedUrlPreview: signData.signedUrl.slice(0, 80) + '...',
+      hasSignedUrl: Boolean(signData.signedUrl)
+    });
     
     return { signedUrl: signData.signedUrl, filePath };
   };
@@ -481,7 +575,6 @@ export default function App() {
           setPendingSessionType(item.sessionType === 'quick_draft' ? 'quick_draft' : 'meeting');
           setPendingTemplate(item.template || 'standard');
           setPendingTone(item.meetingTone || 'professional');
-          setPendingModel(item.aiModel || 'gemini-3.5-flash');
           setPendingExpectedSpeakers(item.expectedSpeakers || '');
           setPendingManualNotes(item.manualNotes || '');
           setPendingCustomGuidelines(item.customGuidelines || '');
@@ -557,8 +650,6 @@ export default function App() {
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
       const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
-      const rawAiModel = localStorage.getItem('echonotes_ai_model');
-      const aiModel = (rawAiModel && rawAiModel.startsWith('gemini')) ? rawAiModel : 'gemini-3.7-flash';
       const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
@@ -574,7 +665,6 @@ export default function App() {
         manualNotes,
         template,
         customTerms,
-        aiModel,
         meetingTone,
         customGuidelines
       );
@@ -703,8 +793,6 @@ export default function App() {
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
       const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
-      const rawAiModel = localStorage.getItem('echonotes_ai_model');
-      const aiModel = (rawAiModel && rawAiModel.startsWith('gemini')) ? rawAiModel : 'gemini-3.7-flash';
       const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
@@ -718,8 +806,7 @@ export default function App() {
         sessionType === 'quick_draft', 
         manualNotes, 
         template, 
-        customTerms,
-        aiModel,
+        customTerms, 
         meetingTone,
         customGuidelines
       );
@@ -762,8 +849,6 @@ export default function App() {
       const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
       const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
-      const rawAiModel = localStorage.getItem('echonotes_ai_model');
-      const aiModel = (rawAiModel && rawAiModel.startsWith('gemini')) ? rawAiModel : 'gemini-3.7-flash';
       const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
@@ -794,7 +879,6 @@ export default function App() {
         manualNotes,
         template,
         customTerms,
-        aiModel,
         meetingTone,
         customGuidelines
       );
@@ -1088,7 +1172,6 @@ export default function App() {
     const detailLevel = localStorage.getItem('echonotes_summary_detail') || 'detailed';
     const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
     const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
-    const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.7-flash';
     const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
     const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
     
@@ -1104,7 +1187,6 @@ export default function App() {
       template: template,
       meetingTone,
       languageSetting,
-      aiModel,
       customTerms,
       customGuidelines
     };
@@ -1153,7 +1235,6 @@ export default function App() {
       const languageSetting = localStorage.getItem('echonotes_language') || 'portuguese';
       
       const customTerms = localStorage.getItem('echonotes_custom_terms') || '';
-      const aiModel = localStorage.getItem('echonotes_ai_model') || 'gemini-3.7-flash';
       const meetingTone = localStorage.getItem('echonotes_meeting_tone') || 'professional';
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       
@@ -1168,8 +1249,7 @@ export default function App() {
         sessionType === 'quick_draft', 
         manualNotes, 
         template, 
-        customTerms,
-        aiModel,
+        customTerms, 
         meetingTone,
         customGuidelines
       );
@@ -1265,7 +1345,6 @@ export default function App() {
         pendingManualNotes, 
         pendingTemplate, 
         pendingCustomTerms,
-        (pendingModel && pendingModel.startsWith('gemini')) ? pendingModel : (localStorage.getItem('echonotes_ai_model') || 'gemini-3.7-flash'),
         pendingTone,
         pendingCustomGuidelines
       );
@@ -2793,18 +2872,11 @@ export default function App() {
                             </div>
 
                             <div className="p-3 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1">
-                              <label className="text-slate-450 font-semibold block">{language === 'portuguese' ? 'Modelo de IA' : 'AI Model'}:</label>
-                              <select
-                                value={pendingModel}
-                                onChange={(e) => {
-                                  setPendingModel(e.target.value);
-                                  handleUpdatePendingField('aiModel', e.target.value);
-                                }}
-                                className="w-full bg-transparent border-none p-0 font-bold text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-0 cursor-pointer text-xs"
-                              >
-                                <option value="gemini-3.5-flash" className="dark:bg-slate-900">Gemini 3.5 Flash</option>
-                                <option value="gemini-2.5-pro" className="dark:bg-slate-900">Gemini 2.5 Pro</option>
-                              </select>
+                              <label className="text-slate-450 font-semibold block">{language === 'portuguese' ? 'Modelo de IA' : 'AI Engine'}:</label>
+                              <div className="font-bold text-slate-700 dark:text-zinc-200 text-xs py-0.5 flex items-center justify-between">
+                                <span>Google Gemini</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Gerido</span>
+                              </div>
                             </div>
 
                             <div className="p-3 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200/40 dark:border-white/5 space-y-1">

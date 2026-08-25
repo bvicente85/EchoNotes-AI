@@ -33,8 +33,8 @@ export class MeetingAnalysisError extends Error {
   }
 }
 
-export const PRIMARY_GEMINI_MODEL = 'gemini-3.6-flash';
-export const FALLBACK_GEMINI_MODEL = 'gemini-3.5-flash';
+export const PRIMARY_GEMINI_MODEL = process.env.GEMINI_PRIMARY_MODEL || 'gemini-3.6-flash';
+export const FALLBACK_GEMINI_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash';
 export const MAX_GEMINI_CALLS_PER_JOB = 2;
 
 export function calculateGeminiTimeout(audioDurationSeconds?: number, isFilesApi: boolean = false): number {
@@ -112,7 +112,6 @@ export async function generateMeetingReport(
   manualNotes?: string,
   template: string = 'standard',
   customTerms?: string,
-  modelOverride?: string,
   tone?: string,
   customGuidelines?: string
 ): Promise<MeetingReport> {
@@ -202,8 +201,8 @@ export async function generateMeetingReport(
   const isFilesApi = buffer.length > 15 * 1024 * 1024;
   const timeoutMs = calculateGeminiTimeout(undefined, isFilesApi);
 
-  const primaryModel = modelOverride && modelOverride.trim() !== '' ? modelOverride : PRIMARY_GEMINI_MODEL;
-  const fallbackModel = primaryModel === PRIMARY_GEMINI_MODEL ? FALLBACK_GEMINI_MODEL : PRIMARY_GEMINI_MODEL;
+  const primaryModel = PRIMARY_GEMINI_MODEL;
+  const fallbackModel = FALLBACK_GEMINI_MODEL;
 
   let totalCalls = 0;
   let uploadResult: any = null;

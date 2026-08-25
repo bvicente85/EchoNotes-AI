@@ -14,7 +14,7 @@ export interface PendingRecording {
   template: string;
   meetingTone: string;
   languageSetting: string;
-  aiModel: string;
+  aiModel?: string;
   customTerms: string;
   customGuidelines: string;
 }
