@@ -152,6 +152,7 @@ export interface TranslationKeys {
   exportOfficialPdf: string;
   exportWord: string;
   exportMarkdown: string;
+  exportJson: string;
   copyMarkdown: string;
   downloadMdFile: string;
   downloadJsonFile: string;
@@ -396,6 +397,7 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     exportOfficialPdf: "Exportar PDF Oficial",
     exportWord: "Exportar para Word",
     exportMarkdown: "Exportar para Markdown",
+    exportJson: "Exportar JSON Estruturado (IA)",
     copyMarkdown: "Copiar Markdown",
     downloadMdFile: "Descarregar ficheiro .md",
     downloadJsonFile: "Descarregar ficheiro .json",
@@ -638,6 +640,7 @@ export const translations: Record<'portuguese' | 'english' | string, Translation
     exportOfficialPdf: "Export Official PDF",
     exportWord: "Export to Word",
     exportMarkdown: "Export to Markdown",
+    exportJson: "Export Structured JSON (AI)",
     copyMarkdown: "Copy Markdown",
     downloadMdFile: "Download .md file",
     downloadJsonFile: "Download .json file",

@@ -61,7 +61,9 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
     duration: report.duration,
     startTime: report.startTime,
     endTime: report.endTime,
-    analyzedAt: report.analyzedAt
+    analyzedAt: report.analyzedAt,
+    manualNotes: report.manualNotes || '',
+    template: report.template || 'standard'
   });
 
   const metadata = useMemo(() => {
@@ -369,7 +371,13 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
           emailDraft: ''
         },
         downloaded: report.downloaded || false,
-        downloadedFormats: report.downloadedFormats || []
+        downloadedFormats: report.downloadedFormats || [],
+        duration: report.duration,
+        startTime: report.startTime,
+        endTime: report.endTime,
+        analyzedAt: report.analyzedAt,
+        manualNotes: report.manualNotes || '',
+        template: report.template || 'standard'
       });
       prevMeetingIdRef.current = meetingId;
       prevReportRef.current = report;
@@ -910,11 +918,22 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
       date: data.meetingDate,
       summary: data.summary,
       highlights: data.highlights,
+      keyDecisions: data.keyDecisions,
       nextActions: data.nextActions,
+      isQuickDraft: data.isQuickDraft,
+      quickDraft: data.quickDraft,
+      manualNotes: data.manualNotes,
+      metadata: {
+        duration: data.duration,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        analyzedAt: data.analyzedAt,
+        template: data.template
+      },
       transcript: includeTranscript ? data.transcript : undefined
     };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -1933,6 +1952,13 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold transition-all cursor-pointer"
             >
               <Hash size={15} className="text-app-green" /> {t('exportMarkdown')}
+            </button>
+
+            <button 
+              onClick={downloadJSON}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              <FileJson size={15} className="text-app-green" /> {t('exportJson')}
             </button>
           </div>
         </aside>

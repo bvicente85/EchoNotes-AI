@@ -181,9 +181,10 @@ export default function App() {
   const lastNormalVolumeTimeRef = useRef<number>(Date.now());
   const lastNormalClipTimeRef = useRef<number>(Date.now());
 
-  const uploadAudioToSupabase = async (blob: Blob): Promise<{ publicUrl: string; filePath: string }> => {
+  const uploadAudioToSupabase = async (blob: Blob): Promise<{ signedUrl: string; filePath: string }> => {
+    if (!user) throw new Error("User must be authenticated to upload audio.");
     const fileExt = blob.type.split('/')[1]?.split(';')[0] || 'wav';
-    const filePath = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `${user.id}/temp_${Date.now()}_${crypto.randomUUID()}.${fileExt}`;
     
     const { data, error } = await supabase.storage
       .from('meeting-audio-temp')
@@ -196,11 +197,15 @@ export default function App() {
       throw new Error(`Failed to upload audio to Supabase Storage: ${error.message}`);
     }
     
-    const { data: { publicUrl } } = supabase.storage
+    const { data: signData, error: signError } = await supabase.storage
       .from('meeting-audio-temp')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 900);
       
-    return { publicUrl, filePath };
+    if (signError || !signData?.signedUrl) {
+      throw new Error(`Failed to generate signed URL: ${signError?.message || 'Unknown error'}`);
+    }
+    
+    return { signedUrl: signData.signedUrl, filePath };
   };
 
   const deleteAudioFromSupabase = async (filePath: string) => {
@@ -543,7 +548,7 @@ export default function App() {
       setProcessingStep('uploading_temp');
       setProcessingProgress(20);
       // Upload to Supabase Storage first to bypass Vercel payload limit
-      const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
+      const { signedUrl, filePath } = await uploadAudioToSupabase(audioBlob);
       tempFilePath = filePath;
       
       setProcessingStep('sending_ai');
@@ -559,7 +564,7 @@ export default function App() {
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       
       const result = await generateMeetingReport(
-        publicUrl, 
+        signedUrl, 
         audioBlob.type, 
         detailLevel, 
         languageSetting, 
@@ -689,7 +694,7 @@ export default function App() {
       
       setProcessingStep('uploading_temp');
       setProcessingProgress(20);
-      const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
+      const { signedUrl, filePath } = await uploadAudioToSupabase(audioBlob);
       tempFilePath = filePath;
       
       setProcessingStep('sending_ai');
@@ -704,7 +709,7 @@ export default function App() {
       const customGuidelines = localStorage.getItem('echonotes_custom_guidelines') || '';
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       const result = await generateMeetingReport(
-        publicUrl, 
+        signedUrl, 
         lastFailedAudio.mimeType, 
         detailLevel, 
         languageSetting, 
@@ -772,14 +777,14 @@ export default function App() {
       
       setProcessingStep('uploading_temp');
       setProcessingProgress(20);
-      const { publicUrl, filePath } = await uploadAudioToSupabase(audioBlob);
+      const { signedUrl, filePath } = await uploadAudioToSupabase(audioBlob);
       tempFilePath = filePath;
       
       setProcessingStep('sending_ai');
       setProcessingProgress(40);
       
       const result = await generateMeetingReport(
-        publicUrl, 
+        signedUrl, 
         mimeType, 
         detailLevel, 
         languageSetting, 
@@ -1138,7 +1143,7 @@ export default function App() {
       setProcessingStep('uploading_temp');
       setProcessingProgress(20);
       // Upload to Supabase Storage first to bypass Vercel payload limit
-      const { publicUrl, filePath } = await uploadAudioToSupabase(blob);
+      const { signedUrl, filePath } = await uploadAudioToSupabase(blob);
       tempFilePath = filePath;
       
       setProcessingStep('sending_ai');
@@ -1154,7 +1159,7 @@ export default function App() {
       
       const speakersArray = expectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       const res = await generateMeetingReport(
-        publicUrl, 
+        signedUrl, 
         blob.type, 
         detailLevel, 
         languageSetting, 
@@ -1242,7 +1247,7 @@ export default function App() {
       setProcessingStep('uploading_temp');
       setProcessingProgress(20);
       // Upload to Supabase Storage first to bypass Vercel payload limit
-      const { publicUrl, filePath } = await uploadAudioToSupabase(pendingItem.audioBlob);
+      const { signedUrl, filePath } = await uploadAudioToSupabase(pendingItem.audioBlob);
       tempFilePath = filePath;
       
       setProcessingStep('sending_ai');
@@ -1250,7 +1255,7 @@ export default function App() {
       
       const speakersArray = pendingExpectedSpeakers.split(',').map(s => s.trim()).filter(Boolean);
       const res = await generateMeetingReport(
-        publicUrl, 
+        signedUrl, 
         pendingItem.audioBlob?.type || 'audio/webm', 
         localStorage.getItem('echonotes_summary_detail') || 'detailed', 
         pendingLanguageSetting || localStorage.getItem('echonotes_language') || 'portuguese', 

@@ -1,4 +1,5 @@
 import { HistoryItem } from "./storage";
+import { getSupabase } from "../supabase";
 
 export interface MeetingReport {
   summary: string;
@@ -50,10 +51,22 @@ export async function generateMeetingReport(
   try {
     const isUrl = audioBase64OrUrl.startsWith('http://') || audioBase64OrUrl.startsWith('https://');
     
+    const supabase = getSupabase();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (!token) {
+      const authMsg = language === 'portuguese'
+        ? "Sessão não autenticada. Por favor, inicie sessão para processar áudio."
+        : "Unauthenticated session. Please sign in to process audio.";
+      throw new MeetingAnalysisError('CONFIG_ERROR', authMsg);
+    }
+
     const response = await fetch('/api/analyze', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         audioBase64: isUrl ? undefined : audioBase64OrUrl,
@@ -110,10 +123,21 @@ export async function askGemini(
   language: string = 'english'
 ): Promise<string> {
   try {
+    const supabase = getSupabase();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (!token) {
+      return language === 'portuguese'
+        ? "Sessão não autenticada. Por favor, inicie sessão para utilizar o assistente."
+        : "Unauthenticated session. Please sign in to use the assistant.";
+    }
+
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         query,
