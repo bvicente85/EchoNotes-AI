@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { FileText, CheckCircle2, ListFilter, MessageSquare, Download, FileJson, Plus, Trash2, Copy, Check, Undo, Redo, Gavel, Hash, User, Sparkles, Play, Pause, Volume2, VolumeX, Clock, FastForward, RotateCcw, Mail, Database, Calendar, Timer } from 'lucide-react';
+import { FileText, CheckCircle2, ListFilter, MessageSquare, Download, FileJson, Plus, Trash2, Copy, Check, Undo, Redo, Gavel, Hash, User, Sparkles, Play, Pause, Volume2, VolumeX, Clock, FastForward, RotateCcw, Mail, Database, Calendar, Timer, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MeetingReport } from '../services/gemini';
 import { jsPDF } from 'jspdf';
@@ -47,6 +47,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
     keyDecisions: report.keyDecisions || [],
     nextActions: normalizeNextActions(report.nextActions),
     transcript: report.transcript,
+    transcriptIntegrity: report.transcriptIntegrity,
     clientName: report.clientName || '',
     meetingDate: report.meetingDate || new Date().toISOString().slice(0, 16),
     title: initialTitle || 'Meeting Intelligence Report',
@@ -362,6 +363,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, title: initialTi
         keyDecisions: report.keyDecisions || [],
         nextActions: normalizeNextActions(report.nextActions),
         transcript: report.transcript,
+        transcriptIntegrity: report.transcriptIntegrity,
         clientName: report.clientName || '',
         meetingDate: report.meetingDate || new Date().toISOString().slice(0, 16),
         title: isEditingTitleRef.current ? currentTitleRef.current : (initialTitle || 'Meeting Intelligence Report'),
@@ -2078,6 +2080,27 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
                 <MessageSquare className="text-slate-400 dark:text-slate-550 w-4 h-4 shrink-0" />
                 <h2 className="text-lg font-bold text-slate-950 dark:text-white tracking-tight">{t('fullTranscript')}</h2>
               </div>
+
+              {/* Transcript Integrity Badge */}
+              {data.transcriptIntegrity && (
+                data.transcriptIntegrity.status === 'VERIFIED' ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                    {language === 'portuguese' ? 'Cobertura Verificada' : 'Coverage Verified'}
+                  </span>
+                ) : data.transcriptIntegrity.status === 'LOW_CONFIDENCE' ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40" title={data.transcriptIntegrity.warnings.join(' ')}>
+                    <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                    {language === 'portuguese' ? 'Padrão Atípico' : 'Atypical Pattern'}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40" title={data.transcriptIntegrity.warnings.join(' ')}>
+                    <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                    {language === 'portuguese' ? 'Potencialmente Incompleta' : 'Potentially Incomplete'}
+                  </span>
+                )
+              )}
+
               <div className="flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2.5 py-1 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                 <Clock className="w-3 h-3 text-emerald-500 shrink-0" />
                 <span>{metadata.startTime} &rarr; {metadata.endTime}</span>
@@ -2099,9 +2122,27 @@ ${data.nextActions.map((a, i) => `[ ] ${a}`).join('\n')}
               />
               <label htmlFor="includeTranscriptBottom" className="text-[10px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer uppercase tracking-wider">{t('includeInExport')}</label>
             </div>
-            {/* No other buttons */}
           </div>
         </div>
+
+        {/* Incomplete / Reduced Coverage Notice (Discreet and Unambiguous) */}
+        {data.transcriptIntegrity?.status === 'INCOMPLETE_SUSPECTED' && (
+          <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-bold">
+                {language === 'portuguese' 
+                  ? 'Aviso de Cobertura da Transcrição' 
+                  : 'Transcript Coverage Notice'}
+              </p>
+              <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90">
+                {language === 'portuguese'
+                  ? 'Foram detetadas lacunas temporais na sequência do diálogo. A síntese executiva e as decisões refletem as ideias globais da reunião, mas a transcrição pode não conter todas as falas intermédias.'
+                  : 'Temporal gaps were detected in dialogue sequence. The executive summary and decisions reflect the overall meeting ideas, but the transcript may not contain all intermediate utterances.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Scrollable Container with minimal, smooth lines */}
         <div className="space-y-1 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar-white">

@@ -1,12 +1,48 @@
 import { HistoryItem } from "./storage";
 import { getSupabase } from "../supabase";
 
+export type TranscriptIntegrityStatus = 'VERIFIED' | 'LOW_CONFIDENCE' | 'INCOMPLETE_SUSPECTED';
+
+export interface TranscriptSignalDetails {
+  temporalCoverageRatio: number;
+  audioDurationSec: number;
+  transcriptDurationSec: number;
+  firstTimestampSec: number;
+  lastTimestampSec: number;
+  turnCount: number;
+  totalWordCount: number;
+  wordsPerMinute: number;
+  maxGapSec: number;
+  speakerCount: number;
+  isChronological: boolean;
+  prunedTurnsCount?: number;
+  outOfBoundsTurnsCount?: number;
+  repetitionLoopTurnsCount?: number;
+  firstAnomalyTimestamp?: string;
+  repetitionLoopDetected?: boolean;
+  overshootDetected?: boolean;
+}
+
+export interface TranscriptIntegrity {
+  status: TranscriptIntegrityStatus;
+  score: number;
+  signals: TranscriptSignalDetails;
+  warnings: string[];
+}
+
+export interface TranscriptEntry {
+  speaker: string;
+  text: string;
+  timestamp: string;
+}
+
 export interface MeetingReport {
   summary: string;
   highlights: string[];
   nextActions: string[];
   keyDecisions: string[];
-  transcript: { speaker: string; text: string; timestamp: string }[];
+  transcript: TranscriptEntry[];
+  transcriptIntegrity?: TranscriptIntegrity;
   clientName?: string;
   meetingDate?: string;
   title?: string;

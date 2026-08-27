@@ -1,12 +1,48 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { HistoryItem } from "../src/services/storage";
 
+export type TranscriptIntegrityStatus = 'VERIFIED' | 'LOW_CONFIDENCE' | 'INCOMPLETE_SUSPECTED';
+
+export interface TranscriptSignalDetails {
+  temporalCoverageRatio: number;
+  audioDurationSec: number;
+  transcriptDurationSec: number;
+  firstTimestampSec: number;
+  lastTimestampSec: number;
+  turnCount: number;
+  totalWordCount: number;
+  wordsPerMinute: number;
+  maxGapSec: number;
+  speakerCount: number;
+  isChronological: boolean;
+  prunedTurnsCount?: number;
+  outOfBoundsTurnsCount?: number;
+  repetitionLoopTurnsCount?: number;
+  firstAnomalyTimestamp?: string;
+  repetitionLoopDetected?: boolean;
+  overshootDetected?: boolean;
+}
+
+export interface TranscriptIntegrity {
+  status: TranscriptIntegrityStatus;
+  score: number;
+  signals: TranscriptSignalDetails;
+  warnings: string[];
+}
+
+export interface TranscriptEntry {
+  speaker: string;
+  text: string;
+  timestamp: string;
+}
+
 export interface MeetingReport {
   summary: string;
   highlights: string[];
   nextActions: string[];
   keyDecisions: string[];
-  transcript: { speaker: string; text: string; timestamp: string }[];
+  transcript: TranscriptEntry[];
+  transcriptIntegrity?: TranscriptIntegrity;
   clientName?: string;
   meetingDate?: string;
   title?: string;
@@ -35,15 +71,391 @@ export class MeetingAnalysisError extends Error {
 
 export const PRIMARY_GEMINI_MODEL = process.env.GEMINI_PRIMARY_MODEL || 'gemini-3.6-flash';
 export const FALLBACK_GEMINI_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash';
-export const MAX_GEMINI_CALLS_PER_JOB = 2;
+
+// Call & Time Budgets (Strictly bounded for Vercel maxDuration=300s)
+export const MAX_TOTAL_GEMINI_CALLS_PER_JOB = 4;
+export const MAX_GEMINI_CALLS_PER_JOB = MAX_TOTAL_GEMINI_CALLS_PER_JOB;
+export const MAX_PHASE1_CALLS = 2;
+export const MAX_PHASE2_CALLS = 2;
+export const PHASE1_TIMEOUT_MS = 190000; // 190s per Phase 1 call (calibrated for 20-35 min verbatim transcription)
+export const PHASE2_TIMEOUT_MS = 40000;  // 40s per Phase 2 call
+export const GLOBAL_JOB_BUDGET_MS = 260000; // 260s global ceiling (40s safety margin before Vercel 300s maxDuration)
 
 export function calculateGeminiTimeout(audioDurationSeconds?: number, isFilesApi: boolean = false): number {
   const baseSeconds = isFilesApi ? 45 : 30;
   const durationSeconds = audioDurationSeconds || 0;
   const dynamicSeconds = durationSeconds > 0 ? (durationSeconds / 60) * 2.0 : 30;
   const total = baseSeconds + dynamicSeconds;
-  // Floor 45s, Ceiling 210s (leaving 90s margin for Vercel maxDuration=300)
   return Math.max(45000, Math.min(210000, Math.round(total * 1000)));
+}
+
+export interface TranscriptSanitizationResult {
+  sanitizedTranscript: TranscriptEntry[];
+  prunedTurnsCount: number;
+  outOfBoundsTurnsCount: number;
+  repetitionLoopTurnsCount: number;
+  firstAnomalyTimestamp?: string;
+  repetitionLoopDetected: boolean;
+  overshootDetected: boolean;
+  warnings: string[];
+}
+
+export function parseTimestampToSeconds(ts: string): number {
+  if (!ts) return 0;
+  const clean = String(ts).replace(/^[~≈\[\]\s]+|[\]\s]+$/g, '').trim();
+  const parts = clean.split(':').map(p => parseFloat(p) || 0);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 1) return parts[0];
+  return 0;
+}
+
+function normalizeTurnText(text: string): string {
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function calculateTextSimilarity(textA: string, textB: string): number {
+  if (textA === textB) return 1.0;
+  if (!textA || !textB) return 0;
+  if (textA.length < 5 || textB.length < 5) return textA === textB ? 1.0 : 0;
+  
+  const getBigrams = (str: string) => {
+    const s = new Set<string>();
+    for (let i = 0; i < str.length - 1; i++) {
+      s.add(str.substring(i, i + 2));
+    }
+    return s;
+  };
+  const bigramsA = getBigrams(textA);
+  const bigramsB = getBigrams(textB);
+  let intersection = 0;
+  for (const b of bigramsA) {
+    if (bigramsB.has(b)) intersection++;
+  }
+  return (2.0 * intersection) / (bigramsA.size + bigramsB.size);
+}
+
+export function sanitizeTranscript(
+  transcript: TranscriptEntry[],
+  audioDurationSeconds: number = 0
+): TranscriptSanitizationResult {
+  const warnings: string[] = [];
+  if (!Array.isArray(transcript) || transcript.length === 0) {
+    return {
+      sanitizedTranscript: [],
+      prunedTurnsCount: 0,
+      outOfBoundsTurnsCount: 0,
+      repetitionLoopTurnsCount: 0,
+      repetitionLoopDetected: false,
+      overshootDetected: false,
+      warnings: ['Transcrição vazia.']
+    };
+  }
+
+  const maxAllowedSeconds = audioDurationSeconds > 0 
+    ? audioDurationSeconds + Math.max(15, audioDurationSeconds * 0.05)
+    : Infinity;
+
+  let prunedTurnsCount = 0;
+  let outOfBoundsTurnsCount = 0;
+  let repetitionLoopTurnsCount = 0;
+  let firstAnomalyTimestamp: string | undefined = undefined;
+  let repetitionLoopDetected = false;
+  let overshootDetected = false;
+
+  const sanitized: TranscriptEntry[] = [];
+  let consecutiveRepetitions = 0;
+
+  for (let i = 0; i < transcript.length; i++) {
+    const current = transcript[i];
+    const tsSec = parseTimestampToSeconds(current.timestamp);
+
+    // 1. Teto Temporal / Out of bounds
+    if (audioDurationSeconds > 0 && tsSec > maxAllowedSeconds) {
+      overshootDetected = true;
+      outOfBoundsTurnsCount++;
+      prunedTurnsCount++;
+      if (!firstAnomalyTimestamp) firstAnomalyTimestamp = current.timestamp;
+      continue; // Descartar entradas fora da janela temporal real
+    }
+
+    // 2. Deteção de Repetições / Loops autorregressivos (monólogo ou diálogo alternado com sobreposição > 90%)
+    if (sanitized.length > 0) {
+      const normCurrent = normalizeTurnText(current.text);
+      let matchFound = false;
+      const lookbackWindow = Math.min(6, sanitized.length);
+
+      for (let b = 1; b <= lookbackWindow; b++) {
+        const candidate = sanitized[sanitized.length - b];
+        const normCandidate = normalizeTurnText(candidate.text);
+        const sim = calculateTextSimilarity(normCurrent, normCandidate);
+        if (sim >= 0.90 && normCurrent.length > 15) {
+          matchFound = true;
+          break;
+        }
+      }
+
+      if (matchFound) {
+        consecutiveRepetitions++;
+        if (consecutiveRepetitions >= 2) {
+          repetitionLoopDetected = true;
+          repetitionLoopTurnsCount++;
+          prunedTurnsCount++;
+          if (!firstAnomalyTimestamp) firstAnomalyTimestamp = current.timestamp;
+          continue; // Isolar e remover turnos em loop repetitivo
+        }
+      } else {
+        consecutiveRepetitions = 0;
+      }
+    }
+
+    sanitized.push(current);
+  }
+
+  if (overshootDetected) {
+    warnings.push(`TEMPORAL_OVERSHOOT_DETECTED: Foram detetadas ${outOfBoundsTurnsCount} intervenções com timestamps além da duração real do áudio (${audioDurationSeconds}s).`);
+  }
+  if (repetitionLoopDetected) {
+    warnings.push(`REPETITION_LOOP_DETECTED: Foram detetadas e isoladas ${repetitionLoopTurnsCount} repetições autorregressivas consecutivas a partir de ${firstAnomalyTimestamp || 'fim do áudio'}.`);
+  }
+
+  return {
+    sanitizedTranscript: sanitized,
+    prunedTurnsCount,
+    outOfBoundsTurnsCount,
+    repetitionLoopTurnsCount,
+    firstAnomalyTimestamp,
+    repetitionLoopDetected,
+    overshootDetected,
+    warnings
+  };
+}
+
+export function verifyTranscriptIntegrity(
+  transcript: TranscriptEntry[], 
+  audioDurationSeconds: number = 0
+): TranscriptIntegrity {
+  const warnings: string[] = [];
+  
+  if (!Array.isArray(transcript) || transcript.length === 0) {
+    return {
+      status: 'INCOMPLETE_SUSPECTED',
+      score: 0,
+      signals: {
+        temporalCoverageRatio: 0,
+        audioDurationSec: audioDurationSeconds,
+        transcriptDurationSec: 0,
+        firstTimestampSec: 0,
+        lastTimestampSec: 0,
+        turnCount: 0,
+        totalWordCount: 0,
+        wordsPerMinute: 0,
+        maxGapSec: 0,
+        speakerCount: 0,
+        isChronological: false,
+        prunedTurnsCount: 0,
+        outOfBoundsTurnsCount: 0,
+        repetitionLoopTurnsCount: 0,
+        overshootDetected: false,
+        repetitionLoopDetected: false
+      },
+      warnings: ['Transcrição vazia ou sem intervenções detetadas.']
+    };
+  }
+
+  // Análise de sanitização e deteção de loops/overshoot
+  const sanitization = sanitizeTranscript(transcript, audioDurationSeconds);
+  warnings.push(...sanitization.warnings);
+
+  const turnCount = transcript.length;
+  let totalWordCount = 0;
+  const parsedSeconds: number[] = [];
+  const speakers = new Set<string>();
+  let hasNegativeTimestamps = false;
+
+  for (let i = 0; i < transcript.length; i++) {
+    const entry = transcript[i];
+    const words = (entry.text || '').trim().split(/\s+/).filter(Boolean).length;
+    totalWordCount += words;
+    const ts = parseTimestampToSeconds(entry.timestamp);
+    if (ts < 0) hasNegativeTimestamps = true;
+    parsedSeconds.push(ts);
+    if (entry.speaker) speakers.add(entry.speaker.trim().toLowerCase());
+  }
+
+  const firstTimestampSec = parsedSeconds[0] || 0;
+  const lastTimestampSec = parsedSeconds[parsedSeconds.length - 1] || 0;
+  const transcriptDurationSec = Math.max(0, lastTimestampSec - firstTimestampSec);
+
+  const effectiveAudioDurationSec = audioDurationSeconds > 0 ? audioDurationSeconds : Math.max(lastTimestampSec, 60);
+  const audioMinutes = Math.max(0.5, effectiveAudioDurationSec / 60);
+  const maxAllowedSeconds = effectiveAudioDurationSec + Math.max(15, effectiveAudioDurationSec * 0.05);
+
+  // 1. Deteção Determinística de Teto Temporal (Overshoot)
+  const isOvershoot = audioDurationSeconds > 0 && lastTimestampSec > maxAllowedSeconds;
+
+  // 2. Cobertura Temporal Corrigida (sem truncamento com Math.min antes da validação)
+  const rawCoverageRatio = effectiveAudioDurationSec > 0 
+    ? (lastTimestampSec - firstTimestampSec) / effectiveAudioDurationSec
+    : 1.0;
+  
+  let scoreCoverage = 100;
+  if (rawCoverageRatio > 1.05) {
+    // Penalização direta por extrapolação de duração
+    const overshootPercent = (rawCoverageRatio - 1.0) * 100;
+    scoreCoverage = Math.max(0, Math.round(100 - overshootPercent * 2.0));
+    warnings.push(`Timestamps da transcrição excedem a duração real do áudio em ${Math.round(lastTimestampSec - effectiveAudioDurationSec)}s.`);
+  } else if (rawCoverageRatio < 0.85) {
+    // Penalização por sub-cobertura / encerramento precoce
+    scoreCoverage = Math.max(0, Math.round((rawCoverageRatio / 0.85) * 100));
+    if (rawCoverageRatio < 0.70) {
+      warnings.push(`Cobertura temporal reduzida (${Math.round(rawCoverageRatio * 100)}% da duração do áudio).`);
+    }
+  }
+
+  // 3. Proximidade de Início e Fim (Bidirecional)
+  let scoreProximity = 100;
+  if (firstTimestampSec > 60) {
+    scoreProximity -= 30;
+    warnings.push(`Início tardio do diálogo aos ${Math.round(firstTimestampSec)}s.`);
+  } else if (firstTimestampSec < 0) {
+    scoreProximity -= 50;
+    warnings.push(`Timestamp negativo detetado no início (${firstTimestampSec}s).`);
+  }
+
+  if (effectiveAudioDurationSec > 120) {
+    const endDelta = effectiveAudioDurationSec - lastTimestampSec;
+    if (endDelta > (effectiveAudioDurationSec * 0.20)) {
+      // Fim precoce
+      scoreProximity -= 40;
+      warnings.push(`Fim precoce da transcrição a ${Math.round(endDelta)}s do final do áudio.`);
+    } else if (endDelta < -Math.max(15, effectiveAudioDurationSec * 0.05)) {
+      // Fim além do limite do áudio
+      scoreProximity -= 60;
+    }
+  }
+  scoreProximity = Math.max(0, scoreProximity);
+
+  // 4. Monotonicidade e Cronologia
+  let isChronological = true;
+  for (let i = 1; i < parsedSeconds.length; i++) {
+    if (parsedSeconds[i] < parsedSeconds[i - 1] - 3) {
+      isChronological = false;
+      break;
+    }
+  }
+  let scoreStructure = isChronological ? 100 : 30;
+  if (!isChronological) {
+    warnings.push('CHRONOLOGY_INVERTED: Foram detetadas inversões temporais regressivas nos timestamps.');
+  }
+  if (hasNegativeTimestamps) {
+    scoreStructure = Math.max(0, scoreStructure - 40);
+    warnings.push('INVALID_NEGATIVE_TIMESTAMP: Foram detetados timestamps negativos.');
+  }
+
+  // 5. Densidade de Palavras / WPM
+  const wordsPerMinute = Math.round(totalWordCount / audioMinutes);
+  let scoreDensity = 100;
+  if (wordsPerMinute < 20) {
+    scoreDensity = 30;
+    warnings.push(`Baixa densidade de palavras (${wordsPerMinute} WPM).`);
+  } else if (wordsPerMinute < 50) {
+    scoreDensity = 70;
+  }
+
+  // 6. Distribuição de Gaps
+  let maxGapSec = 0;
+  for (let i = 1; i < parsedSeconds.length; i++) {
+    const gap = parsedSeconds[i] - parsedSeconds[i - 1];
+    if (gap > maxGapSec) maxGapSec = gap;
+  }
+  let scoreGaps = 100;
+  if (maxGapSec > 300) {
+    scoreGaps = 30;
+    warnings.push(`Intervalo de ${Math.round(maxGapSec / 60)}m sem diálogo detetado.`);
+  } else if (maxGapSec > 180) {
+    scoreGaps = 65;
+  }
+
+  // 7. Volume de Intervenções
+  const turnsPerMinute = turnCount / audioMinutes;
+  let scoreTurns = 100;
+  if (turnsPerMinute < 0.8 && audioMinutes > 5) {
+    scoreTurns = 40;
+    warnings.push(`Volume reduzido de intervenções (${turnCount} falas em ${Math.round(audioMinutes)}m).`);
+  } else if (turnsPerMinute < 2.0) {
+    scoreTurns = 75;
+  }
+
+  // Score Base Ponderado
+  let totalScore = Math.round(
+    (scoreCoverage * 0.40) +
+    (scoreProximity * 0.15) +
+    (scoreStructure * 0.15) +
+    (scoreDensity * 0.10) +
+    (scoreGaps * 0.10) +
+    (scoreTurns * 0.10)
+  );
+
+  // Penalizações Determinísticas Severas por Anomalias Estruturais
+  if (isOvershoot || sanitization.overshootDetected) {
+    totalScore = Math.min(totalScore, 30);
+  }
+  if (sanitization.repetitionLoopDetected) {
+    totalScore = Math.min(totalScore, 35);
+  }
+  if (!isChronological || hasNegativeTimestamps) {
+    totalScore = Math.min(totalScore, 40);
+  }
+
+  // Decisão Determinística de Estado (Nunca VERIFIED se houver overshoot, loop ou não-monotonicidade)
+  let status: TranscriptIntegrityStatus = 'VERIFIED';
+
+  if (
+    isOvershoot || 
+    sanitization.overshootDetected || 
+    sanitization.repetitionLoopDetected || 
+    !isChronological || 
+    hasNegativeTimestamps || 
+    totalScore < 50 || 
+    rawCoverageRatio < 0.60 || 
+    rawCoverageRatio > 1.20
+  ) {
+    status = 'INCOMPLETE_SUSPECTED';
+  } else if (totalScore < 75 || warnings.length >= 2 || rawCoverageRatio < 0.85 || rawCoverageRatio > 1.08) {
+    status = 'LOW_CONFIDENCE';
+  }
+
+  return {
+    status,
+    score: totalScore,
+    signals: {
+      temporalCoverageRatio: Math.round(rawCoverageRatio * 100) / 100,
+      audioDurationSec: effectiveAudioDurationSec,
+      transcriptDurationSec,
+      firstTimestampSec,
+      lastTimestampSec,
+      turnCount,
+      totalWordCount,
+      wordsPerMinute,
+      maxGapSec,
+      speakerCount: speakers.size,
+      isChronological,
+      prunedTurnsCount: sanitization.prunedTurnsCount,
+      outOfBoundsTurnsCount: sanitization.outOfBoundsTurnsCount,
+      repetitionLoopTurnsCount: sanitization.repetitionLoopTurnsCount,
+      firstAnomalyTimestamp: sanitization.firstAnomalyTimestamp,
+      repetitionLoopDetected: sanitization.repetitionLoopDetected,
+      overshootDetected: isOvershoot || sanitization.overshootDetected
+    },
+    warnings
+  };
 }
 
 export interface ClassifiedError {
@@ -66,12 +478,10 @@ export function classifyGeminiError(err: any): ClassifiedError {
     message.includes('500') ? 500 : undefined
   );
 
-  // Permanent errors: fail immediately (0 retry, 0 fallback)
   if (status === 400 || status === 401 || status === 403 || message.includes('API key') || message.includes('CONFIG_ERROR')) {
     return { isTransient: false, shouldRetry: false, shouldFallback: false, status, message };
   }
 
-  // Rate limit 429: inspect retry-after
   if (status === 429) {
     const retryAfterSeconds = Number(err?.headers?.get?.('retry-after') || err?.retryAfter) || 2;
     if (retryAfterSeconds <= 5) {
@@ -80,12 +490,10 @@ export function classifyGeminiError(err: any): ClassifiedError {
     return { isTransient: false, shouldRetry: false, shouldFallback: false, status: 429, message: 'Rate limit exceeded' };
   }
 
-  // Transient errors: 500, 503, timeout, high demand, ResourceExhausted
   if (status === 500 || status === 503 || message.includes('timeout') || message.includes('timed out') || message.includes('high demand') || message.includes('ResourceExhausted')) {
     return { isTransient: true, shouldRetry: false, shouldFallback: true, status: status || 503, message };
   }
 
-  // Parse error / empty response: transient single fallback
   if (err instanceof MeetingAnalysisError && (err.type === 'PARSE_ERROR' || err.type === 'EMPTY_RESPONSE')) {
     return { isTransient: true, shouldRetry: false, shouldFallback: true, message };
   }
@@ -101,11 +509,271 @@ function getAI(): GoogleGenAI {
   return new GoogleGenAI({ apiKey });
 }
 
+// -----------------------------------------------------------------------------
+// FASE 1: TRANSCRIÇÃO INTEGRAL EXAUSTIVA (Speech-to-Text & Diarização Pura)
+// -----------------------------------------------------------------------------
+async function transcribeAudioVerbatim(
+  ai: GoogleGenAI,
+  contentsParts: any[],
+  model: string,
+  timeoutMs: number,
+  expectedSpeakers?: string[],
+  customTerms?: string,
+  language: string = 'portuguese',
+  optimizeLowVolume: boolean = false
+): Promise<{ transcript: TranscriptEntry[]; duration?: number }> {
+  const speakersInstruction = expectedSpeakers && expectedSpeakers.length > 0
+    ? `The expected speaking participants are: ${expectedSpeakers.join(', ')}. Map voice signatures accurately to these names.`
+    : "Identify and distinguish distinct speakers sequentially (e.g. Speaker A, Speaker B, or natural names if introduced).";
+
+  const customTermsInstruction = customTerms && customTerms.trim() !== ""
+    ? `Recognize and spell these custom terms exactly: ${customTerms}.`
+    : "";
+
+  const lowVolumeInstruction = optimizeLowVolume 
+    ? "The audio may contain faint speech. Use sensitive acoustic signal processing to capture every whisper and statement."
+    : "";
+
+  const verbatimPrompt = `
+    You are an expert verbatim speech stenographer and audio transcriber.
+    Listen to the audio recording carefully from the very first second (00:00) to the very end.
+    Produce an exhaustive, verbatim, word-for-word transcript of every spoken utterance and dialogue turn.
+
+    CRITICAL RULES:
+    1. Do NOT summarize, condense, omit, merge, paraphrase, or skip any spoken words, sentences, or participants.
+    2. Transcribe every speaker intervention chronologically across the entire duration.
+    3. For each intervention, identify the speaker and precise start timestamp in MM:SS format.
+    4. IF PORTUGUESE: Use European Portuguese (PT-PT) with proper UTF-8 accents (ã, á, é, ç, í, ó).
+    ${speakersInstruction}
+    ${customTermsInstruction}
+    ${lowVolumeInstruction}
+
+    Output format: JSON object with:
+    - "duration": total audio length in seconds.
+    - "transcript": array of objects, each with "speaker", "timestamp", "text".
+  `;
+
+  const requestParts = [{ text: verbatimPrompt }, ...contentsParts];
+  const controller = new AbortController();
+  let timeoutHandle: any;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      controller.abort();
+      reject(new Error(`Transcription model ${model} request timed out after ${timeoutMs / 1000}s`));
+    }, timeoutMs);
+  });
+
+  try {
+    const generatePromise = ai.models.generateContent({
+      model,
+      contents: [{ parts: requestParts }],
+      config: {
+        abortSignal: controller.signal,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            duration: { type: Type.INTEGER, description: "Audio duration in seconds" },
+            transcript: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  speaker: { type: Type.STRING },
+                  timestamp: { type: Type.STRING, description: "Format MM:SS" },
+                  text: { type: Type.STRING }
+                },
+                required: ["speaker", "timestamp", "text"]
+              }
+            }
+          },
+          required: ["transcript"]
+        }
+      }
+    });
+
+    const result = await Promise.race([generatePromise, timeoutPromise]) as any;
+    if (!result || !result.text) {
+      throw new MeetingAnalysisError('EMPTY_RESPONSE', `Empty transcription response from model ${model}.`);
+    }
+
+    let textToParse = result.text.trim();
+    if (textToParse.startsWith("```")) {
+      const match = textToParse.match(/^```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (match) textToParse = match[1].trim();
+    }
+
+    const parsed = JSON.parse(textToParse);
+    return {
+      transcript: Array.isArray(parsed.transcript) ? parsed.transcript : [],
+      duration: typeof parsed.duration === 'number' ? parsed.duration : undefined
+    };
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// FASE 2: INTELIGÊNCIA EXECUTIVA & MATRIZ DE AÇÕES (Síntese a partir do Texto)
+// -----------------------------------------------------------------------------
+async function synthesizeMeetingIntelligence(
+  ai: GoogleGenAI,
+  transcript: TranscriptEntry[],
+  model: string,
+  timeoutMs: number,
+  options: {
+    detailLevel?: string;
+    language?: string;
+    template?: string;
+    tone?: string;
+    customGuidelines?: string;
+    customTerms?: string;
+    manualNotes?: string;
+    isQuickDraft?: boolean;
+  }
+): Promise<{
+  summary: string;
+  highlights: string[];
+  keyDecisions: string[];
+  nextActions: string[];
+  isQuickDraft?: boolean;
+  quickDraft?: { formattedNotes: string; taskList: string[]; emailDraft: string };
+}> {
+  const language = options.language || 'portuguese';
+  const detailLevel = options.detailLevel || 'detailed';
+  const template = options.template || 'standard';
+  const tone = options.tone || 'professional';
+
+  const summaryInstruction = detailLevel === 'concise' 
+    ? "Provide a very concise executive summary (max 3 sentences)." 
+    : "Provide a detailed executive summary covering all key aspects.";
+
+  const templateInstruction = `Template: ${template}. Tailor the focus: if 'client_meeting', focus on client needs and action items; if 'internal_meeting', focus on alignment and accountability; if 'brainstorming', capture all ideas; if 'standard', provide a balanced comprehensive synthesis.`;
+
+  const toneInstruction = `Tone: ${tone}. Use formal, polished corporate language.`;
+
+  const guidelinesInstruction = options.customGuidelines && options.customGuidelines.trim() !== ""
+    ? `USER GUIDELINES: Strictly follow: "${options.customGuidelines}"`
+    : "";
+
+  const customTermsInstruction = options.customTerms && options.customTerms.trim() !== ""
+    ? `Specific terms to respect: ${options.customTerms}.`
+    : "";
+
+  const notesInstruction = options.manualNotes 
+    ? `User's manual notes taken during meeting:\n${options.manualNotes}`
+    : "";
+
+  // Format transcript into continuous readable dialogue text for Phase 2
+  const formattedTranscript = transcript
+    .map(t => `[${t.timestamp}] ${t.speaker}: ${t.text}`)
+    .join('\n');
+
+  const intelligencePrompt = options.isQuickDraft ? `
+    You are an expert personal assistant and text formatter.
+    Based on the following transcript, format a polished quick voice note:
+    
+    TRANSCRIPT:
+    ${formattedTranscript}
+
+    1. "summary": Short, friendly description.
+    2. "highlights": Key bullet points.
+    3. "keyDecisions": Empty array unless explicit conclusions exist.
+    4. "nextActions": Empty array unless explicit tasks exist.
+    5. "isQuickDraft": true.
+    6. "quickDraft": formattedNotes (markdown), taskList (array), emailDraft (ready to send email).
+
+    LANGUAGE: ${language}. If Portuguese, use European Portuguese (PT-PT).
+  ` : `
+    You are an expert business analyst and executive scribe.
+    Read the following verified complete meeting transcript carefully and produce a high-level executive report.
+
+    TRANSCRIPT:
+    ${formattedTranscript}
+
+    ${templateInstruction}
+    ${toneInstruction}
+    ${guidelinesInstruction}
+    ${customTermsInstruction}
+    ${notesInstruction}
+
+    GOALS:
+    1. "summary": ${summaryInstruction} Use Markdown headers and structure.
+    2. "highlights": Comprehensive list of key topics and discussion points (array of strings).
+    3. "keyDecisions": Explicit agreements, decisions, approvals, or conclusions reached (array of strings).
+    4. "nextActions": Concrete actionable tasks with owners and deadlines (format: "Owner: Action item [Prazo: DD/MM]").
+    
+    LANGUAGE REQUIREMENTS:
+    - Target Language: ${language}.
+    - IF PORTUGUESE: You MUST use EUROPEAN PORTUGUESE (PT-PT) with proper UTF-8 accents (ã, á, é, ç, í, ó). Use "planeamento" (not planejamento), "equipa" (not equipe), "utilizador" (not usuário).
+  `;
+
+  const controller = new AbortController();
+  let timeoutHandle: any;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      controller.abort();
+      reject(new Error(`Intelligence model ${model} request timed out after ${timeoutMs / 1000}s`));
+    }, timeoutMs);
+  });
+
+  try {
+    const generatePromise = ai.models.generateContent({
+      model,
+      contents: [{ parts: [{ text: intelligencePrompt }] }],
+      config: {
+        abortSignal: controller.signal,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
+            keyDecisions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            nextActions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            isQuickDraft: { type: Type.BOOLEAN },
+            quickDraft: {
+              type: Type.OBJECT,
+              properties: {
+                formattedNotes: { type: Type.STRING },
+                taskList: { type: Type.ARRAY, items: { type: Type.STRING } },
+                emailDraft: { type: Type.STRING }
+              },
+              required: ["formattedNotes", "taskList", "emailDraft"]
+            }
+          },
+          required: ["summary", "highlights", "keyDecisions", "nextActions"]
+        }
+      }
+    });
+
+    const result = await Promise.race([generatePromise, timeoutPromise]) as any;
+    if (!result || !result.text) {
+      throw new MeetingAnalysisError('EMPTY_RESPONSE', `Empty intelligence response from model ${model}.`);
+    }
+
+    let textToParse = result.text.trim();
+    if (textToParse.startsWith("```")) {
+      const match = textToParse.match(/^```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (match) textToParse = match[1].trim();
+    }
+
+    return JSON.parse(textToParse);
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// ORQUESTRADOR PRINCIPAL: PIPELINE DE DUAS FASES COM ORÇAMENTO GLOBAL
+// -----------------------------------------------------------------------------
 export async function generateMeetingReport(
   audioBase64: string, 
   mimeType: string, 
   detailLevel: string = 'detailed', 
-  language: string = 'english',
+  language: string = 'portuguese',
   optimizeLowVolume: boolean = false,
   expectedSpeakers?: string[],
   isQuickDraft: boolean = false,
@@ -116,236 +784,196 @@ export async function generateMeetingReport(
   customGuidelines?: string
 ): Promise<MeetingReport> {
   const ai = getAI();
-
-  const lowVolumeInstruction = optimizeLowVolume 
-    ? "The audio recording has low volume or background noise. Use advanced signal processing and context reasoning to accurately transcribe every word. Pay extra attention to faint voices."
-    : "";
-  const summaryInstruction = detailLevel === 'concise' 
-    ? "Provide a very concise executive summary (max 3 sentences)." 
-    : "Provide a detailed executive summary covering all key aspects.";
-  
-  const templateInstruction = `Template to follow: ${template}. Adjust structure and tone based on this template: if 'client_meeting', focus on client needs, relationship building, and agreed action items; if 'internal_meeting', focus on team alignment, operational clarity, and accountability; if 'brainstorming', be creative, capture all ideas, and identify potential paths forward; if 'standard', provide a balanced, comprehensive summary.`;
-
-  const toneInstruction = tone
-    ? `TONE OF THE REPORT: Please write the report with a ${tone} tone.
-       - If 'professional', use a polished, formal, and structured business tone.
-       - If 'technical', use a precise, direct, and spec-focused tone with industry/technical terms.
-       - If 'casual', use an approachable, light, easy-to-read, and conversational tone.
-       - If 'action_oriented', use an extremely actionable, results-oriented, and structured tone, putting tasks and deadlines first.`
-    : "TONE OF THE REPORT: Professional, structured and clear.";
-
-  const guidelinesInstruction = customGuidelines && customGuidelines.trim() !== ""
-    ? `ADDITIONAL SYSTEM GUIDELINES: Strictly apply the following instruction/formatting rules requested by the user:
-       "${customGuidelines}"`
-    : "";
-
-  const customTermsInstruction = customTerms && customTerms.trim() !== ""
-    ? `IMPORTANT: The following terms are specific to the user and must be recognized and spelled correctly in the transcript and summary (do NOT autocorrect these to similar sounding words): ${customTerms}.`
-    : "";
-
-  const speakersInstruction = expectedSpeakers && expectedSpeakers.length > 0
-    ? `The expected speaking participants in this session are: ${expectedSpeakers.join(', ')}.
-       Map these voice signatures carefully and attribute them to these specified names logical to the speech content. Try to tag dialogue to these names respectively, otherwise fallback to Speaker A / Speaker B only if there's absolutely no matching speaker.`
-    : "Determine speaker names sequentially (e.g. Speaker A, Speaker B).";
-  
-  const notesInstruction = manualNotes 
-    ? `User's manual notes taken during the meeting (Prioritize these in analysis as key focus areas):\n${manualNotes}`
-    : "";
-
-  const prompt = isQuickDraft ? `
-    You are an expert personal assistant and speech-to-text formatter. This is a Quick Voice Draft ("Nota de Voz Rápida").
-    Clean up verbal clutter (hesitations, repeated words), and format the transcribed speech into a polished note:
-    1. "summary" field: Short, friendly description of this voice note.
-    2. "highlights" field: Main thoughts expressed (array of bullet points).
-    3. "keyDecisions" field: Empty array unless explicit conclusions exist.
-    4. "nextActions" field: Empty array unless explicit to-dos exist.
-    5. "isQuickDraft" field: Set to true.
-    6. "quickDraft" field:
-       - "formattedNotes": Clean scratchpad markdown.
-       - "taskList": List of tasks extracted.
-       - "emailDraft": Professional email draft ready to copy.
-    7. "transcript" field: Full transcript with timestamps.
-
-    LANGUAGE REQUIREMENTS:
-    - Output language: ${language}.
-    - IF THE LANGUAGE IS PORTUGUESE: Use EUROPEAN PORTUGUESE (PT-PT) with proper UTF-8 accents (ã, á, é, ç, í, ó) and formal corporate vocabulary ("planeamento", "equipa", "utilizador").
-    ${customTermsInstruction}
-    ${toneInstruction}
-    ${guidelinesInstruction}
-  ` : `
-    You are an expert business analyst and scribe. Listen to and analyze the following meeting audio.
-        
-    ${lowVolumeInstruction}
-    ${speakersInstruction}
-    ${templateInstruction}
-    ${notesInstruction}
-    ${customTermsInstruction}
-    ${toneInstruction}
-    ${guidelinesInstruction}
-
-    Goals:
-    1. ${summaryInstruction} Use Markdown for headers or bolding.
-    2. "highlights": Comprehensive list of key topics and discussion points covering the entire meeting (array of strings).
-    3. "keyDecisions": Explicit agreements, approvals, or conclusions reached (array of strings).
-    4. "nextActions": Concrete actionable tasks with owners and deadlines.
-    5. "transcript": Comprehensive chronological dialogue covering every key intervention from the beginning (00:00) through the middle to the very end of the recording. Each entry must have "speaker", "text", and accurate "timestamp" (MM:SS).
-    6. "duration": Total length of the audio in seconds.
-
-    LANGUAGE REQUIREMENTS:
-    - Target Output Language: ${language}.
-    - IF THE LANGUAGE IS PORTUGUESE: You MUST use EUROPEAN PORTUGUESE (PT-PT) with proper UTF-8 accents (ã, á, é, ç, í, ó). Use "planeamento" (not planejamento), "equipa" (not equipe), "utilizador" (not usuário).
-    - Output a polished, final, print-ready document directly.
-  `;
+  const globalJobDeadline = Date.now() + GLOBAL_JOB_BUDGET_MS;
+  let jobCallCount = 0;
 
   const buffer = Buffer.from(audioBase64, 'base64');
   const isFilesApi = buffer.length > 15 * 1024 * 1024;
-  const timeoutMs = calculateGeminiTimeout(undefined, isFilesApi);
-
-  const primaryModel = PRIMARY_GEMINI_MODEL;
-  const fallbackModel = FALLBACK_GEMINI_MODEL;
-
-  let totalCalls = 0;
   let uploadResult: any = null;
-  const contentsParts: any[] = [{ text: prompt }];
+  const audioContentsParts: any[] = [];
 
   try {
     if (isFilesApi) {
-      console.log(`[Gemini Pipeline] Audio size (${(buffer.length / (1024 * 1024)).toFixed(2)} MB) > 15MB. Uploading via Gemini Files API...`);
+      console.log(`[Gemini Pipeline] Audio size (${(buffer.length / (1024 * 1024)).toFixed(2)} MB) > 15MB. Uploading via Files API...`);
       const fileObj = new File([buffer], `audio_${Date.now()}.bin`, { type: mimeType });
       uploadResult = await ai.files.upload({ file: fileObj });
-      console.log(`[Gemini Pipeline] Uploaded to Gemini Files API. URI: ${uploadResult.uri}`);
-      contentsParts.push({
+      audioContentsParts.push({
         fileData: {
           fileUri: uploadResult.uri,
           mimeType: uploadResult.mimeType
         }
       });
     } else {
-      contentsParts.push({
+      audioContentsParts.push({
         inlineData: {
           mimeType,
-          data: audioBase64,
-        },
+          data: audioBase64
+        }
       });
     }
 
-    const executeModelCall = async (currentModel: string, attemptNumber: number): Promise<MeetingReport> => {
-      totalCalls++;
-      console.log(`[Gemini Pipeline] Executing attempt ${attemptNumber}/${MAX_GEMINI_CALLS_PER_JOB} with model: ${currentModel} (timeout: ${timeoutMs / 1000}s)...`);
+    // -------------------------------------------------------------------------
+    // EXECUÇÃO FASE 1: TRANSCRIÇÃO INTEGRAL (Máximo 2 chamadas / 90s cada)
+    // -------------------------------------------------------------------------
+    let phase1Result: { transcript: TranscriptEntry[]; duration?: number } | null = null;
+    let p1Attempts = 0;
+    let currentModel = PRIMARY_GEMINI_MODEL;
 
-      const controller = new AbortController();
-      let timeoutHandle: any;
+    while (p1Attempts < MAX_PHASE1_CALLS && jobCallCount < MAX_TOTAL_GEMINI_CALLS_PER_JOB) {
+      p1Attempts++;
+      jobCallCount++;
+      const timeRemaining = globalJobDeadline - Date.now();
+      const currentTimeout = Math.min(PHASE1_TIMEOUT_MS, Math.max(15000, timeRemaining - 40000));
 
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-          controller.abort();
-          reject(new Error(`Model ${currentModel} request timed out locally after ${timeoutMs / 1000}s`));
-        }, timeoutMs);
-      });
+      console.log(`[Pipeline Fase 1] Tentativa ${p1Attempts}/${MAX_PHASE1_CALLS} (Chamada global #${jobCallCount}) com ${currentModel} (timeout: ${currentTimeout / 1000}s)...`);
 
       try {
-        const generatePromise = ai.models.generateContent({
-          model: currentModel,
-          contents: [
-            {
-              parts: contentsParts,
-            },
-          ],
-          config: {
-            abortSignal: controller.signal,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                summary: { type: Type.STRING },
-                duration: { type: Type.INTEGER, description: "Audio duration in seconds" },
-                highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
-                keyDecisions: { type: Type.ARRAY, items: { type: Type.STRING } },
-                nextActions: { type: Type.ARRAY, items: { type: Type.STRING } },
-                transcript: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      speaker: { type: Type.STRING },
-                      text: { type: Type.STRING },
-                      timestamp: { type: Type.STRING, description: "Format MM:SS" },
-                    },
-                    required: ["speaker", "text", "timestamp"],
-                  },
-                },
-                isQuickDraft: { type: Type.BOOLEAN },
-                quickDraft: {
-                  type: Type.OBJECT,
-                  properties: {
-                    formattedNotes: { type: Type.STRING },
-                    taskList: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    emailDraft: { type: Type.STRING }
-                  },
-                  required: ["formattedNotes", "taskList", "emailDraft"]
-                }
-              },
-              required: ["summary", "highlights", "keyDecisions", "nextActions", "transcript"],
-            },
-          },
-        });
-
-        const result = await Promise.race([generatePromise, timeoutPromise]) as any;
-
-        if (!result || !result.text) {
-          throw new MeetingAnalysisError('EMPTY_RESPONSE', `Empty response from Gemini model ${currentModel}.`);
+        phase1Result = await transcribeAudioVerbatim(
+          ai,
+          audioContentsParts,
+          currentModel,
+          currentTimeout,
+          expectedSpeakers,
+          customTerms,
+          language,
+          optimizeLowVolume || (p1Attempts > 1) // reforço acústico no retry
+        );
+        console.log(`[Pipeline Fase 1] Transcrição concluída com ${phase1Result.transcript.length} intervenções.`);
+        break;
+      } catch (err: any) {
+        console.warn(`[Pipeline Fase 1] Tentativa ${p1Attempts} falhou: ${err?.message || err}`);
+        const classified = classifyGeminiError(err);
+        if (!classified.isTransient || p1Attempts >= MAX_PHASE1_CALLS || jobCallCount >= MAX_TOTAL_GEMINI_CALLS_PER_JOB) {
+          throw err;
         }
-
-        let textToParse = result.text.trim();
-        if (textToParse.startsWith("```")) {
-          const match = textToParse.match(/^```(?:json)?\s*([\s\S]*?)\s*```/);
-          if (match) {
-            textToParse = match[1].trim();
-          }
+        currentModel = FALLBACK_GEMINI_MODEL;
+        if (classified.retryAfterMs && classified.retryAfterMs > 0) {
+          await new Promise(r => setTimeout(r, classified.retryAfterMs));
         }
-
-        const parsed = JSON.parse(textToParse) as MeetingReport;
-        console.log(`[Gemini Pipeline] Meeting report successfully generated by ${currentModel} on attempt ${attemptNumber}!`);
-        return parsed;
-      } finally {
-        clearTimeout(timeoutHandle);
       }
+    }
+
+    if (!phase1Result || !Array.isArray(phase1Result.transcript)) {
+      throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Não foi possível gerar a transcrição do áudio.');
+    }
+
+    // -------------------------------------------------------------------------
+    // INTEGRITY CHECK MULTI-SINAL
+    // -------------------------------------------------------------------------
+    let integrity = verifyTranscriptIntegrity(phase1Result.transcript, phase1Result.duration || 0);
+    console.log(`[Pipeline Integrity Gate] Score: ${integrity.score}/100 | Status: ${integrity.status} | Avisos: ${integrity.warnings.length}`);
+
+    // RECOVERY CONDICIONAL DA FASE 1 (Se INCOMPLETE_SUSPECTED e houver saldo de tempo/chamadas)
+    const timeRemainingAfterP1 = globalJobDeadline - Date.now();
+    if (
+      integrity.status === 'INCOMPLETE_SUSPECTED' &&
+      p1Attempts < MAX_PHASE1_CALLS &&
+      jobCallCount < MAX_TOTAL_GEMINI_CALLS_PER_JOB &&
+      timeRemainingAfterP1 >= 90000
+    ) {
+      console.log(`[Pipeline Integrity Recovery] Acionando retry acústico da Fase 1 por suspeita de incompletude...`);
+      p1Attempts++;
+      jobCallCount++;
+      const recoveryTimeout = Math.min(PHASE1_TIMEOUT_MS, Math.max(20000, globalJobDeadline - Date.now() - 40000));
+      try {
+        const retryResult = await transcribeAudioVerbatim(
+          ai,
+          audioContentsParts,
+          FALLBACK_GEMINI_MODEL,
+          recoveryTimeout,
+          expectedSpeakers,
+          customTerms,
+          language,
+          true // reforço acústico ativado
+        );
+        const retryIntegrity = verifyTranscriptIntegrity(retryResult.transcript, retryResult.duration || 0);
+        // Só substitui se o retry obteve melhor score de integridade
+        if (retryIntegrity.score >= integrity.score) {
+          phase1Result = retryResult;
+          integrity = retryIntegrity;
+          console.log(`[Pipeline Integrity Recovery] Recovery bem-sucedido! Novo Score: ${integrity.score}/100`);
+        }
+      } catch (recoveryErr) {
+        console.warn(`[Pipeline Integrity Recovery] Recovery falhou, mantendo resultado anterior com flag INCOMPLETE_SUSPECTED:`, recoveryErr);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // EXECUÇÃO FASE 2: INTELIGÊNCIA EXECUTIVA (Máximo 2 chamadas / 30s cada)
+    // -------------------------------------------------------------------------
+    let phase2Result: {
+      summary: string;
+      highlights: string[];
+      keyDecisions: string[];
+      nextActions: string[];
+      isQuickDraft?: boolean;
+      quickDraft?: { formattedNotes: string; taskList: string[]; emailDraft: string };
+    } | null = null;
+
+    let p2Attempts = 0;
+    let p2Model = PRIMARY_GEMINI_MODEL;
+
+    const sanitization = sanitizeTranscript(phase1Result.transcript, phase1Result.duration || 0);
+    const transcriptForIntelligence = sanitization.sanitizedTranscript.length > 0 ? sanitization.sanitizedTranscript : phase1Result.transcript;
+
+    while (p2Attempts < MAX_PHASE2_CALLS && jobCallCount < MAX_TOTAL_GEMINI_CALLS_PER_JOB) {
+      p2Attempts++;
+      jobCallCount++;
+      const timeRemaining = globalJobDeadline - Date.now();
+      const currentTimeout = Math.min(PHASE2_TIMEOUT_MS, Math.max(10000, timeRemaining - 10000));
+
+      console.log(`[Pipeline Fase 2] Tentativa ${p2Attempts}/${MAX_PHASE2_CALLS} (Chamada global #${jobCallCount}) com ${p2Model} (timeout: ${currentTimeout / 1000}s)...`);
+
+      try {
+        phase2Result = await synthesizeMeetingIntelligence(
+          ai,
+          transcriptForIntelligence,
+          p2Model,
+          currentTimeout,
+          {
+            detailLevel,
+            language,
+            template,
+            tone,
+            customGuidelines,
+            customTerms,
+            manualNotes,
+            isQuickDraft
+          }
+        );
+        console.log(`[Pipeline Fase 2] Síntese executiva concluída com sucesso.`);
+        break;
+      } catch (err: any) {
+        console.warn(`[Pipeline Fase 2] Tentativa ${p2Attempts} falhou: ${err?.message || err}`);
+        const classified = classifyGeminiError(err);
+        if (!classified.isTransient || p2Attempts >= MAX_PHASE2_CALLS || jobCallCount >= MAX_TOTAL_GEMINI_CALLS_PER_JOB) {
+          throw err;
+        }
+        p2Model = FALLBACK_GEMINI_MODEL;
+      }
+    }
+
+    if (!phase2Result) {
+      throw new MeetingAnalysisError('EMPTY_RESPONSE', 'Não foi possível gerar a síntese executiva da reunião.');
+    }
+
+    // -------------------------------------------------------------------------
+    // CONSOLIDAÇÃO DO RELATÓRIO FINAL
+    // -------------------------------------------------------------------------
+    const finalReport: MeetingReport = {
+      summary: phase2Result.summary,
+      highlights: phase2Result.highlights || [],
+      keyDecisions: phase2Result.keyDecisions || [],
+      nextActions: phase2Result.nextActions || [],
+      transcript: transcriptForIntelligence,
+      transcriptIntegrity: integrity,
+      duration: phase1Result.duration,
+      isQuickDraft: phase2Result.isQuickDraft,
+      quickDraft: phase2Result.quickDraft
     };
 
-    // Attempt 1: Primary Model
-    try {
-      return await executeModelCall(primaryModel, 1);
-    } catch (err1: any) {
-      console.warn(`[Gemini Pipeline] Attempt 1 (${primaryModel}) failed: ${err1?.message || err1}`);
-      const classification = classifyGeminiError(err1);
-
-      // Permanent error: fail immediately (0 retry, 0 fallback)
-      if (!classification.isTransient) {
-        throw err1;
-      }
-
-      // Check if we hit global limit
-      if (totalCalls >= MAX_GEMINI_CALLS_PER_JOB) {
-        throw err1;
-      }
-
-      // If 429 with short backoff, wait before attempt 2
-      if (classification.retryAfterMs && classification.retryAfterMs > 0) {
-        console.log(`[Gemini Pipeline] Applying 429 backoff of ${classification.retryAfterMs}ms before attempt 2...`);
-        await new Promise(r => setTimeout(r, classification.retryAfterMs));
-      }
-
-      // Attempt 2: Fallback Model (or retry same model if specific backoff)
-      const attempt2Model = classification.shouldRetry ? primaryModel : fallbackModel;
-      console.log(`[Gemini Pipeline] Executing fallback attempt 2 with model: ${attempt2Model}`);
-      
-      try {
-        return await executeModelCall(attempt2Model, 2);
-      } catch (err2: any) {
-        console.error(`[Gemini Pipeline] Attempt 2 (${attempt2Model}) failed: ${err2?.message || err2}. Maximum calls (${MAX_GEMINI_CALLS_PER_JOB}) reached.`);
-        throw err2;
-      }
-    }
+    console.log(`[Gemini Pipeline] Job concluído com sucesso em ${jobCallCount} chamadas Gemini no total.`);
+    return finalReport;
   } finally {
     if (uploadResult) {
       try {
